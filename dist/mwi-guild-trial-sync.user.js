@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MWI 公会试炼资料同步助手
 // @namespace    https://greasyfork.org/users/1466859-adudu
-// @version      0.3.1
+// @version      0.3.2
 // @description  采集角色已有配装、技能与光环，选择战斗候选并安全同步到公会试炼服务。
 // @author       adudu
 // @license      MIT
@@ -10,6 +10,7 @@
 // @downloadURL  https://raw.githubusercontent.com/xiahuaaaa/mwi-guild-trial-helper/main/dist/mwi-guild-trial-sync.user.js
 // @updateURL    https://raw.githubusercontent.com/xiahuaaaa/mwi-guild-trial-helper/main/dist/mwi-guild-trial-sync.user.js
 // @match        https://*.milkywayidle.com/*
+// @match        https://www.milkywayidlecn.com/*
 // @grant        GM_getValue
 // @grant        GM_setValue
 // @grant        GM_xmlhttpRequest
