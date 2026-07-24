@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         MWI 公会试炼资料同步助手
 // @namespace    https://greasyfork.org/users/1466859-adudu
-// @version      0.3.3
-// @description  采集角色已有配装、技能与光环，选择战斗候选并安全同步到公会试炼服务。
+// @version      0.4.0
+// @description  TMD 公会专用：自动识别角色并同步全部配装、技能与光环。
 // @author       adudu
 // @license      MIT
 // @homepageURL  https://github.com/xiahuaaaa/mwi-guild-trial-helper
@@ -27,15 +27,15 @@
  * Data boundary:
  * - reads only the character, equipment, loadout and ability records required
  *   to assemble a guild-trial snapshot;
- * - sends data only after the player presses the sync button;
+ * - checks the detected character against the TMD roster before automatic sync;
  * - never includes cookies, login/session credentials or authorization data in
  *   the snapshot.
  */
 (function aduduGuildTrialSync() {
   "use strict";
   const MAX_COMBAT_CANDIDATES = 4;
+  const FIXED_GUILD_ID = "TMD";
   const DEFAULT_API_BASE = "https://adudu.tailab136f.ts.net";
-  const LEGACY_API_BASES = new Set(["https://xhymac-mini.tailab136f.ts.net"]);
   const PAGE_BRIDGE_CHANNEL = "adudu-mwi-guild-snapshot-v1";
   const UI_COLLAPSED_KEY = "uiCollapsed";
   const UI_POSITION_KEY = "uiCollapsedPosition";
@@ -49,13 +49,13 @@
   const state = {
     character: {},
     loadouts: [],
-    selected: new Set(),
     authorizedEquipment: [],
     skills: [],
     learnedAbilities: [],
     auras: [],
   };
   const hydration = { attempt: 0, timer: 0, characterId: "" };
+  const automaticSync = { timer: 0, running: false, lastSignature: "" };
 
   const values = (value) => Array.isArray(value) ? value : value instanceof Map ? [...value.values()] : value instanceof Set ? [...value.values()] : value && typeof value === "object" ? Object.values(value) : [];
   const object = (value) => value && typeof value === "object" && !Array.isArray(value) ? value : {};
@@ -396,7 +396,6 @@
   function resetCharacterData() {
     state.character = {};
     state.loadouts = [];
-    state.selected.clear();
     state.authorizedEquipment = [];
     state.skills = [];
     state.learnedAbilities = [];
@@ -444,6 +443,9 @@
   function builder() {
     return window.MwiTrialPayloadBuilder ?? localBuilder;
   }
+  function detectedMemberId() {
+    return String(state.character.name ?? state.character.characterName ?? state.character.displayName ?? "").trim();
+  }
   function payload() {
     hydrateFromGameCache();
     hydrateFromLiveGame();
@@ -458,9 +460,10 @@
       skills: state.skills,
       learnedAbilities: state.learnedAbilities,
       auras: state.auras,
-      memberId: GM_getValue("memberId", "") || undefined,
-      guildId: GM_getValue("guildId", "") || undefined,
-      selectedLoadoutIds: [...state.selected],
+      memberId: detectedMemberId() || undefined,
+      displayName: detectedMemberId() || undefined,
+      guildId: FIXED_GUILD_ID,
+      selectedLoadoutIds: [],
       capturedAt: new Date().toISOString(),
     });
   }
@@ -472,69 +475,67 @@
     anchor.click();
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   }
-  function configureUpload() {
-    const guildId = prompt("填写管理员提供的公会 ID", GM_getValue("guildId", ""));
-    if (guildId == null) return;
-    const memberId = prompt("填写游戏角色名（需与公会名单一致）", GM_getValue("memberId", state.character.memberId ?? state.character.characterId ?? state.character.id ?? ""));
-    if (memberId == null) return;
-    const memberToken = prompt("填写成员同步口令（仅保存在本机 Tampermonkey）", GM_getValue("memberToken", ""));
-    if (memberToken == null) return;
-    const savedApiBase = GM_getValue("apiBase", DEFAULT_API_BASE);
-    const currentApiBase = LEGACY_API_BASES.has(savedApiBase) ? DEFAULT_API_BASE : savedApiBase;
-    const apiBase = prompt("公会资料服务地址（通常保持默认）", currentApiBase);
-    if (apiBase == null) return;
-    if (!/^https?:\/\/[^/]+(?::\d+)?$/i.test(apiBase.trim())) {
-      setStatus("服务地址格式不正确，请填写不带路径的 HTTP(S) 地址。", true);
-      return;
-    }
-    GM_setValue("guildId", guildId.trim());
-    GM_setValue("memberId", memberId.trim());
-    GM_setValue("memberToken", memberToken.trim());
-    GM_setValue("apiBase", apiBase.trim().replace(/\/+$/, ""));
-    setStatus("连接设置已保存在当前浏览器。");
-  }
   function setStatus(message, isError = false) {
     const node = document.getElementById(UI.status);
     if (!node) return;
     node.textContent = message;
     node.style.color = isError ? "#ff9d9d" : "#9ff0b2";
   }
-  function upload() {
-    const snapshot = payload();
-    const token = GM_getValue("memberToken", "");
-    const savedApiBase = GM_getValue("apiBase", DEFAULT_API_BASE);
-    const apiBase = (LEGACY_API_BASES.has(savedApiBase) ? DEFAULT_API_BASE : savedApiBase).replace(/\/+$/, "");
-    if (apiBase !== savedApiBase) GM_setValue("apiBase", apiBase);
-    if (!snapshot.guildId || !snapshot.memberId || !token) {
-      setStatus("请先完成公会 ID、角色名和同步口令设置。", true);
-      return;
-    }
-    if (!snapshot.approvedBuilds.length) {
-      setStatus("请至少勾选一套资料完整的战斗配装。", true);
-      return;
-    }
-    setStatus("正在同步角色资料…");
-    GM_xmlhttpRequest({
-      method: "POST",
-      url: `${apiBase}/api/guilds/${encodeURIComponent(snapshot.guildId)}/members/${encodeURIComponent(snapshot.memberId)}/snapshots`,
-      headers: {
-        "content-type": "application/json",
-        authorization: `Bearer ${token}`,
-      },
-      data: JSON.stringify(snapshot),
+  function requestJson({ method, url, data }) {
+    return new Promise((resolve, reject) => GM_xmlhttpRequest({
+      method,
+      url,
+      headers: { "content-type": "application/json" },
+      data: data == null ? undefined : JSON.stringify(data),
       timeout: 15_000,
-      onload(response) {
-        if (response.status >= 200 && response.status < 300) {
-          setStatus("同步完成，公会端已收到本次角色资料。");
-          return;
-        }
+      onload: resolve,
+      ontimeout: () => reject(new Error("同步超时")),
+      onerror: () => reject(new Error("无法连接公会资料服务")),
+    }));
+  }
+  async function upload({ automatic = false } = {}) {
+    if (automaticSync.running) return;
+    const snapshot = payload();
+    if (!snapshot.memberId || snapshot.memberId === "unknown-member") {
+      setStatus("等待读取游戏角色名。", true);
+      return;
+    }
+    const signature = JSON.stringify({ memberId: snapshot.memberId, loadoutCatalog: snapshot.loadoutCatalog, skills: snapshot.skills, learnedAbilities: snapshot.learnedAbilities, auras: snapshot.auras });
+    if (automatic && signature === automaticSync.lastSignature) return;
+    automaticSync.running = true;
+    try {
+      setStatus(`正在检查 ${snapshot.memberId} 的 TMD 成员资格…`);
+      const eligibility = await requestJson({
+        method: "GET",
+        url: `${DEFAULT_API_BASE}/api/public/guilds/${FIXED_GUILD_ID}/members/${encodeURIComponent(snapshot.memberId)}/eligibility`,
+      });
+      const eligibilityBody = JSON.parse(eligibility.responseText || "{}");
+      if (eligibility.status !== 200 || eligibilityBody.eligible !== true) {
+        setStatus(`当前角色 ${snapshot.memberId} 不在 TMD 成员名单中，不会上传资料。`, true);
+        return;
+      }
+      setStatus("正在自动同步全部配装…");
+      const response = await requestJson({
+        method: "POST",
+        url: `${DEFAULT_API_BASE}/api/public/guilds/${FIXED_GUILD_ID}/members/${encodeURIComponent(snapshot.memberId)}/snapshots`,
+        data: snapshot,
+      });
+      if (response.status < 200 || response.status >= 300) {
         let detail = `HTTP ${response.status}`;
-        try { detail = JSON.parse(response.responseText)?.error?.message ?? detail; } catch { /* keep status only */ }
-        setStatus(`同步失败：${detail}`, true);
-      },
-      ontimeout() { setStatus("同步超时，请稍后重试或联系管理员。", true); },
-      onerror() { setStatus("无法连接公会资料服务。", true); },
-    });
+        try { detail = JSON.parse(response.responseText)?.error?.message ?? detail; } catch { /* keep status */ }
+        throw new Error(detail);
+      }
+      automaticSync.lastSignature = signature;
+      setStatus(`已自动同步 ${snapshot.loadoutCatalog.length} 套配装（${snapshot.memberId}）。`);
+    } catch (error) {
+      setStatus(`同步失败：${error.message}`, true);
+    } finally {
+      automaticSync.running = false;
+    }
+  }
+  function scheduleAutomaticUpload(delay = 800) {
+    clearTimeout(automaticSync.timer);
+    automaticSync.timer = setTimeout(() => upload({ automatic: true }), delay);
   }
   function refresh() {
     const list = document.getElementById(UI.list);
@@ -556,12 +557,6 @@
       String(entry.sourceLoadoutId ?? index + 1),
       entry,
     ]));
-    for (const id of [...state.selected]) {
-      const entry = catalogById.get(id);
-      if (!entry || entry.category !== "combat" || !entry.equipment?.length || !entry.abilities?.length || entry.issues?.length) {
-        state.selected.delete(id);
-      }
-    }
     list.replaceChildren(...state.loadouts.map((loadout, index) => {
       const id = String(loadout.loadoutId ?? loadout.loadout_id ?? loadout.id ?? index + 1);
       const actionTypeHrid = String(loadout.actionTypeHrid ?? loadout.action_type_hrid ?? "");
@@ -571,14 +566,12 @@
         && Boolean(catalogEntry?.equipment?.length)
         && Boolean(catalogEntry?.abilities?.length)
         && !catalogEntry?.issues?.length;
-      const selectable = category === "战斗" && simulationReady;
       const label = document.createElement("label");
-      const box = Object.assign(document.createElement("input"), { type: "checkbox", checked: state.selected.has(id), disabled: !selectable || (!state.selected.has(id) && state.selected.size >= MAX_COMBAT_CANDIDATES) });
-      box.addEventListener("change", () => { box.checked ? state.selected.add(id) : state.selected.delete(id); refresh(); });
       const suffix = category === "战斗" && !simulationReady ? "（缺少当前拥有的装备或技能）" : "";
-      label.append(box, ` [${category}] ${loadout.name ?? `Loadout ${index + 1}`}${suffix}`);
+      label.append(` [${category}] ${loadout.name ?? `Loadout ${index + 1}`}${suffix}`);
       return label;
     }));
+    if (hasCharacterData()) scheduleAutomaticUpload();
   }
   function actionButton(label, action) {
     const button = document.createElement("button");
@@ -606,7 +599,7 @@
     heading.textContent = "adudu · 公会试炼资料";
     const intro = document.createElement("p");
     intro.style.margin = "6px 0";
-    intro.textContent = "生活配装会一并存档；可另外勾选最多 4 套战斗候选。";
+    intro.textContent = "TMD 专用；自动同步全部战斗/生活配装，职业通过 QQ 机器人绑定。";
     const list = document.createElement("div");
     list.id = UI.list;
     const status = document.createElement("p");
@@ -616,8 +609,7 @@
     const actions = document.createElement("div");
     actions.style.cssText = "display:flex;gap:5px;flex-wrap:wrap";
     actions.append(
-      actionButton("连接设置", configureUpload),
-      actionButton("同步给公会", upload),
+      actionButton("立即同步", () => upload()),
       actionButton("导出备份", download),
     );
     content.append(heading, intro, list, status, actions);
