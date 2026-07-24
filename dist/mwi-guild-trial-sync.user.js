@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MWI 公会试炼资料同步助手
 // @namespace    https://greasyfork.org/users/1466859-adudu
-// @version      0.3.0
+// @version      0.3.1
 // @description  采集角色已有配装、技能与光环，选择战斗候选并安全同步到公会试炼服务。
 // @author       adudu
 // @license      MIT
@@ -36,6 +36,7 @@
   const DEFAULT_API_BASE = "https://adudu.tailab136f.ts.net";
   const LEGACY_API_BASES = new Set(["https://xhymac-mini.tailab136f.ts.net"]);
   const PAGE_BRIDGE_CHANNEL = "adudu-mwi-guild-snapshot-v1";
+  const UI_COLLAPSED_KEY = "uiCollapsed";
   const UI = Object.freeze({
     root: "adudu-guild-sync",
     list: "adudu-guild-sync-loadouts",
@@ -598,6 +599,7 @@
       "box-shadow:0 10px 28px #05091688", "font:13px/1.4 system-ui,sans-serif",
     ].join(";");
 
+    const content = document.createElement("div");
     const heading = document.createElement("strong");
     heading.textContent = "adudu · 公会试炼资料";
     const intro = document.createElement("p");
@@ -616,8 +618,39 @@
       actionButton("同步给公会", upload),
       actionButton("导出备份", download),
     );
-    panel.append(heading, intro, list, status, actions);
+    content.append(heading, intro, list, status, actions);
+
+    const toggle = document.createElement("button");
+    toggle.type = "button";
+    toggle.style.cssText = "position:absolute;top:7px;right:7px;border:0;background:#344879;color:#fff;border-radius:7px;min-width:26px;height:26px;cursor:pointer;font:700 17px/1 system-ui,sans-serif";
+    const applyCollapsed = (collapsed) => {
+      panel.dataset.collapsed = collapsed ? "true" : "false";
+      content.hidden = collapsed;
+      toggle.textContent = collapsed ? "🐸" : "−";
+      toggle.title = collapsed ? "展开公会资料同步助手" : "缩小公会资料同步助手";
+      toggle.setAttribute("aria-label", toggle.title);
+      if (collapsed) {
+        panel.style.width = "46px";
+        panel.style.height = "46px";
+        panel.style.padding = "0";
+        panel.style.borderRadius = "50%";
+        toggle.style.cssText = "position:absolute;inset:0;width:46px;height:46px;border:0;background:transparent;cursor:pointer;font:25px/46px system-ui,sans-serif;padding:0";
+      } else {
+        panel.style.width = "min(290px,calc(100vw - 28px))";
+        panel.style.height = "auto";
+        panel.style.padding = "12px";
+        panel.style.borderRadius = "10px";
+        toggle.style.cssText = "position:absolute;top:7px;right:7px;border:0;background:#344879;color:#fff;border-radius:7px;min-width:26px;height:26px;cursor:pointer;font:700 17px/1 system-ui,sans-serif";
+      }
+    };
+    toggle.addEventListener("click", () => {
+      const collapsed = panel.dataset.collapsed !== "true";
+      GM_setValue(UI_COLLAPSED_KEY, collapsed);
+      applyCollapsed(collapsed);
+    });
+    panel.append(content, toggle);
     document.body.append(panel);
+    applyCollapsed(Boolean(GM_getValue(UI_COLLAPSED_KEY, false)));
     installPageBridge();
     requestCharacterData({ reset: true });
     setInterval(() => {
