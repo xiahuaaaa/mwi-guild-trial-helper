@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MWI 公会试炼资料同步助手
 // @namespace    https://greasyfork.org/users/1466859-adudu
-// @version      0.3.2
+// @version      0.3.3
 // @description  采集角色已有配装、技能与光环，选择战斗候选并安全同步到公会试炼服务。
 // @author       adudu
 // @license      MIT
@@ -38,6 +38,7 @@
   const LEGACY_API_BASES = new Set(["https://xhymac-mini.tailab136f.ts.net"]);
   const PAGE_BRIDGE_CHANNEL = "adudu-mwi-guild-snapshot-v1";
   const UI_COLLAPSED_KEY = "uiCollapsed";
+  const UI_POSITION_KEY = "uiCollapsedPosition";
   const UI = Object.freeze({
     root: "adudu-guild-sync",
     list: "adudu-guild-sync-loadouts",
@@ -624,6 +625,30 @@
     const toggle = document.createElement("button");
     toggle.type = "button";
     toggle.style.cssText = "position:absolute;top:7px;right:7px;border:0;background:#344879;color:#fff;border-radius:7px;min-width:26px;height:26px;cursor:pointer;font:700 17px/1 system-ui,sans-serif";
+    const clampFrogPosition = (position) => {
+      const margin = 8;
+      const width = panel.offsetWidth || 48;
+      const height = panel.offsetHeight || 48;
+      const maximumX = Math.max(margin, window.innerWidth - width - margin);
+      const maximumY = Math.max(margin, window.innerHeight - height - margin);
+      return {
+        x: Math.round(Math.min(Math.max(Number(position?.x) || margin, margin), maximumX)),
+        y: Math.round(Math.min(Math.max(Number(position?.y) || margin, margin), maximumY)),
+      };
+    };
+    const placeCollapsedFrog = (savedPosition) => {
+      const fallback = {
+        x: window.innerWidth - (panel.offsetWidth || 48) - 14,
+        y: window.innerHeight - (panel.offsetHeight || 48) - 14,
+      };
+      const validSavedPosition = Number.isFinite(Number(savedPosition?.x)) && Number.isFinite(Number(savedPosition?.y));
+      const position = clampFrogPosition(validSavedPosition ? savedPosition : fallback);
+      panel.style.left = `${position.x}px`;
+      panel.style.top = `${position.y}px`;
+      panel.style.right = "auto";
+      panel.style.bottom = "auto";
+      return position;
+    };
     const applyCollapsed = (collapsed) => {
       panel.dataset.collapsed = collapsed ? "true" : "false";
       content.hidden = collapsed;
@@ -635,8 +660,13 @@
         panel.style.height = "46px";
         panel.style.padding = "0";
         panel.style.borderRadius = "50%";
-        toggle.style.cssText = "position:absolute;inset:0;width:46px;height:46px;border:0;background:transparent;cursor:pointer;font:25px/46px system-ui,sans-serif;padding:0";
+        toggle.style.cssText = "position:absolute;inset:0;width:46px;height:46px;border:0;background:transparent;cursor:grab;font:25px/46px system-ui,sans-serif;padding:0;touch-action:none;user-select:none";
+        placeCollapsedFrog(GM_getValue(UI_POSITION_KEY, null));
       } else {
+        panel.style.left = "auto";
+        panel.style.top = "auto";
+        panel.style.right = "14px";
+        panel.style.bottom = "14px";
         panel.style.width = "min(290px,calc(100vw - 28px))";
         panel.style.height = "auto";
         panel.style.padding = "12px";
@@ -644,7 +674,57 @@
         toggle.style.cssText = "position:absolute;top:7px;right:7px;border:0;background:#344879;color:#fff;border-radius:7px;min-width:26px;height:26px;cursor:pointer;font:700 17px/1 system-ui,sans-serif";
       }
     };
+    let dragState = null;
+    let suppressNextClick = false;
+    toggle.addEventListener("pointerdown", (event) => {
+      if (panel.dataset.collapsed !== "true") return;
+      event.preventDefault();
+      const position = clampFrogPosition({
+        x: Number.parseFloat(panel.style.left),
+        y: Number.parseFloat(panel.style.top),
+      });
+      dragState = {
+        pointerId: event.pointerId,
+        startClientX: event.clientX,
+        startClientY: event.clientY,
+        startX: position.x,
+        startY: position.y,
+        moved: false,
+      };
+      toggle.setPointerCapture?.(event.pointerId);
+      toggle.style.cursor = "grabbing";
+    });
+    toggle.addEventListener("pointermove", (event) => {
+      if (!dragState || event.pointerId !== dragState.pointerId) return;
+      const deltaX = event.clientX - dragState.startClientX;
+      const deltaY = event.clientY - dragState.startClientY;
+      if (Math.hypot(deltaX, deltaY) >= 4) dragState.moved = true;
+      if (dragState.moved) placeCollapsedFrog({
+        x: dragState.startX + deltaX,
+        y: dragState.startY + deltaY,
+      });
+    });
+    const finishDrag = (event) => {
+      if (!dragState || event.pointerId !== dragState.pointerId) return;
+      if (dragState.moved) {
+        const position = placeCollapsedFrog({
+          x: Number.parseFloat(panel.style.left),
+          y: Number.parseFloat(panel.style.top),
+        });
+        GM_setValue(UI_POSITION_KEY, position);
+        suppressNextClick = true;
+      }
+      toggle.releasePointerCapture?.(event.pointerId);
+      toggle.style.cursor = "grab";
+      dragState = null;
+    };
+    toggle.addEventListener("pointerup", finishDrag);
+    toggle.addEventListener("pointercancel", finishDrag);
     toggle.addEventListener("click", () => {
+      if (suppressNextClick) {
+        suppressNextClick = false;
+        return;
+      }
       const collapsed = panel.dataset.collapsed !== "true";
       GM_setValue(UI_COLLAPSED_KEY, collapsed);
       applyCollapsed(collapsed);
@@ -652,6 +732,10 @@
     panel.append(content, toggle);
     document.body.append(panel);
     applyCollapsed(Boolean(GM_getValue(UI_COLLAPSED_KEY, false)));
+    window.addEventListener("resize", () => {
+      if (panel.dataset.collapsed !== "true") return;
+      GM_setValue(UI_POSITION_KEY, placeCollapsedFrog(GM_getValue(UI_POSITION_KEY, null)));
+    });
     installPageBridge();
     requestCharacterData({ reset: true });
     setInterval(() => {
