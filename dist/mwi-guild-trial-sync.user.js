@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         MWI 公会试炼资料同步助手
 // @namespace    https://greasyfork.org/users/1466859-adudu
-// @version      0.4.0
-// @description  TMD 公会专用：自动识别角色并同步全部配装、技能与光环。
+// @version      0.4.1
+// @description  TMD 公会专用：自动同步成员名单、全部配装、技能与光环。
 // @author       adudu
 // @license      MIT
 // @homepageURL  https://github.com/xiahuaaaa/mwi-guild-trial-helper
@@ -25,8 +25,8 @@
  * Independent MIT-licensed implementation by adudu.
  *
  * Data boundary:
- * - reads only the character, equipment, loadout and ability records required
- *   to assemble a guild-trial snapshot;
+ * - reads only the character, guild roster, equipment, loadout and ability
+ *   records required by the TMD guild tools;
  * - checks the detected character against the TMD roster before automatic sync;
  * - never includes cookies, login/session credentials or authorization data in
  *   the snapshot.
@@ -48,6 +48,9 @@
   const HYDRATION_RETRY_DELAYS_MS = [250, 500, 1000, 2000, 4000, 8000, 12000];
   const state = {
     character: {},
+    guild: {},
+    guildCharacterMap: {},
+    guildSharableCharacterMap: {},
     loadouts: [],
     authorizedEquipment: [],
     skills: [],
@@ -58,6 +61,7 @@
   const automaticSync = { timer: 0, running: false, lastSignature: "" };
 
   const values = (value) => Array.isArray(value) ? value : value instanceof Map ? [...value.values()] : value instanceof Set ? [...value.values()] : value && typeof value === "object" ? Object.values(value) : [];
+  const entries = (value) => value instanceof Map ? [...value.entries()] : value && typeof value === "object" ? Object.entries(value) : [];
   const object = (value) => value && typeof value === "object" && !Array.isArray(value) ? value : {};
   const parseJson = (value) => {
     try {
@@ -91,6 +95,14 @@
     const characterInfo = object(data.characterInfo);
     const character = data.character ?? characterInfo.character;
     if (character && typeof character === "object") state.character = character;
+    const guild = data.guild ?? characterInfo.guild;
+    if (guild && typeof guild === "object") state.guild = { ...state.guild, ...guild };
+    const guildName = data.guildName ?? character?.guildName ?? characterInfo.character?.guildName;
+    if (typeof guildName === "string" && guildName.trim()) state.guild.name = guildName.trim();
+    const guildCharacterMap = data.guildCharacterMap ?? data.guildCharacterDict;
+    if (guildCharacterMap && typeof guildCharacterMap === "object") state.guildCharacterMap = guildCharacterMap;
+    const guildSharableCharacterMap = data.guildSharableCharacterMap ?? data.guildSharableCharacterDict;
+    if (guildSharableCharacterMap && typeof guildSharableCharacterMap === "object") state.guildSharableCharacterMap = guildSharableCharacterMap;
     const equipment = data.equipment ?? data.inventory ?? data.characterItems ?? data.characterItemMap
       ?? characterInfo.characterItems ?? characterInfo.characterItemMap;
     if (equipment) state.authorizedEquipment = mergeAuthorizedEquipment(state.authorizedEquipment, equipment);
@@ -152,7 +164,7 @@
         if (!fiber || typeof fiber !== "object" || seen.has(fiber)) continue;
         seen.add(fiber);
         const candidate = fiber.stateNode?.state;
-        if (candidate && typeof candidate === "object" && (candidate.characterLoadoutDict || candidate.characterLoadoutMap || candidate.characterLabyrinth || candidate.combatUnit || candidate.gameConn)) {
+        if (candidate && typeof candidate === "object" && (candidate.characterLoadoutDict || candidate.characterLoadoutMap || candidate.characterLabyrinth || candidate.combatUnit || candidate.gameConn || candidate.guildCharacterMap || candidate.guildSharableCharacterMap || candidate.guild)) {
           applyCharacterTree(candidate);
           refresh();
           return hasCharacterData();
@@ -175,7 +187,7 @@
       const { value, depth } = queue.shift();
       if (!value || typeof value !== "object" || seen.has(value)) continue;
       seen.add(value); visited += 1;
-      if (value.character || value.characterInfo || value.characterLoadoutDict || value.characterLoadoutMap || value.characterItems || value.characterSkills) applyCharacterData(value);
+      if (value.character || value.characterInfo || value.characterLoadoutDict || value.characterLoadoutMap || value.characterItems || value.characterSkills || value.guildCharacterMap || value.guildSharableCharacterMap || value.guild) applyCharacterData(value);
       if (depth >= 5) continue;
       for (const key of Object.keys(value)) {
         if (/token|authorization|cookie|secret|password|credential|session/i.test(key)) continue;
@@ -207,11 +219,17 @@
         return result;
       };
       const isConsumable = (value) => /food|drink|consumable|potion/i.test(value);
-      const equipment = (items) => list(items).flatMap((item) => {
-        const locationHrid = string(item.locationHrid ?? item.itemLocationHrid ?? item.location_hrid ?? item.slot);
-        const itemHrid = string(item.itemHrid ?? item.item_hrid ?? item.hrid);
-        return locationHrid && itemHrid && !isConsumable(`${locationHrid} ${itemHrid}`) ? [{ locationHrid, itemHrid, enhancementLevel: count(item.enhancementLevel ?? item.enhancement_level) }] : [];
-      });
+      const equipment = (items) => {
+        const byLocation = new Map();
+        for (const item of list(items)) {
+          const locationHrid = string(item.locationHrid ?? item.itemLocationHrid ?? item.location_hrid ?? item.slot);
+          const itemHrid = string(item.itemHrid ?? item.item_hrid ?? item.hrid);
+          if (locationHrid && itemHrid && !isConsumable(`${locationHrid} ${itemHrid}`)) {
+            byLocation.set(locationHrid, { locationHrid, itemHrid, enhancementLevel: count(item.enhancementLevel ?? item.enhancement_level) });
+          }
+        }
+        return [...byLocation.values()].sort((left, right) => left.locationHrid.localeCompare(right.locationHrid)).slice(0, 20);
+      };
       const abilities = (items) => list(items).slice(0, 5).flatMap((item, slot) => {
         const abilityHrid = string(item.abilityHrid ?? item.ability_hrid ?? item.hrid);
         if (!abilityHrid || isConsumable(abilityHrid)) return [];
@@ -259,8 +277,8 @@
         return { buildId: string(loadout.buildId) || `loadout:${string(sourceLoadoutId) || index + 1}`, ...(sourceLoadoutId == null ? {} : { sourceLoadoutId: count(sourceLoadoutId) }), name: string(loadout.name) || `Combat loadout ${index + 1}`, approvedByMember: true, capturedAt, equipment: resolved.equipment, abilities: slots, simulationReady: true, issues: [] };
       }).filter(Boolean);
       const loadoutCatalog = list(input.loadouts).slice(0, 64).map((loadout, index) => {
-        const actionTypeHrid = string(loadout.actionTypeHrid ?? loadout.action_type_hrid) || "/action_types/unknown";
-        const category = actionTypeHrid === "/action_types/combat" ? "combat" : actionTypeHrid.startsWith("/action_types/") ? "profession" : "unknown";
+        const actionTypeHrid = string(loadout.actionTypeHrid ?? loadout.action_type_hrid) || "/action_types/all";
+        const category = actionTypeHrid === "/action_types/combat" ? "combat" : actionTypeHrid === "/action_types/all" ? "all" : actionTypeHrid.startsWith("/action_types/") ? "profession" : "unknown";
         const resolved = resolveOwnedEquipment(equipment(loadout.equipment ?? loadout.items ?? loadout.loadoutItems));
         const slots = abilities(loadout.abilities ?? loadout.combatAbilities ?? loadout.combat_abilities);
         const sourceLoadoutId = loadout.loadoutId ?? loadout.loadout_id ?? loadout.id;
@@ -295,6 +313,7 @@
   function pageBridgeMain(channel) {
     const values = (value) => Array.isArray(value) ? value : value instanceof Map ? [...value.values()] : value && typeof value === "object" ? Object.values(value) : [];
     const entries = (value) => value instanceof Map ? [...value.entries()] : value && typeof value === "object" ? Object.entries(value) : [];
+    const dictionary = (value) => value instanceof Map ? Object.fromEntries(value) : value && typeof value === "object" ? value : {};
     const compact = (gameState) => {
       const character = gameState?.character || gameState?.currentCharacter || gameState?.playerCharacter || {};
       const id = character?.id ?? character?.characterId ?? gameState?.characterId;
@@ -337,7 +356,16 @@
         };
       });
       return {
-        character: { id, name, guildId: character?.guildId ?? gameState?.guildId },
+        character: {
+          id,
+          name,
+          guildId: character?.guildId ?? character?.guildID ?? gameState?.guildId,
+          guildName: character?.guildName ?? gameState?.guildName ?? gameState?.guild?.name,
+        },
+        guild: gameState?.guild,
+        guildName: character?.guildName ?? gameState?.guildName ?? gameState?.guild?.name,
+        guildCharacterMap: dictionary(gameState?.guildCharacterMap || gameState?.guildCharacterDict),
+        guildSharableCharacterMap: dictionary(gameState?.guildSharableCharacterMap || gameState?.guildSharableCharacterDict),
         characterSkills: values(gameState?.characterSkills || gameState?.characterSkillMap || gameState?.characterSkillDict),
         characterItems: [
           ...characterItems,
@@ -358,7 +386,10 @@
         seen.add(fiber);
         const result = compact(fiber.stateNode?.state);
         if (result) {
-          const next = result.loadouts.length * 10000 + result.characterItems.length + result.characterSkills.length;
+          const next = result.loadouts.length * 10000
+            + Object.keys(result.guildCharacterMap).length * 100
+            + result.characterItems.length
+            + result.characterSkills.length;
           if (next > score) { best = result; score = next; }
         }
         if (fiber.return) queue.push(fiber.return);
@@ -395,6 +426,9 @@
 
   function resetCharacterData() {
     state.character = {};
+    state.guild = {};
+    state.guildCharacterMap = {};
+    state.guildSharableCharacterMap = {};
     state.loadouts = [];
     state.authorizedEquipment = [];
     state.skills = [];
@@ -445,6 +479,48 @@
   }
   function detectedMemberId() {
     return String(state.character.name ?? state.character.characterName ?? state.character.displayName ?? "").trim();
+  }
+  function detectedGameGuild() {
+    const id = Number(state.guild.id ?? state.guild.guildId ?? state.character.guildId ?? state.character.guildID);
+    const name = String(state.guild.name ?? state.guild.guildName ?? state.character.guildName ?? "").trim();
+    return { id: Number.isInteger(id) && id > 0 ? id : null, name };
+  }
+  function confirmedTmdGuild() {
+    const guild = detectedGameGuild();
+    const characterGuildId = Number(state.character.guildId ?? state.character.guildID);
+    return guild.name === FIXED_GUILD_ID
+      && guild.id != null
+      && (!Number.isInteger(characterGuildId) || characterGuildId === guild.id);
+  }
+  function guildRosterPayload() {
+    if (!confirmedTmdGuild()) return null;
+    const guild = detectedGameGuild();
+    const sharable = state.guildSharableCharacterMap;
+    const members = entries(state.guildCharacterMap).flatMap(([mapKey, guildCharacter]) => {
+      const playerId = Number(guildCharacter?.characterID ?? guildCharacter?.characterId ?? mapKey);
+      if (!Number.isInteger(playerId) || playerId <= 0) return [];
+      const shared = sharable instanceof Map
+        ? sharable.get(mapKey) ?? sharable.get(playerId) ?? sharable.get(String(playerId)) ?? {}
+        : sharable?.[mapKey] ?? sharable?.[playerId] ?? sharable?.[String(playerId)] ?? {};
+      const memberId = String(shared?.name ?? guildCharacter?.name ?? "").trim();
+      if (!memberId) return [];
+      return [{
+        playerId,
+        memberId,
+        status: String(guildCharacter?.status ?? "ACTIVE").trim() || "ACTIVE",
+        guildRole: String(guildCharacter?.role ?? "").trim(),
+      }];
+    });
+    const reporterPlayerId = Number(state.character.id ?? state.character.characterId);
+    const reporterMemberId = detectedMemberId();
+    if (!members.length || !Number.isInteger(reporterPlayerId) || reporterPlayerId <= 0) return null;
+    if (!members.some((member) => member.playerId === reporterPlayerId && member.memberId === reporterMemberId)) return null;
+    return {
+      guild: { id: guild.id, name: guild.name },
+      reporter: { playerId: reporterPlayerId, memberId: reporterMemberId },
+      members,
+      capturedAt: new Date().toISOString(),
+    };
   }
   function payload() {
     hydrateFromGameCache();
@@ -500,7 +576,12 @@
       setStatus("等待读取游戏角色名。", true);
       return;
     }
-    const signature = JSON.stringify({ memberId: snapshot.memberId, loadoutCatalog: snapshot.loadoutCatalog, skills: snapshot.skills, learnedAbilities: snapshot.learnedAbilities, auras: snapshot.auras });
+    if (!confirmedTmdGuild()) {
+      setStatus("尚未从游戏确认当前角色属于 TMD；请打开公会界面后重试。", true);
+      return;
+    }
+    const roster = guildRosterPayload();
+    const signature = JSON.stringify({ memberId: snapshot.memberId, loadoutCatalog: snapshot.loadoutCatalog, skills: snapshot.skills, learnedAbilities: snapshot.learnedAbilities, auras: snapshot.auras, roster });
     if (automatic && signature === automaticSync.lastSignature) return;
     automaticSync.running = true;
     try {
@@ -514,6 +595,22 @@
         setStatus(`当前角色 ${snapshot.memberId} 不在 TMD 成员名单中，不会上传资料。`, true);
         return;
       }
+      let rosterSummary = "";
+      if (eligibilityBody.rosterSyncAllowed === true && roster) {
+        setStatus(`正在同步 TMD 当前名单（${roster.members.length} 人）…`);
+        const rosterResponse = await requestJson({
+          method: "POST",
+          url: `${DEFAULT_API_BASE}/api/public/guilds/${FIXED_GUILD_ID}/roster`,
+          data: roster,
+        });
+        if (rosterResponse.status >= 200 && rosterResponse.status < 300) {
+          rosterSummary = `名单 ${roster.members.length} 人、`;
+        } else if (rosterResponse.status !== 429) {
+          let rosterDetail = `HTTP ${rosterResponse.status}`;
+          try { rosterDetail = JSON.parse(rosterResponse.responseText)?.error?.message ?? rosterDetail; } catch { /* keep status */ }
+          rosterSummary = `名单未更新（${rosterDetail}）、`;
+        }
+      }
       setStatus("正在自动同步全部配装…");
       const response = await requestJson({
         method: "POST",
@@ -526,7 +623,7 @@
         throw new Error(detail);
       }
       automaticSync.lastSignature = signature;
-      setStatus(`已自动同步 ${snapshot.loadoutCatalog.length} 套配装（${snapshot.memberId}）。`);
+      setStatus(`已同步${rosterSummary}${snapshot.loadoutCatalog.length} 套配装（${snapshot.memberId}）。`);
     } catch (error) {
       setStatus(`同步失败：${error.message}`, true);
     } finally {
@@ -560,7 +657,13 @@
     list.replaceChildren(...state.loadouts.map((loadout, index) => {
       const id = String(loadout.loadoutId ?? loadout.loadout_id ?? loadout.id ?? index + 1);
       const actionTypeHrid = String(loadout.actionTypeHrid ?? loadout.action_type_hrid ?? "");
-      const category = actionTypeHrid === "/action_types/combat" ? "战斗" : actionTypeHrid.startsWith("/action_types/") ? "生活" : "未分类";
+      const category = actionTypeHrid === "/action_types/combat"
+        ? "战斗"
+        : !actionTypeHrid || actionTypeHrid === "/action_types/all"
+          ? "所有行动"
+          : actionTypeHrid.startsWith("/action_types/")
+            ? "生活"
+            : "未识别";
       const catalogEntry = catalogById.get(id);
       const simulationReady = category === "战斗"
         && Boolean(catalogEntry?.equipment?.length)
@@ -599,7 +702,7 @@
     heading.textContent = "adudu · 公会试炼资料";
     const intro = document.createElement("p");
     intro.style.margin = "6px 0";
-    intro.textContent = "TMD 专用；自动同步全部战斗/生活配装，职业通过 QQ 机器人绑定。";
+    intro.textContent = "TMD 专用；打开公会界面后自动同步当前名单及全部配装，职业通过 QQ 机器人绑定。";
     const list = document.createElement("div");
     list.id = UI.list;
     const status = document.createElement("p");
