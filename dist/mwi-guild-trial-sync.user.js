@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         MWI 公会试炼资料同步助手
 // @namespace    https://greasyfork.org/users/1466859-adudu
-// @version      0.4.2
-// @description  TMD 公会专用：自动同步成员名单、全部配装、技能与光环。
+// @version      0.5.0
+// @description  TMD 公会专用：自动同步成员名单、试炼报名、全部配装、技能与光环。
 // @author       adudu
 // @license      MIT
 // @homepageURL  https://github.com/xiahuaaaa/mwi-guild-trial-helper
@@ -51,6 +51,8 @@
     guild: {},
     guildCharacterMap: {},
     guildSharableCharacterMap: {},
+    guildTrialSignupLevelMap: {},
+    guildWeeklyTrialSet: {},
     loadouts: [],
     authorizedEquipment: [],
     skills: [],
@@ -103,6 +105,10 @@
     if (guildCharacterMap && typeof guildCharacterMap === "object") state.guildCharacterMap = guildCharacterMap;
     const guildSharableCharacterMap = data.guildSharableCharacterMap ?? data.guildSharableCharacterDict;
     if (guildSharableCharacterMap && typeof guildSharableCharacterMap === "object") state.guildSharableCharacterMap = guildSharableCharacterMap;
+    const guildTrialSignupLevelMap = data.guildTrialSignupLevelMap ?? data.guildTrialSignupLevelDict;
+    if (guildTrialSignupLevelMap && typeof guildTrialSignupLevelMap === "object") state.guildTrialSignupLevelMap = guildTrialSignupLevelMap;
+    const guildWeeklyTrialSet = data.guildWeeklyTrialSet ?? data.weeklyGuildTrialSet;
+    if (guildWeeklyTrialSet && typeof guildWeeklyTrialSet === "object") state.guildWeeklyTrialSet = guildWeeklyTrialSet;
     const equipment = data.equipment ?? data.inventory ?? data.characterItems ?? data.characterItemMap
       ?? characterInfo.characterItems ?? characterInfo.characterItemMap;
     if (equipment) state.authorizedEquipment = mergeAuthorizedEquipment(state.authorizedEquipment, equipment);
@@ -164,7 +170,7 @@
         if (!fiber || typeof fiber !== "object" || seen.has(fiber)) continue;
         seen.add(fiber);
         const candidate = fiber.stateNode?.state;
-        if (candidate && typeof candidate === "object" && (candidate.characterLoadoutDict || candidate.characterLoadoutMap || candidate.characterLabyrinth || candidate.combatUnit || candidate.gameConn || candidate.guildCharacterMap || candidate.guildSharableCharacterMap || candidate.guild)) {
+        if (candidate && typeof candidate === "object" && (candidate.characterLoadoutDict || candidate.characterLoadoutMap || candidate.characterLabyrinth || candidate.combatUnit || candidate.gameConn || candidate.guildCharacterMap || candidate.guildSharableCharacterMap || candidate.guildTrialSignupLevelDict || candidate.guildWeeklyTrialSet || candidate.guild)) {
           applyCharacterTree(candidate);
           refresh();
           return hasCharacterData();
@@ -187,7 +193,7 @@
       const { value, depth } = queue.shift();
       if (!value || typeof value !== "object" || seen.has(value)) continue;
       seen.add(value); visited += 1;
-      if (value.character || value.characterInfo || value.characterLoadoutDict || value.characterLoadoutMap || value.characterItems || value.characterSkills || value.guildCharacterMap || value.guildSharableCharacterMap || value.guild) applyCharacterData(value);
+      if (value.character || value.characterInfo || value.characterLoadoutDict || value.characterLoadoutMap || value.characterItems || value.characterSkills || value.guildCharacterMap || value.guildSharableCharacterMap || value.guildTrialSignupLevelDict || value.guildWeeklyTrialSet || value.guild) applyCharacterData(value);
       if (depth >= 5) continue;
       for (const key of Object.keys(value)) {
         if (/token|authorization|cookie|secret|password|credential|session/i.test(key)) continue;
@@ -366,6 +372,8 @@
         guildName: character?.guildName ?? gameState?.guildName ?? gameState?.guild?.name,
         guildCharacterMap: dictionary(gameState?.guildCharacterMap || gameState?.guildCharacterDict),
         guildSharableCharacterMap: dictionary(gameState?.guildSharableCharacterMap || gameState?.guildSharableCharacterDict),
+        guildTrialSignupLevelMap: dictionary(gameState?.guildTrialSignupLevelMap || gameState?.guildTrialSignupLevelDict),
+        guildWeeklyTrialSet: gameState?.guildWeeklyTrialSet || gameState?.weeklyGuildTrialSet || {},
         characterSkills: values(gameState?.characterSkills || gameState?.characterSkillMap || gameState?.characterSkillDict),
         characterItems: [
           ...characterItems,
@@ -388,6 +396,7 @@
         if (result) {
           const next = result.loadouts.length * 10000
             + Object.keys(result.guildCharacterMap).length * 100
+            + Object.keys(result.guildTrialSignupLevelMap).length * 10
             + result.characterItems.length
             + result.characterSkills.length;
           if (next > score) { best = result; score = next; }
@@ -429,6 +438,8 @@
     state.guild = {};
     state.guildCharacterMap = {};
     state.guildSharableCharacterMap = {};
+    state.guildTrialSignupLevelMap = {};
+    state.guildWeeklyTrialSet = {};
     state.loadouts = [];
     state.authorizedEquipment = [];
     state.skills = [];
@@ -522,6 +533,82 @@
       capturedAt: new Date().toISOString(),
     };
   }
+  const COMBAT_TRIAL_NAMES = Object.freeze({
+    "/guild_combat/badger": "试炼獾",
+    "/guild_combat/chameleon": "试炼变色龙",
+    "/guild_combat/jellyfish": "试炼水母",
+    "/guild_combat/hedgehog": "试炼刺猬",
+    "/guild_combat/swarm": "试炼虫群",
+  });
+  function currentGuildWeekStart() {
+    const date = new Date();
+    const daysSinceFriday = (date.getUTCDay() + 2) % 7;
+    date.setUTCDate(date.getUTCDate() - daysSinceFriday);
+    date.setUTCHours(0, 0, 0, 0);
+    return date;
+  }
+  function currentWeekSignup(guildCharacter) {
+    const value = guildCharacter?.signupWeekStartAt;
+    if (value == null || value === "") return true;
+    const timestamp = typeof value === "number" ? value : Date.parse(value);
+    return Number.isFinite(timestamp)
+      && Math.abs(timestamp - currentGuildWeekStart().getTime()) < 12 * 60 * 60 * 1000;
+  }
+  function guildTrialRegistrationPayload() {
+    if (!confirmedTmdGuild()) return null;
+    const guild = detectedGameGuild();
+    const sharable = state.guildSharableCharacterMap;
+    const signupLevels = state.guildTrialSignupLevelMap;
+    const rows = entries(state.guildCharacterMap).flatMap(([mapKey, guildCharacter]) => {
+      const trialHrid = String(guildCharacter?.signedUpCombatTrialHrid ?? "").trim();
+      if (!Object.hasOwn(COMBAT_TRIAL_NAMES, trialHrid) || !currentWeekSignup(guildCharacter)) return [];
+      const playerId = Number(guildCharacter?.characterID ?? guildCharacter?.characterId ?? mapKey);
+      if (!Number.isInteger(playerId) || playerId <= 0) return [];
+      const shared = sharable instanceof Map
+        ? sharable.get(mapKey) ?? sharable.get(playerId) ?? sharable.get(String(playerId)) ?? {}
+        : sharable?.[mapKey] ?? sharable?.[playerId] ?? sharable?.[String(playerId)] ?? {};
+      const memberId = String(shared?.name ?? guildCharacter?.name ?? "").trim();
+      if (!memberId) return [];
+      const levelRow = signupLevels instanceof Map
+        ? signupLevels.get(mapKey) ?? signupLevels.get(playerId) ?? signupLevels.get(String(playerId)) ?? {}
+        : signupLevels?.[mapKey] ?? signupLevels?.[playerId] ?? signupLevels?.[String(playerId)] ?? {};
+      return [{
+        trialHrid,
+        playerId,
+        memberId,
+        roleHrid: String(guildCharacter?.signedUpCombatRoleHrid ?? "").trim(),
+        level: Math.max(0, Math.trunc(Number(levelRow?.combatLevel) || 0)),
+      }];
+    });
+    const configuredTrialHrids = values(state.guildWeeklyTrialSet?.combatHrids)
+      .map(String)
+      .filter((hrid) => Object.hasOwn(COMBAT_TRIAL_NAMES, hrid));
+    const trialHrids = [...new Set([
+      ...configuredTrialHrids,
+      ...rows.map((row) => row.trialHrid),
+    ])];
+    const reporterPlayerId = Number(state.character.id ?? state.character.characterId);
+    const reporterMemberId = detectedMemberId();
+    if (!trialHrids.length || !Number.isInteger(reporterPlayerId) || reporterPlayerId <= 0) return null;
+    return {
+      guild: { id: guild.id, name: guild.name },
+      reporter: { playerId: reporterPlayerId, memberId: reporterMemberId },
+      weekStartAt: currentGuildWeekStart().toISOString(),
+      trials: trialHrids.map((trialHrid) => {
+        const members = rows
+          .filter((row) => row.trialHrid === trialHrid)
+          .map(({ trialHrid: _trialHrid, ...member }) => member)
+          .sort((left, right) => right.level - left.level || left.memberId.localeCompare(right.memberId));
+        return {
+          trialHrid,
+          trialName: COMBAT_TRIAL_NAMES[trialHrid],
+          registeredCount: members.length,
+          members,
+        };
+      }),
+      capturedAt: new Date().toISOString(),
+    };
+  }
   function payload() {
     hydrateFromGameCache();
     hydrateFromLiveGame();
@@ -581,7 +668,16 @@
       return;
     }
     const roster = guildRosterPayload();
-    const signature = JSON.stringify({ memberId: snapshot.memberId, loadoutCatalog: snapshot.loadoutCatalog, skills: snapshot.skills, learnedAbilities: snapshot.learnedAbilities, auras: snapshot.auras, roster });
+    const trialRegistrations = guildTrialRegistrationPayload();
+    const signature = JSON.stringify({
+      memberId: snapshot.memberId,
+      loadoutCatalog: snapshot.loadoutCatalog,
+      skills: snapshot.skills,
+      learnedAbilities: snapshot.learnedAbilities,
+      auras: snapshot.auras,
+      roster: roster?.members,
+      trials: trialRegistrations?.trials,
+    });
     if (automatic && signature === automaticSync.lastSignature) return;
     automaticSync.running = true;
     try {
@@ -611,6 +707,22 @@
           rosterSummary = `名单未更新（${rosterDetail}）、`;
         }
       }
+      let trialSummary = "";
+      if (eligibilityBody.rosterSyncAllowed === true && trialRegistrations) {
+        setStatus("正在同步本周战斗试炼报名名单…");
+        const trialResponse = await requestJson({
+          method: "POST",
+          url: `${DEFAULT_API_BASE}/api/public/guilds/${FIXED_GUILD_ID}/trial-registrations`,
+          data: trialRegistrations,
+        });
+        if (trialResponse.status >= 200 && trialResponse.status < 300) {
+          trialSummary = `报名 ${trialRegistrations.trials.map((trial) => `${trial.trialName} ${trial.registeredCount}`).join(" / ")}、`;
+        } else if (trialResponse.status !== 429) {
+          let trialDetail = `HTTP ${trialResponse.status}`;
+          try { trialDetail = JSON.parse(trialResponse.responseText)?.error?.message ?? trialDetail; } catch { /* keep status */ }
+          trialSummary = `报名未更新（${trialDetail}）、`;
+        }
+      }
       setStatus("正在自动同步全部配装…");
       const response = await requestJson({
         method: "POST",
@@ -623,7 +735,7 @@
         throw new Error(detail);
       }
       automaticSync.lastSignature = signature;
-      setStatus(`已同步${rosterSummary}${snapshot.loadoutCatalog.length} 套配装（${snapshot.memberId}）。`);
+      setStatus(`已同步${rosterSummary}${trialSummary}${snapshot.loadoutCatalog.length} 套配装（${snapshot.memberId}）。`);
     } catch (error) {
       setStatus(`同步失败：${error.message}`, true);
     } finally {
@@ -702,7 +814,7 @@
     heading.textContent = "adudu · 公会试炼资料";
     const intro = document.createElement("p");
     intro.style.margin = "6px 0";
-    intro.textContent = "TMD 专用；打开公会界面后自动同步当前名单及全部配装，职业通过 QQ 机器人绑定。";
+    intro.textContent = "TMD 专用；打开公会试炼页后自动同步当前名单、双 Boss 报名及全部配装，职业通过 QQ 机器人绑定。";
     const list = document.createElement("div");
     list.id = UI.list;
     const status = document.createElement("p");
