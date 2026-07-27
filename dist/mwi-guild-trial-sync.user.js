@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MWI 公会试炼资料同步助手
 // @namespace    https://greasyfork.org/users/1466859-adudu
-// @version      0.6.0
+// @version      0.6.1
 // @description  TMD 公会专用：自动同步成员名单、本周试炼、怪物面板、全部配装、技能与光环。
 // @author       adudu
 // @license      MIT
@@ -63,6 +63,8 @@
   };
   const hydration = { attempt: 0, timer: 0, characterId: "" };
   const automaticSync = { timer: 0, running: false, lastSignature: "" };
+  let pageBridgeInstalled = false;
+  let pageBridgeListenerInstalled = false;
 
   const values = (value) => Array.isArray(value) ? value : value instanceof Map ? [...value.values()] : value instanceof Set ? [...value.values()] : value && typeof value === "object" ? Object.values(value) : [];
   const entries = (value) => value instanceof Map ? [...value.entries()] : value && typeof value === "object" ? Object.entries(value) : [];
@@ -323,6 +325,8 @@
   }
 
   function pageBridgeMain(channel) {
+    if (window.__ADUDU_GUILD_TRIAL_BRIDGE__) return;
+    window.__ADUDU_GUILD_TRIAL_BRIDGE__ = true;
     const values = (value) => Array.isArray(value) ? value : value instanceof Map ? [...value.values()] : value && typeof value === "object" ? Object.values(value) : [];
     const entries = (value) => value instanceof Map ? [...value.entries()] : value && typeof value === "object" ? Object.entries(value) : [];
     const dictionary = (value) => value instanceof Map ? Object.fromEntries(value) : value && typeof value === "object" ? value : {};
@@ -415,22 +419,46 @@
       }
       if (best) window.postMessage({ source: channel, type: "state", payload: best }, window.location.origin);
     };
+    const NativeWebSocket = window.WebSocket;
+    if (typeof NativeWebSocket === "function") {
+      window.WebSocket = class AduduObservedWebSocket extends NativeWebSocket {
+        constructor(...args) {
+          super(...args);
+          this.addEventListener("message", (event) => {
+            if (typeof event.data !== "string") return;
+            try {
+              const packet = JSON.parse(event.data);
+              window.postMessage({ source: channel, type: "packet", packet }, window.location.origin);
+            } catch { /* non-JSON game frames are irrelevant */ }
+          });
+        }
+      };
+    }
     window.addEventListener("message", (event) => { if (event.origin === window.location.origin && event.data?.source === channel && event.data?.type === "request") recover(); });
     if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", recover, { once: true }); else recover();
   }
 
   function installPageBridge() {
-    window.addEventListener("message", (event) => {
-      if (event.origin !== location.origin || event.data?.source !== PAGE_BRIDGE_CHANNEL || event.data?.type !== "state") return;
-      applyCharacterData(event.data.payload);
-      refresh();
-      if (hasCharacterData()) {
-        clearTimeout(hydration.timer);
-        hydration.timer = 0;
-        setStatus("已读取游戏角色数据。");
-      }
-    });
-    if (!document.documentElement || document.getElementById(UI.bridge)) return;
+    if (!pageBridgeListenerInstalled) {
+      pageBridgeListenerInstalled = true;
+      window.addEventListener("message", (event) => {
+        if (event.origin !== location.origin || event.data?.source !== PAGE_BRIDGE_CHANNEL) return;
+        if (event.data?.type === "packet") {
+          recordPacket(event.data.packet);
+          return;
+        }
+        if (event.data?.type !== "state") return;
+        applyCharacterData(event.data.payload);
+        refresh();
+        if (hasCharacterData()) {
+          clearTimeout(hydration.timer);
+          hydration.timer = 0;
+          setStatus("已读取游戏角色数据。");
+        }
+      });
+    }
+    if (!document.documentElement || pageBridgeInstalled) return;
+    pageBridgeInstalled = true;
     const script = document.createElement("script");
     script.id = UI.bridge;
     script.textContent = `;(${pageBridgeMain.toString()})(${JSON.stringify(PAGE_BRIDGE_CHANNEL)});`;
@@ -448,8 +476,6 @@
     state.guildSharableCharacterMap = {};
     state.guildTrialSignupLevelMap = {};
     state.guildWeeklyTrialSet = {};
-    state.guildTrialDetailMap = {};
-    state.combatMonsterDetailMap = {};
     state.loadouts = [];
     state.authorizedEquipment = [];
     state.skills = [];
@@ -479,21 +505,6 @@
     hydration.attempt += 1;
     hydration.timer = setTimeout(() => requestCharacterData(), delay);
   }
-
-  // Narrow page bridge: only observes two documented game events. It neither
-  // sends messages nor reads localStorage/cookies/tokens. React state can call
-  // window.postMessage({ source: PAGE_BRIDGE_CHANNEL, packet }, location.origin).
-  window.addEventListener("message", (event) => {
-    if (event.origin !== location.origin || event.data?.source !== PAGE_BRIDGE_CHANNEL) return;
-    recordPacket(event.data.packet);
-  });
-  const dispatch = WebSocket.prototype.dispatchEvent;
-  WebSocket.prototype.dispatchEvent = function patchedDispatch(event) {
-    if (event?.type === "message" && typeof event.data === "string") {
-      try { recordPacket(JSON.parse(event.data)); } catch { /* non-JSON game frames are irrelevant */ }
-    }
-    return dispatch.call(this, event);
-  };
 
   function builder() {
     return window.MwiTrialPayloadBuilder ?? localBuilder;
@@ -1150,6 +1161,16 @@
     document.addEventListener("visibilitychange", () => {
       if (document.visibilityState === "visible" && !hasCharacterData()) requestCharacterData();
     });
+  }
+  if (document.documentElement) {
+    installPageBridge();
+  } else {
+    const bridgeObserver = new MutationObserver(() => {
+      if (!document.documentElement) return;
+      bridgeObserver.disconnect();
+      installPageBridge();
+    });
+    bridgeObserver.observe(document, { childList: true });
   }
   document.addEventListener("DOMContentLoaded", mount, { once: true });
   if (document.readyState !== "loading") mount();
