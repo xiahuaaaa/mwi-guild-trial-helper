@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MWI 公会试炼资料同步助手
 // @namespace    https://greasyfork.org/users/1466859-adudu
-// @version      0.6.2
+// @version      0.6.3
 // @description  TMD 公会专用：自动同步成员名单、本周试炼、怪物面板、全部配装、技能与光环。
 // @author       adudu
 // @license      MIT
@@ -176,6 +176,31 @@
       + values(loadout?.abilities ?? loadout?.combatAbilities ?? loadout?.combat_abilities ?? loadout?.abilityMap).length * 10
       + 1
   , 0);
+  const loadoutIdentity = (loadout, index = 0) => String(
+    loadout?.loadoutId ?? loadout?.loadout_id ?? loadout?.id
+    ?? `${loadout?.actionTypeHrid ?? loadout?.action_type_hrid ?? ""}\u0000${loadout?.name ?? index}`
+  );
+  const mergeLoadouts = (current, incoming) => {
+    const merged = new Map();
+    values(current).forEach((loadout, index) => merged.set(loadoutIdentity(loadout, index), loadout));
+    values(incoming).forEach((loadout, index) => {
+      const key = loadoutIdentity(loadout, index);
+      const previous = merged.get(key);
+      if (!previous) {
+        merged.set(key, loadout);
+        return;
+      }
+      const previousScore = loadoutRichness([previous]);
+      const nextScore = loadoutRichness([loadout]);
+      // Prefer the hydrated record, but retain useful scalar metadata from the
+      // other view. React exposes several representations of the same loadout
+      // during login and a names-only view must never erase wearableMap.
+      merged.set(key, nextScore >= previousScore
+        ? { ...previous, ...loadout }
+        : { ...loadout, ...previous });
+    });
+    return [...merged.values()];
+  };
 
   function applyCharacterData(candidate) {
     const data = object(candidate);
@@ -213,12 +238,7 @@
       ?? data.characterLoadoutDict ?? data.characterLoadouts ?? characterInfo.characterLoadoutMap;
     if (loadouts) {
       const nextLoadouts = values(loadouts);
-      // A compact React-state recovery can contain the loadout names before
-      // wearable/ability maps are hydrated. Never let that poorer view erase
-      // a complete snapshot already read from init_character_data.
-      if (!state.loadouts.length || loadoutRichness(nextLoadouts) >= loadoutRichness(state.loadouts)) {
-        state.loadouts = nextLoadouts;
-      }
+      state.loadouts = mergeLoadouts(state.loadouts, nextLoadouts);
     }
   }
 
@@ -259,24 +279,28 @@
       const page = typeof unsafeWindow === "object" ? unsafeWindow : window;
       const documents = [...new Set([document, page.document].filter(Boolean))];
       const roots = documents.flatMap((doc) => [doc.querySelector('[class^="GamePage"]'), doc.getElementById("root")].filter(Boolean));
+      const queuePlannerState = page.MWI_QUEUE_PLANNER?.getGameCore?.()?.state;
+      if (queuePlannerState && typeof queuePlannerState === "object") applyCharacterTree(queuePlannerState);
       const queue = roots.flatMap((root) => {
         const key = Object.keys(root).find((name) => name.startsWith("__reactFiber$") || name.startsWith("__reactInternalInstance$") || name.startsWith("__react"));
         return key ? [root[key]] : [];
       });
       const seen = new Set();
-      while (queue.length) {
+      let visited = 0;
+      while (queue.length && visited < 8000) {
         const fiber = queue.shift();
         if (!fiber || typeof fiber !== "object" || seen.has(fiber)) continue;
-        seen.add(fiber);
+        seen.add(fiber); visited += 1;
         const candidate = fiber.stateNode?.state;
         if (candidate && typeof candidate === "object" && (candidate.characterLoadoutDict || candidate.characterLoadoutMap || candidate.characterLabyrinth || candidate.combatUnit || candidate.gameConn || candidate.guildCharacterMap || candidate.guildSharableCharacterMap || candidate.guildTrialSignupLevelDict || candidate.guildWeeklyTrialSet || candidate.guild)) {
           applyCharacterTree(candidate);
-          refresh();
-          return hasCharacterData();
         }
+        if (fiber.return) queue.push(fiber.return);
         if (fiber.child) queue.push(fiber.child);
         if (fiber.sibling) queue.push(fiber.sibling);
       }
+      refresh();
+      return hasCharacterData();
     } catch { /* unavailable during initial render */ }
     return false;
   }
@@ -437,20 +461,31 @@
       const loadouts = values(gameState?.characterLoadoutDict || gameState?.characterLoadoutMap).map((loadout) => {
         const equipment = entries(loadout?.wearableMap || loadout?.equipment || loadout?.items).flatMap(([locationHrid, reference]) => {
           if (!reference) return [];
-          const item = typeof reference === "object" ? reference : itemByHash.get(String(reference));
+          const referenceKey = typeof reference === "object"
+            ? reference.hash ?? reference.itemHash ?? reference.itemKey ?? reference.id
+            : reference;
+          const item = typeof reference === "object" && (reference.itemHrid || reference.hrid)
+            ? reference
+            : itemByHash.get(String(referenceKey ?? reference));
           const parts = String(reference).split("::");
-          const itemHrid = item?.itemHrid || parts.find((part) => part.startsWith("/items/")) || "";
+          const itemHrid = item?.itemHrid || item?.hrid || parts.find((part) => part.startsWith("/items/")) || "";
           const enhancementLevel = Number(item?.enhancementLevel ?? parts.at(-1) ?? 0);
           return itemHrid ? [{ locationHrid: String(locationHrid), itemHrid, enhancementLevel }] : [];
         });
         const triggerMap = loadout?.abilityCombatTriggersMap || {};
-        const abilities = entries(loadout?.abilityMap || loadout?.abilities || loadout?.combatAbilities).flatMap(([slot, abilityHrid]) => {
-          if (!abilityHrid) return [];
-          const hrid = String(abilityHrid);
+        const abilities = entries(loadout?.abilityMap || loadout?.abilities || loadout?.combatAbilities).flatMap(([slot, abilityReference]) => {
+          if (!abilityReference) return [];
+          const hrid = String(
+            typeof abilityReference === "object"
+              ? abilityReference.abilityHrid ?? abilityReference.hrid ?? ""
+              : abilityReference
+          );
+          if (!hrid.startsWith("/")) return [];
+          const slotNumber = Number(String(slot).match(/\d+/)?.[0] ?? slot);
           return [{
-            slot: Math.max(0, Number(slot) - 1),
+            slot: Math.max(0, slotNumber - 1),
             abilityHrid: hrid,
-            level: abilityLevelByHrid.get(hrid) || 1,
+            level: Number(abilityReference?.level ?? abilityLevelByHrid.get(hrid) ?? 1),
             triggers: values(triggerMap instanceof Map ? triggerMap.get(hrid) : triggerMap[hrid]),
           }];
         });
@@ -491,19 +526,25 @@
       const roots = [document.querySelector('[class^="GamePage_gamePage"]'), document.getElementById("root"), document.body].filter(Boolean);
       const queue = roots.flatMap((root) => Reflect.ownKeys(root).filter((key) => String(key).startsWith("__reactFiber$") || String(key).startsWith("__reactContainer$")).map((key) => root[key]));
       const seen = new Set(); let best = null; let score = -1;
+      const consider = (candidate) => {
+        const result = compact(candidate);
+        if (!result) return;
+        const loadoutDetailScore = result.loadouts.reduce((sum, loadout) =>
+          sum + loadout.equipment.length * 1000 + loadout.abilities.length * 100 + 1
+        , 0);
+        const next = loadoutDetailScore * 10000
+          + Object.keys(result.guildCharacterMap).length * 100
+          + Object.keys(result.guildTrialSignupLevelMap).length * 10
+          + result.characterItems.length
+          + result.characterSkills.length;
+        if (next > score) { best = result; score = next; }
+      };
+      consider(window.MWI_QUEUE_PLANNER?.getGameCore?.()?.state);
       for (let index = 0; index < queue.length && index < 8000; index += 1) {
         const fiber = queue[index];
         if (!fiber || seen.has(fiber)) continue;
         seen.add(fiber);
-        const result = compact(fiber.stateNode?.state);
-        if (result) {
-          const next = result.loadouts.length * 10000
-            + Object.keys(result.guildCharacterMap).length * 100
-            + Object.keys(result.guildTrialSignupLevelMap).length * 10
-            + result.characterItems.length
-            + result.characterSkills.length;
-          if (next > score) { best = result; score = next; }
-        }
+        consider(fiber.stateNode?.state);
         if (fiber.return) queue.push(fiber.return);
         if (fiber.child) queue.push(fiber.child);
         if (fiber.sibling) queue.push(fiber.sibling);
@@ -1050,7 +1091,12 @@
       });
       if (response.status < 200 || response.status >= 300) {
         let detail = `HTTP ${response.status}`;
-        try { detail = JSON.parse(response.responseText)?.error?.message ?? detail; } catch { /* keep status */ }
+        try {
+          const apiError = JSON.parse(response.responseText)?.error;
+          detail = apiError?.code === "empty_loadout_catalog"
+            ? "检测到配装名称，但尚未从游戏读取装备；请等待游戏加载完成后重试"
+            : apiError?.message ?? detail;
+        } catch { /* keep status */ }
         throw new Error(detail);
       }
       automaticSync.lastSignature = signature;
