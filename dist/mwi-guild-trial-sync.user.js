@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MWI 公会试炼资料同步助手
 // @namespace    https://greasyfork.org/users/1466859-adudu
-// @version      0.6.1
+// @version      0.6.2
 // @description  TMD 公会专用：自动同步成员名单、本周试炼、怪物面板、全部配装、技能与光环。
 // @author       adudu
 // @license      MIT
@@ -75,6 +75,81 @@
       return typeof parsed === "string" ? JSON.parse(parsed) : parsed;
     } catch { return null; }
   };
+  // `initClientData` is LZString UTF-16 compressed on current MWI clients.
+  // Keep a local decoder so weekly monster data does not depend on another
+  // userscript exposing LZString in the page.
+  const decompressUtf16 = (input) => {
+    if (input == null || input === "") return "";
+    const read = (index) => input.charCodeAt(index) - 32;
+    const dictionary = [0, 1, 2];
+    let enlargeIn = 4;
+    let dictionarySize = 4;
+    let bitWidth = 3;
+    let previous = "";
+    let current;
+    let bits;
+    let bit;
+    let maxPower;
+    let power;
+    const result = [];
+    const data = { value: read(0), position: 16384, index: 1 };
+    const readBits = (width) => {
+      let value = 0;
+      maxPower = 2 ** width;
+      power = 1;
+      while (power !== maxPower) {
+        bit = data.value & data.position;
+        data.position >>= 1;
+        if (data.position === 0) {
+          data.position = 16384;
+          data.value = read(data.index++);
+        }
+        value |= (bit > 0 ? 1 : 0) * power;
+        power <<= 1;
+      }
+      return value;
+    };
+    bits = readBits(2);
+    if (bits === 0) current = String.fromCharCode(readBits(8));
+    else if (bits === 1) current = String.fromCharCode(readBits(16));
+    else return "";
+    dictionary[3] = current;
+    previous = current;
+    result.push(current);
+    while (data.index <= input.length) {
+      const code = readBits(bitWidth);
+      if (code === 0) {
+        dictionary[dictionarySize++] = String.fromCharCode(readBits(8));
+        current = dictionarySize - 1;
+        enlargeIn -= 1;
+      } else if (code === 1) {
+        dictionary[dictionarySize++] = String.fromCharCode(readBits(16));
+        current = dictionarySize - 1;
+        enlargeIn -= 1;
+      } else if (code === 2) {
+        return result.join("");
+      } else {
+        current = code;
+      }
+      if (enlargeIn === 0) {
+        enlargeIn = 2 ** bitWidth;
+        bitWidth += 1;
+      }
+      let entry;
+      if (dictionary[current]) entry = dictionary[current];
+      else if (current === dictionarySize) entry = previous + previous.charAt(0);
+      else return "";
+      result.push(entry);
+      dictionary[dictionarySize++] = previous + entry.charAt(0);
+      enlargeIn -= 1;
+      previous = entry;
+      if (enlargeIn === 0) {
+        enlargeIn = 2 ** bitWidth;
+        bitWidth += 1;
+      }
+    }
+    return "";
+  };
   const auraEntries = (entries) => values(entries)
     .filter((ability) => String(ability?.abilityHrid ?? ability?.hrid ?? "").endsWith("_aura"));
   const hasCharacterData = () => Object.keys(state.character).length > 0 || state.loadouts.length > 0 || state.skills.length > 0;
@@ -95,6 +170,12 @@
   const loadoutEquipmentPool = () => state.loadouts.flatMap((loadout) =>
     values(loadout?.equipment ?? loadout?.items ?? loadout?.loadoutItems)
   );
+  const loadoutRichness = (loadouts) => values(loadouts).reduce((score, loadout) =>
+    score
+      + values(loadout?.equipment ?? loadout?.items ?? loadout?.loadoutItems ?? loadout?.wearableMap).length * 100
+      + values(loadout?.abilities ?? loadout?.combatAbilities ?? loadout?.combat_abilities ?? loadout?.abilityMap).length * 10
+      + 1
+  , 0);
 
   function applyCharacterData(candidate) {
     const data = object(candidate);
@@ -130,7 +211,15 @@
     }
     const loadouts = data.loadouts ?? data.combatLoadouts ?? data.characterLoadoutMap
       ?? data.characterLoadoutDict ?? data.characterLoadouts ?? characterInfo.characterLoadoutMap;
-    if (loadouts) state.loadouts = values(loadouts);
+    if (loadouts) {
+      const nextLoadouts = values(loadouts);
+      // A compact React-state recovery can contain the loadout names before
+      // wearable/ability maps are hydrated. Never let that poorer view erase
+      // a complete snapshot already read from init_character_data.
+      if (!state.loadouts.length || loadoutRichness(nextLoadouts) >= loadoutRichness(state.loadouts)) {
+        state.loadouts = nextLoadouts;
+      }
+    }
   }
 
   /**
@@ -150,6 +239,8 @@
       const lz = page.LZString ?? window.LZString;
       const initClient = parseJson(initClientRaw)
         ?? parseJson(lz?.decompressFromUTF16?.(initClientRaw))
+        ?? parseJson(page.__sunnyMwi__?.lzDecompressUTF16?.(initClientRaw))
+        ?? parseJson(decompressUtf16(initClientRaw))
         ?? parseJson(lz?.decompressFromBase64?.(initClientRaw));
       if (initClient) applyCharacterData(initClient.data ?? initClient.payload ?? initClient);
     }
@@ -561,6 +652,13 @@
     "/guild_combat/hedgehog": "试炼刺猬",
     "/guild_combat/swarm": "试炼虫群",
   });
+  const COMBAT_TRIAL_MONSTERS = Object.freeze({
+    "/guild_combat/badger": "/monsters/guild_trial_badger",
+    "/guild_combat/chameleon": "/monsters/guild_trial_chameleon",
+    "/guild_combat/jellyfish": "/monsters/guild_trial_jellyfish",
+    "/guild_combat/hedgehog": "/monsters/guild_trial_hedgehog",
+    "/guild_combat/swarm": "/monsters/guild_trial_swarm",
+  });
   const SKILL_TRIAL_NAMES = Object.freeze({
     "/guild_skilling/alchemy": "炼金",
     "/guild_skilling/brewing": "冲泡",
@@ -700,7 +798,8 @@
       }),
       ...combatHrids.map((trialHrid) => {
         const detail = object(dictionaryValue(state.guildTrialDetailMap, trialHrid));
-        const rawMonsterHrids = detail.monsterHrids ?? detail.monsterHrid;
+        const rawMonsterHrids = detail.monsterHrids ?? detail.monsterHrid
+          ?? COMBAT_TRIAL_MONSTERS[trialHrid];
         const monsterHrids = [...new Set((Array.isArray(rawMonsterHrids) ? rawMonsterHrids : rawMonsterHrids ? [rawMonsterHrids] : [])
           .map((value) => String(value?.monsterHrid ?? value?.hrid ?? value))
           .filter((hrid) => hrid.startsWith("/monsters/")))];
@@ -903,7 +1002,10 @@
       }
       let trialSummary = "";
       let weeklyTrialSummary = "";
-      if (eligibilityBody.rosterSyncAllowed === true && weeklyTrials) {
+      const weeklyMonsterPanelsComplete = weeklyTrials?.trials
+        ?.filter((trial) => trial.kind === "combat")
+        .every((trial) => trial.monsterHrids.length > 0 && trial.monsters.length === trial.monsterHrids.length);
+      if (eligibilityBody.rosterSyncAllowed === true && weeklyTrials && weeklyMonsterPanelsComplete) {
         setStatus("正在同步本周生活/战斗试炼与怪物面板…");
         const weeklyTrialResponse = await requestJson({
           method: "POST",
@@ -914,9 +1016,16 @@
           weeklyTrialSummary = `本周试炼 ${weeklyTrials.weeklyTrialSet.skillHrids.length}+${weeklyTrials.weeklyTrialSet.combatHrids.length}、`;
         } else if (weeklyTrialResponse.status !== 429) {
           let weeklyTrialDetail = `HTTP ${weeklyTrialResponse.status}`;
-          try { weeklyTrialDetail = JSON.parse(weeklyTrialResponse.responseText)?.error?.message ?? weeklyTrialDetail; } catch { /* keep status */ }
+          try {
+            const error = JSON.parse(weeklyTrialResponse.responseText)?.error;
+            weeklyTrialDetail = error?.code === "incomplete_weekly_monsters"
+              ? "怪物面板尚未读取完整"
+              : error?.message ?? weeklyTrialDetail;
+          } catch { /* keep status */ }
           weeklyTrialSummary = `试炼类型未更新（${weeklyTrialDetail}）、`;
         }
+      } else if (eligibilityBody.rosterSyncAllowed === true && weeklyTrials) {
+        weeklyTrialSummary = "怪物面板等待读取、";
       }
       if (eligibilityBody.rosterSyncAllowed === true && trialRegistrations) {
         setStatus("正在同步本周战斗试炼报名名单…");
@@ -959,25 +1068,7 @@
   function refresh() {
     const list = document.getElementById(UI.list);
     if (!list) return;
-    const catalog = builder().buildMemberSnapshot({
-      character: state.character,
-      loadouts: state.loadouts,
-      authorizedEquipment: mergeAuthorizedEquipment(
-        state.authorizedEquipment,
-        loadoutEquipmentPool(),
-      ),
-      skills: state.skills,
-      learnedAbilities: state.learnedAbilities,
-      auras: state.auras,
-      selectedLoadoutIds: [],
-      capturedAt: new Date().toISOString(),
-    }).loadoutCatalog ?? [];
-    const catalogById = new Map(catalog.map((entry, index) => [
-      String(entry.sourceLoadoutId ?? index + 1),
-      entry,
-    ]));
     list.replaceChildren(...state.loadouts.map((loadout, index) => {
-      const id = String(loadout.loadoutId ?? loadout.loadout_id ?? loadout.id ?? index + 1);
       const actionTypeHrid = String(loadout.actionTypeHrid ?? loadout.action_type_hrid ?? "");
       const category = actionTypeHrid === "/action_types/combat"
         ? "战斗"
@@ -986,14 +1077,8 @@
           : actionTypeHrid.startsWith("/action_types/")
             ? "生活"
             : "未识别";
-      const catalogEntry = catalogById.get(id);
-      const simulationReady = category === "战斗"
-        && Boolean(catalogEntry?.equipment?.length)
-        && Boolean(catalogEntry?.abilities?.length)
-        && !catalogEntry?.issues?.length;
       const label = document.createElement("label");
-      const suffix = category === "战斗" && !simulationReady ? "（缺少当前拥有的装备或技能）" : "";
-      label.append(` [${category}] ${loadout.name ?? `Loadout ${index + 1}`}${suffix}`);
+      label.append(` [${category}] ${loadout.name ?? `Loadout ${index + 1}`}`);
       return label;
     }));
     if (hasCharacterData()) scheduleAutomaticUpload();
