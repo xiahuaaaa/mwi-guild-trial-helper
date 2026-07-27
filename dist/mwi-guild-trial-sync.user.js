@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         MWI 公会试炼资料同步助手
 // @namespace    https://greasyfork.org/users/1466859-adudu
-// @version      0.5.0
-// @description  TMD 公会专用：自动同步成员名单、试炼报名、全部配装、技能与光环。
+// @version      0.6.0
+// @description  TMD 公会专用：自动同步成员名单、本周试炼、怪物面板、全部配装、技能与光环。
 // @author       adudu
 // @license      MIT
 // @homepageURL  https://github.com/xiahuaaaa/mwi-guild-trial-helper
@@ -53,6 +53,8 @@
     guildSharableCharacterMap: {},
     guildTrialSignupLevelMap: {},
     guildWeeklyTrialSet: {},
+    guildTrialDetailMap: {},
+    combatMonsterDetailMap: {},
     loadouts: [],
     authorizedEquipment: [],
     skills: [],
@@ -109,6 +111,10 @@
     if (guildTrialSignupLevelMap && typeof guildTrialSignupLevelMap === "object") state.guildTrialSignupLevelMap = guildTrialSignupLevelMap;
     const guildWeeklyTrialSet = data.guildWeeklyTrialSet ?? data.weeklyGuildTrialSet;
     if (guildWeeklyTrialSet && typeof guildWeeklyTrialSet === "object") state.guildWeeklyTrialSet = guildWeeklyTrialSet;
+    const guildTrialDetailMap = data.guildTrialDetailMap ?? data.guildTrialDetailDict;
+    if (guildTrialDetailMap && typeof guildTrialDetailMap === "object") state.guildTrialDetailMap = guildTrialDetailMap;
+    const combatMonsterDetailMap = data.combatMonsterDetailMap ?? data.combatMonsterDetailDict;
+    if (combatMonsterDetailMap && typeof combatMonsterDetailMap === "object") state.combatMonsterDetailMap = combatMonsterDetailMap;
     const equipment = data.equipment ?? data.inventory ?? data.characterItems ?? data.characterItemMap
       ?? characterInfo.characterItems ?? characterInfo.characterItemMap;
     if (equipment) state.authorizedEquipment = mergeAuthorizedEquipment(state.authorizedEquipment, equipment);
@@ -193,7 +199,7 @@
       const { value, depth } = queue.shift();
       if (!value || typeof value !== "object" || seen.has(value)) continue;
       seen.add(value); visited += 1;
-      if (value.character || value.characterInfo || value.characterLoadoutDict || value.characterLoadoutMap || value.characterItems || value.characterSkills || value.guildCharacterMap || value.guildSharableCharacterMap || value.guildTrialSignupLevelDict || value.guildWeeklyTrialSet || value.guild) applyCharacterData(value);
+      if (value.character || value.characterInfo || value.characterLoadoutDict || value.characterLoadoutMap || value.characterItems || value.characterSkills || value.guildCharacterMap || value.guildSharableCharacterMap || value.guildTrialSignupLevelDict || value.guildWeeklyTrialSet || value.guildTrialDetailMap || value.combatMonsterDetailMap || value.guild) applyCharacterData(value);
       if (depth >= 5) continue;
       for (const key of Object.keys(value)) {
         if (/token|authorization|cookie|secret|password|credential|session/i.test(key)) continue;
@@ -374,6 +380,8 @@
         guildSharableCharacterMap: dictionary(gameState?.guildSharableCharacterMap || gameState?.guildSharableCharacterDict),
         guildTrialSignupLevelMap: dictionary(gameState?.guildTrialSignupLevelMap || gameState?.guildTrialSignupLevelDict),
         guildWeeklyTrialSet: gameState?.guildWeeklyTrialSet || gameState?.weeklyGuildTrialSet || {},
+        guildTrialDetailMap: dictionary(gameState?.guildTrialDetailMap || gameState?.guildTrialDetailDict),
+        combatMonsterDetailMap: dictionary(gameState?.combatMonsterDetailMap || gameState?.combatMonsterDetailDict),
         characterSkills: values(gameState?.characterSkills || gameState?.characterSkillMap || gameState?.characterSkillDict),
         characterItems: [
           ...characterItems,
@@ -440,6 +448,8 @@
     state.guildSharableCharacterMap = {};
     state.guildTrialSignupLevelMap = {};
     state.guildWeeklyTrialSet = {};
+    state.guildTrialDetailMap = {};
+    state.combatMonsterDetailMap = {};
     state.loadouts = [];
     state.authorizedEquipment = [];
     state.skills = [];
@@ -540,6 +550,174 @@
     "/guild_combat/hedgehog": "试炼刺猬",
     "/guild_combat/swarm": "试炼虫群",
   });
+  const SKILL_TRIAL_NAMES = Object.freeze({
+    "/guild_skilling/alchemy": "炼金",
+    "/guild_skilling/brewing": "冲泡",
+    "/guild_skilling/cheesesmithing": "奶酪锻造",
+    "/guild_skilling/cooking": "烹饪",
+    "/guild_skilling/crafting": "制作",
+    "/guild_skilling/enhancing": "强化",
+    "/guild_skilling/foraging": "采摘",
+    "/guild_skilling/milking": "挤奶",
+    "/guild_skilling/tailoring": "缝纫",
+    "/guild_skilling/woodcutting": "伐木",
+  });
+  const dictionaryValue = (dictionary, key) => dictionary instanceof Map
+    ? dictionary.get(key)
+    : dictionary?.[key];
+  const firstFinite = (...candidates) => {
+    for (const candidate of candidates) {
+      if (candidate == null || candidate === "") continue;
+      const number = Number(candidate);
+      if (Number.isFinite(number)) return number;
+    }
+    return null;
+  };
+  const includeNumber = (target, key, value, transform = (number) => number) => {
+    if (value == null) return;
+    const next = transform(value);
+    if (Number.isFinite(next)) target[key] = next;
+  };
+  const ratingMap = (source, specification) => {
+    const result = {};
+    for (const [key, aliases] of Object.entries(specification)) {
+      includeNumber(result, key, firstFinite(...aliases.map((alias) => source?.[alias])));
+    }
+    return result;
+  };
+  function compactMonsterDetail(monsterHrid, rawDetail) {
+    const detail = object(rawDetail);
+    const combat = object(detail.combatDetails ?? detail.combatDetail);
+    const combatStats = object(combat.combatStats ?? detail.combatStats);
+    const result = {
+      monsterHrid,
+      name: String(detail.name ?? detail.displayName ?? "").slice(0, 100),
+      level: Math.max(1, Math.trunc(firstFinite(detail.level, combat.level, 100))),
+      combatStyleHrids: values(combatStats.combatStyleHrids ?? combat.combatStyleHrids)
+        .map(String)
+        .filter((hrid) => hrid.startsWith("/"))
+        .slice(0, 8),
+      damageTypeHrid: String(combatStats.damageType ?? combat.damageTypeHrid ?? "").slice(0, 256),
+      accuracy: ratingMap(combat, {
+        stab: ["stabAccuracyRating", "stabAccuracy"],
+        slash: ["slashAccuracyRating", "slashAccuracy"],
+        smash: ["smashAccuracyRating", "smashAccuracy", "crushAccuracyRating", "crushAccuracy"],
+        ranged: ["rangedAccuracyRating", "rangedAccuracy"],
+        magic: ["magicAccuracyRating", "magicAccuracy"],
+      }),
+      damage: ratingMap(combat, {
+        defensive: ["defensiveMaxDamage", "defensiveDamage"],
+        stab: ["stabMaxDamage", "stabDamage"],
+        slash: ["slashMaxDamage", "slashDamage"],
+        smash: ["smashMaxDamage", "smashDamage", "crushMaxDamage", "crushDamage"],
+        ranged: ["rangedMaxDamage", "rangedDamage"],
+        magic: ["magicMaxDamage", "magicDamage"],
+      }),
+      evasion: ratingMap(combat, {
+        stab: ["stabEvasionRating", "stabEvasion"],
+        slash: ["slashEvasionRating", "slashEvasion"],
+        smash: ["smashEvasionRating", "smashEvasion", "crushEvasionRating", "crushEvasion"],
+        ranged: ["rangedEvasionRating", "rangedEvasion"],
+        magic: ["magicEvasionRating", "magicEvasion"],
+      }),
+      resistance: ratingMap(combat, {
+        water: ["totalWaterResistance", "waterResistance"],
+        nature: ["totalNatureResistance", "natureResistance"],
+        fire: ["totalFireResistance", "fireResistance"],
+      }),
+      abilities: values(detail.abilities ?? combat.abilities).flatMap((ability) => {
+        const abilityHrid = String(ability?.abilityHrid ?? ability?.hrid ?? "");
+        if (!abilityHrid.startsWith("/abilities/")) return [];
+        return [{
+          abilityHrid,
+          level: Math.max(1, Math.trunc(firstFinite(ability?.level, 1))),
+          minDifficultyTier: Math.max(0, Math.trunc(firstFinite(ability?.minDifficultyTier, 0))),
+        }];
+      }).slice(0, 20),
+    };
+    const attackInterval = firstFinite(
+      combatStats.attackInterval,
+      combat.attackInterval,
+      detail.attackInterval,
+    );
+    includeNumber(result, "attackIntervalSeconds", attackInterval, (number) =>
+      Math.round((number > 1_000_000 ? number / 1_000_000_000 : number) * 1000) / 1000
+    );
+    const castSpeed = firstFinite(
+      combat.totalCastSpeed,
+      combat.castSpeed,
+      combatStats.castSpeed,
+      detail.castSpeed,
+    );
+    includeNumber(result, "castSpeedPercent", castSpeed, (number) =>
+      Math.round((Math.abs(number) <= 2 ? number * 100 : number) * 1000) / 1000
+    );
+    includeNumber(result, "abilityHaste", firstFinite(
+      combat.totalAbilityHaste,
+      combat.abilityHaste,
+      combatStats.abilityHaste,
+      detail.abilityHaste,
+    ));
+    includeNumber(result, "maxHp", firstFinite(combat.maxHitpoints, combat.maxHp, detail.maxHitpoints, detail.maxHp));
+    includeNumber(result, "maxMp", firstFinite(combat.maxManapoints, combat.maxMp, detail.maxManapoints, detail.maxMp));
+    includeNumber(result, "armor", firstFinite(combat.totalArmor, combat.armor, detail.armor));
+    includeNumber(result, "tenacity", firstFinite(combat.totalTenacity, combat.tenacity, combatStats.tenacity, detail.tenacity));
+    includeNumber(result, "threat", firstFinite(combat.totalThreat, combat.threat, combatStats.threat, detail.threat));
+    return result;
+  }
+  function weeklyTrialCatalogPayload() {
+    if (!confirmedTmdGuild()) return null;
+    const guild = detectedGameGuild();
+    const reporterPlayerId = Number(state.character.id ?? state.character.characterId);
+    const reporterMemberId = detectedMemberId();
+    if (!Number.isInteger(reporterPlayerId) || reporterPlayerId <= 0) return null;
+    const skillHrids = [...new Set(values(state.guildWeeklyTrialSet?.skillHrids).map(String).filter(Boolean))];
+    const combatHrids = [...new Set(values(state.guildWeeklyTrialSet?.combatHrids).map(String).filter(Boolean))];
+    if (!skillHrids.length && !combatHrids.length) return null;
+    const trials = [
+      ...skillHrids.map((trialHrid) => {
+        const detail = object(dictionaryValue(state.guildTrialDetailMap, trialHrid));
+        return {
+          trialHrid,
+          trialName: SKILL_TRIAL_NAMES[trialHrid] ?? String(detail.name ?? trialHrid.split("/").at(-1)),
+          kind: "skilling",
+          skillHrid: String(detail.skillHrid ?? "").slice(0, 256),
+          actionTypeHrid: String(detail.actionTypeHrid ?? "").slice(0, 256),
+          monsterHrids: [],
+          monsters: [],
+        };
+      }),
+      ...combatHrids.map((trialHrid) => {
+        const detail = object(dictionaryValue(state.guildTrialDetailMap, trialHrid));
+        const rawMonsterHrids = detail.monsterHrids ?? detail.monsterHrid;
+        const monsterHrids = [...new Set((Array.isArray(rawMonsterHrids) ? rawMonsterHrids : rawMonsterHrids ? [rawMonsterHrids] : [])
+          .map((value) => String(value?.monsterHrid ?? value?.hrid ?? value))
+          .filter((hrid) => hrid.startsWith("/monsters/")))];
+        return {
+          trialHrid,
+          trialName: COMBAT_TRIAL_NAMES[trialHrid] ?? String(detail.name ?? trialHrid.split("/").at(-1)),
+          kind: "combat",
+          skillHrid: "",
+          actionTypeHrid: "",
+          monsterHrids,
+          monsters: monsterHrids.flatMap((monsterHrid) => {
+            const monster = dictionaryValue(state.combatMonsterDetailMap, monsterHrid);
+            return monster && typeof monster === "object"
+              ? [compactMonsterDetail(monsterHrid, monster)]
+              : [];
+          }),
+        };
+      }),
+    ];
+    return {
+      guild: { id: guild.id, name: guild.name },
+      reporter: { playerId: reporterPlayerId, memberId: reporterMemberId },
+      weekStartAt: currentGuildWeekStart().toISOString(),
+      weeklyTrialSet: { skillHrids, combatHrids },
+      trials,
+      capturedAt: new Date().toISOString(),
+    };
+  }
   function currentGuildWeekStart() {
     const date = new Date();
     const daysSinceFriday = (date.getUTCDay() + 2) % 7;
@@ -669,6 +847,7 @@
     }
     const roster = guildRosterPayload();
     const trialRegistrations = guildTrialRegistrationPayload();
+    const weeklyTrials = weeklyTrialCatalogPayload();
     const signature = JSON.stringify({
       memberId: snapshot.memberId,
       loadoutCatalog: snapshot.loadoutCatalog,
@@ -677,6 +856,10 @@
       auras: snapshot.auras,
       roster: roster?.members,
       trials: trialRegistrations?.trials,
+      weeklyTrials: weeklyTrials && {
+        weeklyTrialSet: weeklyTrials.weeklyTrialSet,
+        trials: weeklyTrials.trials,
+      },
     });
     if (automatic && signature === automaticSync.lastSignature) return;
     automaticSync.running = true;
@@ -708,6 +891,22 @@
         }
       }
       let trialSummary = "";
+      let weeklyTrialSummary = "";
+      if (eligibilityBody.rosterSyncAllowed === true && weeklyTrials) {
+        setStatus("正在同步本周生活/战斗试炼与怪物面板…");
+        const weeklyTrialResponse = await requestJson({
+          method: "POST",
+          url: `${DEFAULT_API_BASE}/api/public/guilds/${FIXED_GUILD_ID}/weekly-trials`,
+          data: weeklyTrials,
+        });
+        if (weeklyTrialResponse.status >= 200 && weeklyTrialResponse.status < 300) {
+          weeklyTrialSummary = `本周试炼 ${weeklyTrials.weeklyTrialSet.skillHrids.length}+${weeklyTrials.weeklyTrialSet.combatHrids.length}、`;
+        } else if (weeklyTrialResponse.status !== 429) {
+          let weeklyTrialDetail = `HTTP ${weeklyTrialResponse.status}`;
+          try { weeklyTrialDetail = JSON.parse(weeklyTrialResponse.responseText)?.error?.message ?? weeklyTrialDetail; } catch { /* keep status */ }
+          weeklyTrialSummary = `试炼类型未更新（${weeklyTrialDetail}）、`;
+        }
+      }
       if (eligibilityBody.rosterSyncAllowed === true && trialRegistrations) {
         setStatus("正在同步本周战斗试炼报名名单…");
         const trialResponse = await requestJson({
@@ -735,7 +934,7 @@
         throw new Error(detail);
       }
       automaticSync.lastSignature = signature;
-      setStatus(`已同步${rosterSummary}${trialSummary}${snapshot.loadoutCatalog.length} 套配装（${snapshot.memberId}）。`);
+      setStatus(`已同步${rosterSummary}${weeklyTrialSummary}${trialSummary}${snapshot.loadoutCatalog.length} 套配装（${snapshot.memberId}）。`);
     } catch (error) {
       setStatus(`同步失败：${error.message}`, true);
     } finally {
@@ -814,7 +1013,7 @@
     heading.textContent = "adudu · 公会试炼资料";
     const intro = document.createElement("p");
     intro.style.margin = "6px 0";
-    intro.textContent = "TMD 专用；打开公会试炼页后自动同步当前名单、双 Boss 报名及全部配装，职业通过 QQ 机器人绑定。";
+    intro.textContent = "TMD 专用；登录后自动同步本周试炼类型、怪物面板、当前名单、双 Boss 报名及全部配装，职业通过 QQ 机器人绑定。";
     const list = document.createElement("div");
     list.id = UI.list;
     const status = document.createElement("p");
