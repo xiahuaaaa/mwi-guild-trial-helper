@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MWI 公会试炼资料同步助手
 // @namespace    https://greasyfork.org/users/1466859-adudu
-// @version      0.4.1
+// @version      0.4.2
 // @description  TMD 公会专用：自动同步成员名单、全部配装、技能与光环。
 // @author       adudu
 // @license      MIT
@@ -563,7 +563,7 @@
       url,
       headers: { "content-type": "application/json" },
       data: data == null ? undefined : JSON.stringify(data),
-      timeout: 15_000,
+      timeout: 30_000,
       onload: resolve,
       ontimeout: () => reject(new Error("同步超时")),
       onerror: () => reject(new Error("无法连接公会资料服务")),
