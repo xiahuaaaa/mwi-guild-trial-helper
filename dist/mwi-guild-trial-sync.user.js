@@ -1,10 +1,10 @@
 // ==UserScript==
-// @name         MWI Guild Trial Sync
-// @name:zh-CN   MWI 公会试炼资料同步助手
+// @name         MWI 公会试炼资料同步助手
+// @name:en      MWI Guild Trial Sync
 // @namespace    https://greasyfork.org/users/1466859-adudu
-// @version      0.6.6
-// @description  TMD guild sync: roster, weekly trials, monster panels, loadouts, abilities, and auras.
-// @description:zh-CN  TMD 公会专用：自动同步成员名单、本周试炼、怪物面板、全部配装、技能与光环。
+// @version      0.6.7
+// @description  TMD 公会专用：自动同步成员名单、本周试炼、怪物面板、全部配装、技能与光环。
+// @description:en  TMD guild sync: roster, weekly trials, monster panels, loadouts, abilities, and auras.
 // @author       adudu
 // @license      MIT
 // @homepageURL  https://github.com/xiahuaaaa/mwi-guild-trial-helper
