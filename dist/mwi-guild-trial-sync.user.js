@@ -2,7 +2,7 @@
 // @name         MWI 公会试炼资料同步助手
 // @name:en      MWI Guild Trial Sync
 // @namespace    https://greasyfork.org/users/1466859-adudu
-// @version      0.6.7
+// @version      0.6.8
 // @description  TMD 公会专用：自动同步成员名单、本周试炼、怪物面板、全部配装、技能与光环。
 // @description:en  TMD guild sync: roster, weekly trials, monster panels, loadouts, abilities, and auras.
 // @author       adudu
@@ -164,7 +164,7 @@
     auras: [],
   };
   const hydration = { attempt: 0, timer: 0, characterId: "" };
-  const automaticSync = { timer: 0, running: false, lastSignature: "" };
+  const automaticSync = { timer: 0, running: false, lastSignature: "", suppressSchedule: false };
   let pageBridgeInstalled = false;
   let pageBridgeListenerInstalled = false;
 
@@ -1236,8 +1236,16 @@
     };
   }
   function payload() {
-    hydrateFromGameCache();
-    hydrateFromLiveGame();
+    // Building a snapshot hydrates game state and refreshes the panel. That must
+    // not arm another automatic upload, or every sync immediately reschedules
+    // itself and loops forever.
+    automaticSync.suppressSchedule = true;
+    try {
+      hydrateFromGameCache();
+      hydrateFromLiveGame();
+    } finally {
+      automaticSync.suppressSchedule = false;
+    }
     const api = builder();
     return api.buildMemberSnapshot({
       character: state.character,
@@ -1283,7 +1291,12 @@
     }));
   }
   async function upload({ automatic = false } = {}) {
-    if (automaticSync.running) return;
+    if (automaticSync.running) {
+      if (automatic) scheduleAutomaticUpload(800);
+      return;
+    }
+    clearTimeout(automaticSync.timer);
+    automaticSync.timer = 0;
     const snapshot = payload();
     if (!snapshot.memberId || snapshot.memberId === "unknown-member") {
       setStatus(tr("waitingName"), true);
@@ -1296,8 +1309,13 @@
     if (snapshot.loadoutCatalog.length > 0
       && snapshot.loadoutCatalog.every((loadout) => loadout.equipment.length === 0)) {
       window.postMessage({ source: PAGE_BRIDGE_CHANNEL, type: "request" }, location.origin);
-      hydrateFromGameCache();
-      hydrateFromLiveGame();
+      automaticSync.suppressSchedule = true;
+      try {
+        hydrateFromGameCache();
+        hydrateFromLiveGame();
+      } finally {
+        automaticSync.suppressSchedule = false;
+      }
       if (automatic) {
         setStatus(tr("waitingEquipmentAuto"));
         scheduleAutomaticUpload(1500);
@@ -1432,6 +1450,7 @@
     }
   }
   function scheduleAutomaticUpload(delay = 800) {
+    if (automaticSync.suppressSchedule) return;
     clearTimeout(automaticSync.timer);
     automaticSync.timer = setTimeout(() => upload({ automatic: true }), delay);
   }
