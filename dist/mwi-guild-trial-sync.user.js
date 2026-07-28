@@ -2,15 +2,15 @@
 // @name         MWI 公会试炼资料同步助手
 // @name:en      MWI Guild Trial Sync
 // @namespace    https://greasyfork.org/users/1466859-adudu
-// @version      0.6.8
+// @version      0.6.9
 // @description  TMD 公会专用：自动同步成员名单、本周试炼、怪物面板、全部配装、技能与光环。
 // @description:en  TMD guild sync: roster, weekly trials, monster panels, loadouts, abilities, and auras.
 // @author       adudu
 // @license      MIT
 // @homepageURL  https://github.com/xiahuaaaa/mwi-guild-trial-helper
 // @supportURL   https://github.com/xiahuaaaa/mwi-guild-trial-helper/issues
-// @downloadURL  https://raw.githubusercontent.com/xiahuaaaa/mwi-guild-trial-helper/main/dist/mwi-guild-trial-sync.user.js
-// @updateURL    https://raw.githubusercontent.com/xiahuaaaa/mwi-guild-trial-helper/main/dist/mwi-guild-trial-sync.user.js
+// @downloadURL  https://update.greasyfork.org/scripts/588902/MWI%20%E5%85%AC%E4%BC%9A%E8%AF%95%E7%82%BC%E8%B5%84%E6%96%99%E5%90%8C%E6%AD%A5%E5%8A%A9%E6%89%8B.user.js
+// @updateURL    https://update.greasyfork.org/scripts/588902/MWI%20%E5%85%AC%E4%BC%9A%E8%AF%95%E7%82%BC%E8%B5%84%E6%96%99%E5%90%8C%E6%AD%A5%E5%8A%A9%E6%89%8B.meta.js
 // @match        https://*.milkywayidle.com/*
 // @match        https://www.milkywayidlecn.com/*
 // @grant        GM_getValue
@@ -156,6 +156,8 @@
     guildTrialSignupLevelMap: {},
     guildWeeklyTrialSet: {},
     guildTrialDetailMap: {},
+    guildBuildingMap: {},
+    guildBuildingDetailMap: {},
     combatMonsterDetailMap: {},
     loadouts: [],
     authorizedEquipment: [],
@@ -406,6 +408,10 @@
     if (guildWeeklyTrialSet && typeof guildWeeklyTrialSet === "object") state.guildWeeklyTrialSet = guildWeeklyTrialSet;
     const guildTrialDetailMap = data.guildTrialDetailMap ?? data.guildTrialDetailDict;
     if (guildTrialDetailMap && typeof guildTrialDetailMap === "object") state.guildTrialDetailMap = guildTrialDetailMap;
+    const guildBuildingMap = data.guildBuildingMap ?? data.guildBuildingDict;
+    if (guildBuildingMap && typeof guildBuildingMap === "object") state.guildBuildingMap = guildBuildingMap;
+    const guildBuildingDetailMap = data.guildBuildingDetailMap ?? data.guildBuildingDetailDict;
+    if (guildBuildingDetailMap && typeof guildBuildingDetailMap === "object") state.guildBuildingDetailMap = guildBuildingDetailMap;
     const combatMonsterDetailMap = data.combatMonsterDetailMap ?? data.combatMonsterDetailDict;
     if (combatMonsterDetailMap && typeof combatMonsterDetailMap === "object") state.combatMonsterDetailMap = combatMonsterDetailMap;
     const equipment = data.equipment ?? data.inventory ?? data.characterItems ?? data.characterItemMap
@@ -1112,6 +1118,89 @@
     includeNumber(result, "threat", firstFinite(combat.totalThreat, combat.threat, combatStats.threat, detail.threat));
     return result;
   }
+  const TRIAL_CAPACITY_FIELDS = [
+    "maxParticipants",
+    "maxParticipantCount",
+    "participantLimit",
+    "maxSlotCount",
+    "capacity",
+    "signupLimit",
+    "maxSignups",
+  ];
+  const TRIAL_SIGNUP_COUNT_FIELDS = [
+    "signedUpCount",
+    "signupCount",
+    "registeredCount",
+    "currentSignups",
+    "participantCount",
+  ];
+  const GUILD_TRIAL_CAPACITY_FIELDS = {
+    skilling: [
+      "skillingTrialMaxParticipants",
+      "maxSkillingTrialParticipants",
+      "skillingTrialParticipantLimit",
+    ],
+    combat: [
+      "combatTrialMaxParticipants",
+      "maxCombatTrialParticipants",
+      "combatTrialParticipantLimit",
+    ],
+  };
+  const ENCAMPMENT_BUILDING_HRIDS = Object.freeze({
+    skilling: "/guild_buildings/skilling_encampment",
+    combat: "/guild_buildings/combat_encampment",
+  });
+  const ENCAMPMENT_SLOTS_PER_LEVEL_FIELDS = Object.freeze({
+    skilling: "skillingTrialSlotsPerLevel",
+    combat: "combatTrialSlotsPerLevel",
+  });
+  function positiveInteger(value) {
+    const number = Number(value);
+    return Number.isInteger(number) && number > 0 ? number : null;
+  }
+  function readTrialCapacityField(detail, fields) {
+    for (const field of fields) {
+      const value = positiveInteger(detail?.[field]);
+      if (value != null) return value;
+    }
+    return null;
+  }
+  function guildBuildingLevel(buildingHrid) {
+    const row = object(dictionaryValue(state.guildBuildingMap, buildingHrid));
+    return positiveInteger(row.level ?? row.buildingLevel ?? row.currentLevel);
+  }
+  function encampmentMaxParticipants(kind) {
+    const direct = readTrialCapacityField(state.guild, GUILD_TRIAL_CAPACITY_FIELDS[kind]);
+    if (direct != null) return direct;
+    const buildingHrid = ENCAMPMENT_BUILDING_HRIDS[kind];
+    const level = guildBuildingLevel(buildingHrid);
+    const detail = object(dictionaryValue(state.guildBuildingDetailMap, buildingHrid));
+    const slotsPerLevel = positiveInteger(detail[ENCAMPMENT_SLOTS_PER_LEVEL_FIELDS[kind]]);
+    if (level != null && slotsPerLevel != null) return level * slotsPerLevel;
+    return null;
+  }
+  function trialMaxParticipants(detail, kind) {
+    const fromDetail = readTrialCapacityField(detail, TRIAL_CAPACITY_FIELDS);
+    if (fromDetail != null) return fromDetail;
+    return encampmentMaxParticipants(kind);
+  }
+  function countTrialSignups(trialHrid, kind) {
+    const fromDetail = readTrialCapacityField(
+      object(dictionaryValue(state.guildTrialDetailMap, trialHrid)),
+      TRIAL_SIGNUP_COUNT_FIELDS,
+    );
+    if (fromDetail != null) return fromDetail;
+    const signupField = kind === "combat"
+      ? "signedUpCombatTrialHrid"
+      : "signedUpSkillingTrialHrid";
+    let count = 0;
+    for (const guildCharacter of values(state.guildCharacterMap)) {
+      const signedUp = String(guildCharacter?.[signupField] ?? "").trim();
+      if (signedUp !== trialHrid || !currentWeekSignup(guildCharacter)) continue;
+      count += 1;
+    }
+    return count > 0 ? count : null;
+  }
   function weeklyTrialCatalogPayload() {
     if (!confirmedTmdGuild()) return null;
     const guild = detectedGameGuild();
@@ -1124,18 +1213,24 @@
     const trials = [
       ...skillHrids.map((trialHrid) => {
         const detail = object(dictionaryValue(state.guildTrialDetailMap, trialHrid));
+        const maxParticipants = trialMaxParticipants(detail, "skilling");
+        const signedUpCount = countTrialSignups(trialHrid, "skilling");
         return {
           trialHrid,
           trialName: SKILL_TRIAL_NAMES[trialHrid] ?? String(detail.name ?? trialHrid.split("/").at(-1)),
           kind: "skilling",
           skillHrid: String(detail.skillHrid ?? "").slice(0, 256),
           actionTypeHrid: String(detail.actionTypeHrid ?? "").slice(0, 256),
+          ...(maxParticipants != null ? { maxParticipants } : {}),
+          ...(signedUpCount != null ? { signedUpCount } : {}),
           monsterHrids: [],
           monsters: [],
         };
       }),
       ...combatHrids.map((trialHrid) => {
         const detail = object(dictionaryValue(state.guildTrialDetailMap, trialHrid));
+        const maxParticipants = trialMaxParticipants(detail, "combat");
+        const signedUpCount = countTrialSignups(trialHrid, "combat");
         const rawMonsterHrids = detail.monsterHrids ?? detail.monsterHrid
           ?? COMBAT_TRIAL_MONSTERS[trialHrid];
         const monsterHrids = [...new Set((Array.isArray(rawMonsterHrids) ? rawMonsterHrids : rawMonsterHrids ? [rawMonsterHrids] : [])
@@ -1147,6 +1242,8 @@
           kind: "combat",
           skillHrid: "",
           actionTypeHrid: "",
+          ...(maxParticipants != null ? { maxParticipants } : {}),
+          ...(signedUpCount != null ? { signedUpCount } : {}),
           monsterHrids,
           monsters: monsterHrids.flatMap((monsterHrid) => {
             const monster = dictionaryValue(state.combatMonsterDetailMap, monsterHrid);
