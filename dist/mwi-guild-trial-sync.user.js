@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MWI 公会试炼资料同步助手
 // @namespace    https://greasyfork.org/users/1466859-adudu
-// @version      0.6.3
+// @version      0.6.4
 // @description  TMD 公会专用：自动同步成员名单、本周试炼、怪物面板、全部配装、技能与光环。
 // @author       adudu
 // @license      MIT
@@ -66,8 +66,17 @@
   let pageBridgeInstalled = false;
   let pageBridgeListenerInstalled = false;
 
-  const values = (value) => Array.isArray(value) ? value : value instanceof Map ? [...value.values()] : value instanceof Set ? [...value.values()] : value && typeof value === "object" ? Object.values(value) : [];
-  const entries = (value) => value instanceof Map ? [...value.entries()] : value && typeof value === "object" ? Object.entries(value) : [];
+  const mapLike = (value) => value && typeof value === "object"
+    && typeof value.entries === "function" && typeof value.values === "function"
+    && Number.isFinite(Number(value.size));
+  const setLike = (value) => value && typeof value === "object"
+    && typeof value.values === "function" && Number.isFinite(Number(value.size))
+    && typeof value.entries === "function" && typeof value.get !== "function";
+  const values = (value) => Array.isArray(value) ? value
+    : mapLike(value) || setLike(value) ? [...value.values()]
+      : value && typeof value === "object" ? Object.values(value) : [];
+  const entries = (value) => mapLike(value) || setLike(value) ? [...value.entries()]
+    : value && typeof value === "object" ? Object.entries(value) : [];
   const object = (value) => value && typeof value === "object" && !Array.isArray(value) ? value : {};
   const parseJson = (value) => {
     try {
@@ -431,20 +440,74 @@
     const type = String(packet.type ?? packet.event ?? packet.action ?? "");
     const data = packet.data ?? packet.payload ?? packet;
     if (type === "init_character_data") applyCharacterData(data);
+    if (type === "items_updated") {
+      applyCharacterData({ characterItems: data.endCharacterItems ?? data.characterItems });
+    }
     if (type === "loadouts_updated") {
       const updated = data.loadouts ?? data.combatLoadouts ?? data.characterLoadoutMap ?? data.characterLoadoutDict ?? data;
-      state.loadouts = values(updated);
+      state.loadouts = mergeLoadouts(state.loadouts, values(updated));
     }
     applyCharacterData(data);
     refresh();
   }
 
+  /**
+   * Observe the game's already-created WebSocket without replacing it. MWI
+   * reads MessageEvent.data to dispatch every server packet, so wrapping that
+   * native getter at document-start captures init_character_data even when the
+   * socket constructor ran before our page bridge. The wrapper is read-only
+   * and always returns the original payload unchanged.
+   */
+  function observePageMessages(page, onPacket) {
+    try {
+      if (!page || page.__ADUDU_GUILD_TRIAL_MESSAGE_OBSERVER__) return false;
+      const prototype = page.MessageEvent?.prototype;
+      const descriptor = prototype && Object.getOwnPropertyDescriptor(prototype, "data");
+      if (!descriptor?.get || descriptor.configurable === false) return false;
+      const originalGet = descriptor.get;
+      const seen = new WeakSet();
+      Object.defineProperty(prototype, "data", {
+        ...descriptor,
+        get() {
+          const message = originalGet.call(this);
+          if (
+            typeof message === "string"
+            && !seen.has(this)
+            && (
+              message.includes('"init_character_data"')
+              || message.includes('"loadouts_updated"')
+              || message.includes('"items_updated"')
+            )
+          ) {
+            seen.add(this);
+            queueMicrotask(() => {
+              try { onPacket(JSON.parse(message)); } catch { /* ignore unrelated frames */ }
+            });
+          }
+          return message;
+        },
+      });
+      page.__ADUDU_GUILD_TRIAL_MESSAGE_OBSERVER__ = true;
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  function installDirectMessageObserver() {
+    const page = typeof unsafeWindow === "object" ? unsafeWindow : window;
+    observePageMessages(page, recordPacket);
+  }
+
   function pageBridgeMain(channel) {
     if (window.__ADUDU_GUILD_TRIAL_BRIDGE__) return;
     window.__ADUDU_GUILD_TRIAL_BRIDGE__ = true;
-    const values = (value) => Array.isArray(value) ? value : value instanceof Map ? [...value.values()] : value && typeof value === "object" ? Object.values(value) : [];
-    const entries = (value) => value instanceof Map ? [...value.entries()] : value && typeof value === "object" ? Object.entries(value) : [];
-    const dictionary = (value) => value instanceof Map ? Object.fromEntries(value) : value && typeof value === "object" ? value : {};
+    const mapLike = (value) => value && typeof value === "object"
+      && typeof value.entries === "function" && typeof value.values === "function"
+      && Number.isFinite(Number(value.size));
+    const values = (value) => Array.isArray(value) ? value : mapLike(value) ? [...value.values()] : value && typeof value === "object" ? Object.values(value) : [];
+    const entries = (value) => mapLike(value) ? [...value.entries()] : value && typeof value === "object" ? Object.entries(value) : [];
+    const dictionary = (value) => mapLike(value) ? Object.fromEntries(value) : value && typeof value === "object" ? value : {};
     const compact = (gameState) => {
       const character = gameState?.character || gameState?.currentCharacter || gameState?.playerCharacter || {};
       const id = character?.id ?? character?.characterId ?? gameState?.characterId;
@@ -1293,6 +1356,7 @@
       if (document.visibilityState === "visible" && !hasCharacterData()) requestCharacterData();
     });
   }
+  installDirectMessageObserver();
   if (document.documentElement) {
     installPageBridge();
   } else {
