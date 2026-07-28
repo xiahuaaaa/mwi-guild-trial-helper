@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MWI 公会试炼资料同步助手
 // @namespace    https://greasyfork.org/users/1466859-adudu
-// @version      0.6.4
+// @version      0.6.5
 // @description  TMD 公会专用：自动同步成员名单、本周试炼、怪物面板、全部配装、技能与光环。
 // @author       adudu
 // @license      MIT
@@ -176,15 +176,75 @@
     }
     return [...highest.values()];
   };
-  const loadoutEquipmentPool = () => state.loadouts.flatMap((loadout) =>
-    values(loadout?.equipment ?? loadout?.items ?? loadout?.loadoutItems)
-  );
-  const loadoutRichness = (loadouts) => values(loadouts).reduce((score, loadout) =>
-    score
-      + values(loadout?.equipment ?? loadout?.items ?? loadout?.loadoutItems ?? loadout?.wearableMap).length * 100
-      + values(loadout?.abilities ?? loadout?.combatAbilities ?? loadout?.combat_abilities ?? loadout?.abilityMap).length * 10
-      + 1
-  , 0);
+  // MWI React/cache rows use wearableMap/abilityMap; the page bridge normalizes
+  // them to equipment/abilities arrays. Snapshot building must accept both, or
+  // auto-sync can POST names-only catalogs before the bridge reply arrives.
+  const mapEntries = (value) => {
+    if (!value || typeof value !== "object") return [];
+    if (typeof value.entries === "function" && Number.isFinite(Number(value.size))) return [...value.entries()];
+    return Object.entries(value);
+  };
+  const referenceItemHrid = (reference) => {
+    if (reference && typeof reference === "object") {
+      return String(reference.itemHrid ?? reference.hrid ?? "");
+    }
+    return String(reference ?? "").split("::").find((part) => part.startsWith("/items/")) || "";
+  };
+  const referenceEnhancementLevel = (reference) => {
+    if (reference && typeof reference === "object") {
+      return Number(reference.enhancementLevel ?? reference.enhancement_level ?? 0);
+    }
+    const parts = String(reference ?? "").split("::");
+    return Number(parts.at(-1) ?? 0);
+  };
+  const expandedLoadoutEquipment = (loadout) => {
+    const direct = values(loadout?.equipment ?? loadout?.items ?? loadout?.loadoutItems)
+      .filter((item) => item && typeof item === "object");
+    if (direct.some((item) => item.itemHrid || item.item_hrid || item.hrid)) return direct;
+    return mapEntries(loadout?.wearableMap).flatMap(([locationHrid, reference]) => {
+      if (!reference) return [];
+      const itemHrid = referenceItemHrid(reference);
+      if (!itemHrid) return [];
+      return [{
+        locationHrid: String(locationHrid),
+        itemHrid,
+        enhancementLevel: referenceEnhancementLevel(reference),
+        ...(typeof reference === "object" ? reference : {}),
+      }];
+    });
+  };
+  const expandedLoadoutAbilities = (loadout) => {
+    const direct = values(loadout?.abilities ?? loadout?.combatAbilities ?? loadout?.combat_abilities)
+      .filter((item) => item && typeof item === "object");
+    if (direct.some((item) => item.abilityHrid || item.ability_hrid || item.hrid)) return direct;
+    const triggerMap = loadout?.abilityCombatTriggersMap || {};
+    return mapEntries(loadout?.abilityMap).flatMap(([slot, abilityReference]) => {
+      if (!abilityReference) return [];
+      const abilityHrid = String(
+        typeof abilityReference === "object"
+          ? abilityReference.abilityHrid ?? abilityReference.hrid ?? ""
+          : abilityReference
+      );
+      if (!abilityHrid.startsWith("/")) return [];
+      const slotNumber = Number(String(slot).match(/\d+/)?.[0] ?? slot);
+      return [{
+        slot: Math.max(0, slotNumber - 1),
+        abilityHrid,
+        level: Number(abilityReference?.level ?? 1),
+        triggers: values(triggerMap instanceof Map ? triggerMap.get(abilityHrid) : triggerMap[abilityHrid]),
+      }];
+    });
+  };
+  const loadoutEquipmentPool = () => state.loadouts.flatMap((loadout) => expandedLoadoutEquipment(loadout));
+  const loadoutRichness = (loadouts) => values(loadouts).reduce((score, loadout) => {
+    const normalizedEquipment = expandedLoadoutEquipment(loadout).filter((item) => item?.itemHrid || item?.hrid).length;
+    const normalizedAbilities = expandedLoadoutAbilities(loadout).filter((item) => item?.abilityHrid || item?.hrid).length;
+    return score
+      + normalizedEquipment * 1000
+      + values(loadout?.wearableMap).length * 100
+      + normalizedAbilities * 10
+      + 1;
+  }, 0);
   const loadoutIdentity = (loadout, index = 0) => String(
     loadout?.loadoutId ?? loadout?.loadout_id ?? loadout?.id
     ?? `${loadout?.actionTypeHrid ?? loadout?.action_type_hrid ?? ""}\u0000${loadout?.name ?? index}`
@@ -203,10 +263,24 @@
       const nextScore = loadoutRichness([loadout]);
       // Prefer the hydrated record, but retain useful scalar metadata from the
       // other view. React exposes several representations of the same loadout
-      // during login and a names-only view must never erase wearableMap.
-      merged.set(key, nextScore >= previousScore
-        ? { ...previous, ...loadout }
-        : { ...loadout, ...previous });
+      // during login and a names-only view must never erase wearableMap or a
+      // bridge-normalized equipment array.
+      const primary = nextScore >= previousScore ? loadout : previous;
+      const secondary = nextScore >= previousScore ? previous : loadout;
+      const equipment = expandedLoadoutEquipment(primary).length
+        ? expandedLoadoutEquipment(primary)
+        : expandedLoadoutEquipment(secondary);
+      const abilities = expandedLoadoutAbilities(primary).length
+        ? expandedLoadoutAbilities(primary)
+        : expandedLoadoutAbilities(secondary);
+      merged.set(key, {
+        ...secondary,
+        ...primary,
+        ...(equipment.length ? { equipment } : {}),
+        ...(abilities.length ? { abilities } : {}),
+        wearableMap: primary.wearableMap ?? secondary.wearableMap,
+        abilityMap: primary.abilityMap ?? secondary.abilityMap,
+      });
     });
     return [...merged.values()];
   };
@@ -357,6 +431,11 @@
         return result;
       };
       const isConsumable = (value) => /food|drink|consumable|potion/i.test(value);
+      const mapEntries = (value) => {
+        if (!value || typeof value !== "object") return [];
+        if (typeof value.entries === "function" && Number.isFinite(Number(value.size))) return [...value.entries()];
+        return Object.entries(value);
+      };
       const equipment = (items) => {
         const byLocation = new Map();
         for (const item of list(items)) {
@@ -367,6 +446,25 @@
           }
         }
         return [...byLocation.values()].sort((left, right) => left.locationHrid.localeCompare(right.locationHrid)).slice(0, 20);
+      };
+      const equipmentFromLoadout = (loadout) => {
+        const direct = equipment(loadout.equipment ?? loadout.items ?? loadout.loadoutItems);
+        if (direct.length) return direct;
+        return equipment(mapEntries(loadout.wearableMap).flatMap(([locationHrid, reference]) => {
+          if (!reference) return [];
+          const itemHrid = string(
+            typeof reference === "object"
+              ? reference.itemHrid ?? reference.hrid ?? ""
+              : String(reference).split("::").find((part) => part.startsWith("/items/")) || ""
+          );
+          if (!itemHrid) return [];
+          const enhancementLevel = count(
+            typeof reference === "object"
+              ? reference.enhancementLevel ?? reference.enhancement_level
+              : String(reference).split("::").at(-1)
+          );
+          return [{ locationHrid: string(locationHrid), itemHrid, enhancementLevel }];
+        }));
       };
       const abilities = (items) => list(items).slice(0, 5).flatMap((item, slot) => {
         const abilityHrid = string(item.abilityHrid ?? item.ability_hrid ?? item.hrid);
@@ -380,6 +478,27 @@
         });
         return [{ slot: count(item.slot, slot), abilityHrid, level: Math.max(1, count(item.level, 1)), triggers }];
       });
+      const abilitiesFromLoadout = (loadout) => {
+        const direct = abilities(loadout.abilities ?? loadout.combatAbilities ?? loadout.combat_abilities);
+        if (direct.length) return direct;
+        const triggerMap = loadout.abilityCombatTriggersMap || {};
+        return abilities(mapEntries(loadout.abilityMap).flatMap(([slot, abilityReference]) => {
+          if (!abilityReference) return [];
+          const abilityHrid = string(
+            typeof abilityReference === "object"
+              ? abilityReference.abilityHrid ?? abilityReference.hrid ?? ""
+              : abilityReference
+          );
+          if (!abilityHrid.startsWith("/")) return [];
+          const slotNumber = Number(String(slot).match(/\d+/)?.[0] ?? slot);
+          return [{
+            slot: Math.max(0, slotNumber - 1),
+            abilityHrid,
+            level: Math.max(1, count(abilityReference?.level, 1)),
+            triggers: list(triggerMap instanceof Map ? triggerMap.get(abilityHrid) : triggerMap[abilityHrid]),
+          }];
+        }));
+      };
       const character = input.character && typeof input.character === "object" ? input.character : {};
       const allowed = new Map();
       for (const raw of list(input.authorizedEquipment ?? character.equipment ?? character.inventory)) {
@@ -408,8 +527,8 @@
       const requested = [...new Set(list(input.selectedLoadoutIds).map(string).filter(Boolean))].slice(0, MAX_COMBAT_CANDIDATES);
       const capturedAt = new Date(input.capturedAt ?? Date.now()).toISOString();
       const approvedBuilds = list(input.loadouts).filter((loadout) => requested.includes(string(loadout.loadoutId ?? loadout.loadout_id ?? loadout.id ?? loadout.buildId))).map((loadout, index) => {
-        const resolved = resolveOwnedEquipment(equipment(loadout.equipment ?? loadout.items ?? loadout.loadoutItems));
-        const slots = abilities(loadout.abilities ?? loadout.combatAbilities ?? loadout.combat_abilities);
+        const resolved = resolveOwnedEquipment(equipmentFromLoadout(loadout));
+        const slots = abilitiesFromLoadout(loadout);
         if (!resolved.equipment.length || !slots.length || resolved.missing) return null;
         const sourceLoadoutId = loadout.loadoutId ?? loadout.loadout_id ?? loadout.id;
         return { buildId: string(loadout.buildId) || `loadout:${string(sourceLoadoutId) || index + 1}`, ...(sourceLoadoutId == null ? {} : { sourceLoadoutId: count(sourceLoadoutId) }), name: string(loadout.name) || `Combat loadout ${index + 1}`, approvedByMember: true, capturedAt, equipment: resolved.equipment, abilities: slots, simulationReady: true, issues: [] };
@@ -417,8 +536,8 @@
       const loadoutCatalog = list(input.loadouts).slice(0, 64).map((loadout, index) => {
         const actionTypeHrid = string(loadout.actionTypeHrid ?? loadout.action_type_hrid) || "/action_types/all";
         const category = actionTypeHrid === "/action_types/combat" ? "combat" : actionTypeHrid === "/action_types/all" ? "all" : actionTypeHrid.startsWith("/action_types/") ? "profession" : "unknown";
-        const resolved = resolveOwnedEquipment(equipment(loadout.equipment ?? loadout.items ?? loadout.loadoutItems));
-        const slots = abilities(loadout.abilities ?? loadout.combatAbilities ?? loadout.combat_abilities);
+        const resolved = resolveOwnedEquipment(equipmentFromLoadout(loadout));
+        const slots = abilitiesFromLoadout(loadout);
         const sourceLoadoutId = loadout.loadoutId ?? loadout.loadout_id ?? loadout.id;
         return {
           ...(sourceLoadoutId == null ? {} : { sourceLoadoutId: count(sourceLoadoutId) }),
@@ -1057,6 +1176,19 @@
     }
     if (!confirmedTmdGuild()) {
       setStatus("尚未从游戏确认当前角色属于 TMD；请打开公会界面后重试。", true);
+      return;
+    }
+    if (snapshot.loadoutCatalog.length > 0
+      && snapshot.loadoutCatalog.every((loadout) => loadout.equipment.length === 0)) {
+      window.postMessage({ source: PAGE_BRIDGE_CHANNEL, type: "request" }, location.origin);
+      hydrateFromGameCache();
+      hydrateFromLiveGame();
+      if (automatic) {
+        setStatus("已检测到配装名称，正在等待游戏装备数据…");
+        scheduleAutomaticUpload(1500);
+        return;
+      }
+      setStatus("检测到配装名称，但尚未从游戏读取装备；请等待游戏加载完成后重试", true);
       return;
     }
     const roster = guildRosterPayload();
