@@ -1,8 +1,10 @@
 // ==UserScript==
-// @name         MWI 公会试炼资料同步助手
+// @name         MWI Guild Trial Sync
+// @name:zh-CN   MWI 公会试炼资料同步助手
 // @namespace    https://greasyfork.org/users/1466859-adudu
-// @version      0.6.5
-// @description  TMD 公会专用：自动同步成员名单、本周试炼、怪物面板、全部配装、技能与光环。
+// @version      0.6.6
+// @description  TMD guild sync: roster, weekly trials, monster panels, loadouts, abilities, and auras.
+// @description:zh-CN  TMD 公会专用：自动同步成员名单、本周试炼、怪物面板、全部配装、技能与光环。
 // @author       adudu
 // @license      MIT
 // @homepageURL  https://github.com/xiahuaaaa/mwi-guild-trial-helper
@@ -46,6 +48,106 @@
     bridge: "adudu-guild-sync-bridge",
   });
   const HYDRATION_RETRY_DELAYS_MS = [250, 500, 1000, 2000, 4000, 8000, 12000];
+  // Follow game language (i18nextLng). Do not use the browser UI language.
+  const zh = Object.freeze({
+    ariaLabel: "MWI 公会试炼资料同步",
+    heading: "adudu · 公会试炼资料",
+    intro: "TMD 专用；登录后自动同步本周试炼类型、怪物面板、当前名单、双 Boss 报名及全部配装，职业通过 QQ 机器人绑定。",
+    waitingCharacter: "等待读取角色资料",
+    syncNow: "立即同步",
+    exportBackup: "导出备份",
+    expand: "展开公会资料同步助手",
+    collapse: "缩小公会资料同步助手",
+    categoryCombat: "战斗",
+    categoryAll: "所有行动",
+    categorySkilling: "生活",
+    categoryUnknown: "未识别",
+    characterLoaded: "已读取游戏角色数据。",
+    waitingHydration: (current, total) => `等待游戏角色数据加载…（${current}/${total}）`,
+    syncTimeout: "同步超时",
+    syncUnreachable: "无法连接公会资料服务",
+    waitingName: "等待读取游戏角色名。",
+    notTmdYet: "尚未从游戏确认当前角色属于 TMD；请打开公会界面后重试。",
+    waitingEquipmentAuto: "已检测到配装名称，正在等待游戏装备数据…",
+    waitingEquipmentManual: "检测到配装名称，但尚未从游戏读取装备；请等待游戏加载完成后重试",
+    checkingEligibility: (memberId) => `正在检查 ${memberId} 的 TMD 成员资格…`,
+    notEligible: (memberId) => `当前角色 ${memberId} 不在 TMD 成员名单中，不会上传资料。`,
+    syncingRoster: (count) => `正在同步 TMD 当前名单（${count} 人）…`,
+    rosterOk: (count) => `名单 ${count} 人、`,
+    rosterFailed: (detail) => `名单未更新（${detail}）、`,
+    syncingWeeklyTrials: "正在同步本周生活/战斗试炼与怪物面板…",
+    weeklyTrialsOk: (skillCount, combatCount) => `本周试炼 ${skillCount}+${combatCount}、`,
+    monstersIncomplete: "怪物面板尚未读取完整",
+    weeklyTrialsFailed: (detail) => `试炼类型未更新（${detail}）、`,
+    waitingMonsters: "怪物面板等待读取、",
+    syncingSignups: "正在同步本周战斗试炼报名名单…",
+    signupsOk: (summary) => `报名 ${summary}、`,
+    signupsFailed: (detail) => `报名未更新（${detail}）、`,
+    syncingLoadouts: "正在自动同步全部配装…",
+    synced: (prefix, count, memberId) => `已同步${prefix}${count} 套配装（${memberId}）。`,
+    syncFailed: (message) => `同步失败：${message}`,
+  });
+  const en = Object.freeze({
+    ariaLabel: "MWI Guild Trial Sync",
+    heading: "adudu · Guild Trial Sync",
+    intro: "TMD only. After login, auto-syncs this week's trials, monster panels, roster, dual-boss signups, and all loadouts. Bind combat roles via the QQ bot.",
+    waitingCharacter: "Waiting for character data",
+    syncNow: "Sync now",
+    exportBackup: "Export backup",
+    expand: "Expand guild trial sync",
+    collapse: "Minimize guild trial sync",
+    categoryCombat: "Combat",
+    categoryAll: "All actions",
+    categorySkilling: "Skilling",
+    categoryUnknown: "Unknown",
+    characterLoaded: "Character data loaded.",
+    waitingHydration: (current, total) => `Waiting for character data… (${current}/${total})`,
+    syncTimeout: "Sync timed out",
+    syncUnreachable: "Cannot reach the guild data service",
+    waitingName: "Waiting for character name.",
+    notTmdYet: "Could not confirm this character is in TMD. Open the guild panel and try again.",
+    waitingEquipmentAuto: "Loadout names found; waiting for equipment data…",
+    waitingEquipmentManual: "Loadout names found, but equipment is not ready yet. Wait for the game to finish loading and try again.",
+    checkingEligibility: (memberId) => `Checking TMD membership for ${memberId}…`,
+    notEligible: (memberId) => `Character ${memberId} is not on the TMD roster; nothing will be uploaded.`,
+    syncingRoster: (count) => `Syncing TMD roster (${count} members)…`,
+    rosterOk: (count) => `roster ${count}, `,
+    rosterFailed: (detail) => `roster not updated (${detail}), `,
+    syncingWeeklyTrials: "Syncing this week's skilling/combat trials and monster panels…",
+    weeklyTrialsOk: (skillCount, combatCount) => `weekly trials ${skillCount}+${combatCount}, `,
+    monstersIncomplete: "monster panels incomplete",
+    weeklyTrialsFailed: (detail) => `weekly trials not updated (${detail}), `,
+    waitingMonsters: "waiting for monster panels, ",
+    syncingSignups: "Syncing this week's combat trial signups…",
+    signupsOk: (summary) => `signups ${summary}, `,
+    signupsFailed: (detail) => `signups not updated (${detail}), `,
+    syncingLoadouts: "Auto-syncing all loadouts…",
+    synced: (prefix, count, memberId) => `Synced ${prefix}${count} loadouts (${memberId}).`,
+    syncFailed: (message) => `Sync failed: ${message}`,
+  });
+  function lang() {
+    const stored = [
+      localStorage.getItem("i18nextLng"),
+      localStorage.getItem("i18nextLng-milkywayidle"),
+      localStorage.getItem("mwi_language"),
+    ].filter(Boolean).join(" ").toLowerCase();
+    if (stored.includes("zh") || stored.includes("cn")) return zh;
+    if (stored.includes("en")) return en;
+    const htmlLang = (document.documentElement.lang || "").toLowerCase();
+    if (htmlLang.includes("zh") || htmlLang.includes("cn")) return zh;
+    if (htmlLang.includes("en")) return en;
+    const host = location.hostname.toLowerCase();
+    if (host.includes("milkywayidlecn")) return zh;
+    const pageText = document.body?.innerText?.slice(0, 800) || "";
+    if (/(选择角色|活跃角色|公会|总等级)/.test(pageText)) return zh;
+    if (/\b(Character Select|Active Character|Guild|Total Level)\b/i.test(pageText)) return en;
+    return en;
+  }
+  function tr(key, ...args) {
+    const table = lang();
+    const value = table[key] ?? en[key] ?? key;
+    return typeof value === "function" ? value(...args) : value;
+  }
   const state = {
     character: {},
     guild: {},
@@ -767,7 +869,7 @@
         if (hasCharacterData()) {
           clearTimeout(hydration.timer);
           hydration.timer = 0;
-          setStatus("已读取游戏角色数据。");
+          setStatus(tr("characterLoaded"));
         }
       });
     }
@@ -809,10 +911,10 @@
     }
     if (hydrateFromGameCache() || hydrateFromLiveGame()) {
       hydration.attempt = 0;
-      setStatus("已读取游戏角色数据。");
+      setStatus(tr("characterLoaded"));
       return;
     }
-    setStatus(`等待游戏角色数据加载…（${hydration.attempt + 1}/${HYDRATION_RETRY_DELAYS_MS.length + 1}）`, true);
+    setStatus(tr("waitingHydration", hydration.attempt + 1, HYDRATION_RETRY_DELAYS_MS.length + 1), true);
     window.postMessage({ source: PAGE_BRIDGE_CHANNEL, type: "request" }, location.origin);
     if (hydration.attempt >= HYDRATION_RETRY_DELAYS_MS.length) return;
     const delay = HYDRATION_RETRY_DELAYS_MS[hydration.attempt];
@@ -875,6 +977,19 @@
     "/guild_combat/hedgehog": "试炼刺猬",
     "/guild_combat/swarm": "试炼虫群",
   });
+  // API/QQ keep Chinese canonical names; UI status may show English labels.
+  const COMBAT_TRIAL_NAMES_EN = Object.freeze({
+    "/guild_combat/badger": "Trial Badger",
+    "/guild_combat/chameleon": "Trial Chameleon",
+    "/guild_combat/jellyfish": "Trial Jellyfish",
+    "/guild_combat/hedgehog": "Trial Hedgehog",
+    "/guild_combat/swarm": "Trial Swarm",
+  });
+  function displayCombatTrialName(trialHrid) {
+    return (lang() === zh ? COMBAT_TRIAL_NAMES : COMBAT_TRIAL_NAMES_EN)[trialHrid]
+      ?? COMBAT_TRIAL_NAMES[trialHrid]
+      ?? String(trialHrid).split("/").at(-1);
+  }
   const COMBAT_TRIAL_MONSTERS = Object.freeze({
     "/guild_combat/badger": "/monsters/guild_trial_badger",
     "/guild_combat/chameleon": "/monsters/guild_trial_chameleon",
@@ -1163,19 +1278,19 @@
       data: data == null ? undefined : JSON.stringify(data),
       timeout: 30_000,
       onload: resolve,
-      ontimeout: () => reject(new Error("同步超时")),
-      onerror: () => reject(new Error("无法连接公会资料服务")),
+      ontimeout: () => reject(new Error(tr("syncTimeout"))),
+      onerror: () => reject(new Error(tr("syncUnreachable"))),
     }));
   }
   async function upload({ automatic = false } = {}) {
     if (automaticSync.running) return;
     const snapshot = payload();
     if (!snapshot.memberId || snapshot.memberId === "unknown-member") {
-      setStatus("等待读取游戏角色名。", true);
+      setStatus(tr("waitingName"), true);
       return;
     }
     if (!confirmedTmdGuild()) {
-      setStatus("尚未从游戏确认当前角色属于 TMD；请打开公会界面后重试。", true);
+      setStatus(tr("notTmdYet"), true);
       return;
     }
     if (snapshot.loadoutCatalog.length > 0
@@ -1184,11 +1299,11 @@
       hydrateFromGameCache();
       hydrateFromLiveGame();
       if (automatic) {
-        setStatus("已检测到配装名称，正在等待游戏装备数据…");
+        setStatus(tr("waitingEquipmentAuto"));
         scheduleAutomaticUpload(1500);
         return;
       }
-      setStatus("检测到配装名称，但尚未从游戏读取装备；请等待游戏加载完成后重试", true);
+      setStatus(tr("waitingEquipmentManual"), true);
       return;
     }
     const roster = guildRosterPayload();
@@ -1210,30 +1325,30 @@
     if (automatic && signature === automaticSync.lastSignature) return;
     automaticSync.running = true;
     try {
-      setStatus(`正在检查 ${snapshot.memberId} 的 TMD 成员资格…`);
+      setStatus(tr("checkingEligibility", snapshot.memberId));
       const eligibility = await requestJson({
         method: "GET",
         url: `${DEFAULT_API_BASE}/api/public/guilds/${FIXED_GUILD_ID}/members/${encodeURIComponent(snapshot.memberId)}/eligibility`,
       });
       const eligibilityBody = JSON.parse(eligibility.responseText || "{}");
       if (eligibility.status !== 200 || eligibilityBody.eligible !== true) {
-        setStatus(`当前角色 ${snapshot.memberId} 不在 TMD 成员名单中，不会上传资料。`, true);
+        setStatus(tr("notEligible", snapshot.memberId), true);
         return;
       }
       let rosterSummary = "";
       if (eligibilityBody.rosterSyncAllowed === true && roster) {
-        setStatus(`正在同步 TMD 当前名单（${roster.members.length} 人）…`);
+        setStatus(tr("syncingRoster", roster.members.length));
         const rosterResponse = await requestJson({
           method: "POST",
           url: `${DEFAULT_API_BASE}/api/public/guilds/${FIXED_GUILD_ID}/roster`,
           data: roster,
         });
         if (rosterResponse.status >= 200 && rosterResponse.status < 300) {
-          rosterSummary = `名单 ${roster.members.length} 人、`;
+          rosterSummary = tr("rosterOk", roster.members.length);
         } else if (rosterResponse.status !== 429) {
           let rosterDetail = `HTTP ${rosterResponse.status}`;
           try { rosterDetail = JSON.parse(rosterResponse.responseText)?.error?.message ?? rosterDetail; } catch { /* keep status */ }
-          rosterSummary = `名单未更新（${rosterDetail}）、`;
+          rosterSummary = tr("rosterFailed", rosterDetail);
         }
       }
       let trialSummary = "";
@@ -1242,43 +1357,52 @@
         ?.filter((trial) => trial.kind === "combat")
         .every((trial) => trial.monsterHrids.length > 0 && trial.monsters.length === trial.monsterHrids.length);
       if (eligibilityBody.rosterSyncAllowed === true && weeklyTrials && weeklyMonsterPanelsComplete) {
-        setStatus("正在同步本周生活/战斗试炼与怪物面板…");
+        setStatus(tr("syncingWeeklyTrials"));
         const weeklyTrialResponse = await requestJson({
           method: "POST",
           url: `${DEFAULT_API_BASE}/api/public/guilds/${FIXED_GUILD_ID}/weekly-trials`,
           data: weeklyTrials,
         });
         if (weeklyTrialResponse.status >= 200 && weeklyTrialResponse.status < 300) {
-          weeklyTrialSummary = `本周试炼 ${weeklyTrials.weeklyTrialSet.skillHrids.length}+${weeklyTrials.weeklyTrialSet.combatHrids.length}、`;
+          weeklyTrialSummary = tr(
+            "weeklyTrialsOk",
+            weeklyTrials.weeklyTrialSet.skillHrids.length,
+            weeklyTrials.weeklyTrialSet.combatHrids.length,
+          );
         } else if (weeklyTrialResponse.status !== 429) {
           let weeklyTrialDetail = `HTTP ${weeklyTrialResponse.status}`;
           try {
             const error = JSON.parse(weeklyTrialResponse.responseText)?.error;
             weeklyTrialDetail = error?.code === "incomplete_weekly_monsters"
-              ? "怪物面板尚未读取完整"
+              ? tr("monstersIncomplete")
               : error?.message ?? weeklyTrialDetail;
           } catch { /* keep status */ }
-          weeklyTrialSummary = `试炼类型未更新（${weeklyTrialDetail}）、`;
+          weeklyTrialSummary = tr("weeklyTrialsFailed", weeklyTrialDetail);
         }
       } else if (eligibilityBody.rosterSyncAllowed === true && weeklyTrials) {
-        weeklyTrialSummary = "怪物面板等待读取、";
+        weeklyTrialSummary = tr("waitingMonsters");
       }
       if (eligibilityBody.rosterSyncAllowed === true && trialRegistrations) {
-        setStatus("正在同步本周战斗试炼报名名单…");
+        setStatus(tr("syncingSignups"));
         const trialResponse = await requestJson({
           method: "POST",
           url: `${DEFAULT_API_BASE}/api/public/guilds/${FIXED_GUILD_ID}/trial-registrations`,
           data: trialRegistrations,
         });
         if (trialResponse.status >= 200 && trialResponse.status < 300) {
-          trialSummary = `报名 ${trialRegistrations.trials.map((trial) => `${trial.trialName} ${trial.registeredCount}`).join(" / ")}、`;
+          trialSummary = tr(
+            "signupsOk",
+            trialRegistrations.trials
+              .map((trial) => `${displayCombatTrialName(trial.trialHrid)} ${trial.registeredCount}`)
+              .join(" / "),
+          );
         } else if (trialResponse.status !== 429) {
           let trialDetail = `HTTP ${trialResponse.status}`;
           try { trialDetail = JSON.parse(trialResponse.responseText)?.error?.message ?? trialDetail; } catch { /* keep status */ }
-          trialSummary = `报名未更新（${trialDetail}）、`;
+          trialSummary = tr("signupsFailed", trialDetail);
         }
       }
-      setStatus("正在自动同步全部配装…");
+      setStatus(tr("syncingLoadouts"));
       const response = await requestJson({
         method: "POST",
         url: `${DEFAULT_API_BASE}/api/public/guilds/${FIXED_GUILD_ID}/members/${encodeURIComponent(snapshot.memberId)}/snapshots`,
@@ -1289,15 +1413,20 @@
         try {
           const apiError = JSON.parse(response.responseText)?.error;
           detail = apiError?.code === "empty_loadout_catalog"
-            ? "检测到配装名称，但尚未从游戏读取装备；请等待游戏加载完成后重试"
+            ? tr("waitingEquipmentManual")
             : apiError?.message ?? detail;
         } catch { /* keep status */ }
         throw new Error(detail);
       }
       automaticSync.lastSignature = signature;
-      setStatus(`已同步${rosterSummary}${weeklyTrialSummary}${trialSummary}${snapshot.loadoutCatalog.length} 套配装（${snapshot.memberId}）。`);
+      setStatus(tr(
+        "synced",
+        `${rosterSummary}${weeklyTrialSummary}${trialSummary}`,
+        snapshot.loadoutCatalog.length,
+        snapshot.memberId,
+      ));
     } catch (error) {
-      setStatus(`同步失败：${error.message}`, true);
+      setStatus(tr("syncFailed", error.message), true);
     } finally {
       automaticSync.running = false;
     }
@@ -1312,12 +1441,12 @@
     list.replaceChildren(...state.loadouts.map((loadout, index) => {
       const actionTypeHrid = String(loadout.actionTypeHrid ?? loadout.action_type_hrid ?? "");
       const category = actionTypeHrid === "/action_types/combat"
-        ? "战斗"
+        ? tr("categoryCombat")
         : !actionTypeHrid || actionTypeHrid === "/action_types/all"
-          ? "所有行动"
+          ? tr("categoryAll")
           : actionTypeHrid.startsWith("/action_types/")
-            ? "生活"
-            : "未识别";
+            ? tr("categorySkilling")
+            : tr("categoryUnknown");
       const label = document.createElement("label");
       label.append(` [${category}] ${loadout.name ?? `Loadout ${index + 1}`}`);
       return label;
@@ -1336,7 +1465,7 @@
     if (document.getElementById(UI.root)) return;
     const panel = document.createElement("aside");
     panel.id = UI.root;
-    panel.setAttribute("aria-label", "MWI 公会试炼资料同步");
+    panel.setAttribute("aria-label", tr("ariaLabel"));
     panel.style.cssText = [
       "position:fixed", "right:14px", "bottom:14px", "z-index:2147483647",
       "width:min(290px,calc(100vw - 28px))", "padding:12px",
@@ -1347,21 +1476,21 @@
 
     const content = document.createElement("div");
     const heading = document.createElement("strong");
-    heading.textContent = "adudu · 公会试炼资料";
+    heading.textContent = tr("heading");
     const intro = document.createElement("p");
     intro.style.margin = "6px 0";
-    intro.textContent = "TMD 专用；登录后自动同步本周试炼类型、怪物面板、当前名单、双 Boss 报名及全部配装，职业通过 QQ 机器人绑定。";
+    intro.textContent = tr("intro");
     const list = document.createElement("div");
     list.id = UI.list;
     const status = document.createElement("p");
     status.id = UI.status;
     status.style.cssText = "margin:7px 0;color:#c9d4ff";
-    status.textContent = "等待读取角色资料";
+    status.textContent = tr("waitingCharacter");
     const actions = document.createElement("div");
     actions.style.cssText = "display:flex;gap:5px;flex-wrap:wrap";
     actions.append(
-      actionButton("立即同步", () => upload()),
-      actionButton("导出备份", download),
+      actionButton(tr("syncNow"), () => upload()),
+      actionButton(tr("exportBackup"), download),
     );
     content.append(heading, intro, list, status, actions);
 
@@ -1396,7 +1525,7 @@
       panel.dataset.collapsed = collapsed ? "true" : "false";
       content.hidden = collapsed;
       toggle.textContent = collapsed ? "🐸" : "−";
-      toggle.title = collapsed ? "展开公会资料同步助手" : "缩小公会资料同步助手";
+      toggle.title = collapsed ? tr("expand") : tr("collapse");
       toggle.setAttribute("aria-label", toggle.title);
       if (collapsed) {
         panel.style.width = "46px";
