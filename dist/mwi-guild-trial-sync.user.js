@@ -2,7 +2,7 @@
 // @name         MWI 公会试炼资料同步助手
 // @name:en      MWI Guild Trial Sync
 // @namespace    https://greasyfork.org/users/1466859-adudu
-// @version      0.6.9
+// @version      0.6.10
 // @description  TMD 公会专用：自动同步成员名单、本周试炼、怪物面板、全部配装、技能与光环。
 // @description:en  TMD guild sync: roster, weekly trials, monster panels, loadouts, abilities, and auras.
 // @author       adudu
@@ -157,6 +157,7 @@
     guildWeeklyTrialSet: {},
     guildTrialDetailMap: {},
     guildBuildingMap: {},
+    guildBuildingLevelDict: {},
     guildBuildingDetailMap: {},
     combatMonsterDetailMap: {},
     loadouts: [],
@@ -408,6 +409,11 @@
     if (guildWeeklyTrialSet && typeof guildWeeklyTrialSet === "object") state.guildWeeklyTrialSet = guildWeeklyTrialSet;
     const guildTrialDetailMap = data.guildTrialDetailMap ?? data.guildTrialDetailDict;
     if (guildTrialDetailMap && typeof guildTrialDetailMap === "object") state.guildTrialDetailMap = guildTrialDetailMap;
+    const guildBuildingLevelDict = data.guildBuildingLevelDict ?? data.guildBuildingLevelMap
+      ?? data.guild?.guildBuildingLevelMap ?? data.guild?.guildBuildingLevelDict;
+    if (guildBuildingLevelDict && typeof guildBuildingLevelDict === "object") {
+      state.guildBuildingLevelDict = guildBuildingLevelDict;
+    }
     const guildBuildingMap = data.guildBuildingMap ?? data.guildBuildingDict;
     if (guildBuildingMap && typeof guildBuildingMap === "object") state.guildBuildingMap = guildBuildingMap;
     const guildBuildingDetailMap = data.guildBuildingDetailMap ?? data.guildBuildingDetailDict;
@@ -483,7 +489,7 @@
         if (!fiber || typeof fiber !== "object" || seen.has(fiber)) continue;
         seen.add(fiber); visited += 1;
         const candidate = fiber.stateNode?.state;
-        if (candidate && typeof candidate === "object" && (candidate.characterLoadoutDict || candidate.characterLoadoutMap || candidate.characterLabyrinth || candidate.combatUnit || candidate.gameConn || candidate.guildCharacterMap || candidate.guildSharableCharacterMap || candidate.guildTrialSignupLevelDict || candidate.guildWeeklyTrialSet || candidate.guild)) {
+        if (candidate && typeof candidate === "object" && (candidate.characterLoadoutDict || candidate.characterLoadoutMap || candidate.characterLabyrinth || candidate.combatUnit || candidate.gameConn || candidate.guildCharacterMap || candidate.guildSharableCharacterMap || candidate.guildTrialSignupLevelDict || candidate.guildWeeklyTrialSet || candidate.guildBuildingLevelDict || candidate.guildBuildingLevelMap || candidate.guild)) {
           applyCharacterTree(candidate);
         }
         if (fiber.return) queue.push(fiber.return);
@@ -507,7 +513,7 @@
       const { value, depth } = queue.shift();
       if (!value || typeof value !== "object" || seen.has(value)) continue;
       seen.add(value); visited += 1;
-      if (value.character || value.characterInfo || value.characterLoadoutDict || value.characterLoadoutMap || value.characterItems || value.characterSkills || value.guildCharacterMap || value.guildSharableCharacterMap || value.guildTrialSignupLevelDict || value.guildWeeklyTrialSet || value.guildTrialDetailMap || value.combatMonsterDetailMap || value.guild) applyCharacterData(value);
+      if (value.character || value.characterInfo || value.characterLoadoutDict || value.characterLoadoutMap || value.characterItems || value.characterSkills || value.guildCharacterMap || value.guildSharableCharacterMap || value.guildTrialSignupLevelDict || value.guildWeeklyTrialSet || value.guildTrialDetailMap || value.combatMonsterDetailMap || value.guildBuildingLevelDict || value.guildBuildingLevelMap || value.guild) applyCharacterData(value);
       if (depth >= 5) continue;
       for (const key of Object.keys(value)) {
         if (/token|authorization|cookie|secret|password|credential|session/i.test(key)) continue;
@@ -801,6 +807,12 @@
         guildTrialSignupLevelMap: dictionary(gameState?.guildTrialSignupLevelMap || gameState?.guildTrialSignupLevelDict),
         guildWeeklyTrialSet: gameState?.guildWeeklyTrialSet || gameState?.weeklyGuildTrialSet || {},
         guildTrialDetailMap: dictionary(gameState?.guildTrialDetailMap || gameState?.guildTrialDetailDict),
+        guildBuildingLevelDict: dictionary(
+          gameState?.guildBuildingLevelDict
+          || gameState?.guildBuildingLevelMap
+          || gameState?.guild?.guildBuildingLevelMap,
+        ),
+        guildBuildingDetailMap: dictionary(gameState?.guildBuildingDetailMap || gameState?.guildBuildingDetailDict),
         combatMonsterDetailMap: dictionary(gameState?.combatMonsterDetailMap || gameState?.combatMonsterDetailDict),
         characterSkills: values(gameState?.characterSkills || gameState?.characterSkillMap || gameState?.characterSkillDict),
         characterItems: [
@@ -1154,6 +1166,10 @@
     skilling: "skillingTrialSlotsPerLevel",
     combat: "combatTrialSlotsPerLevel",
   });
+  const TRIAL_BASE_PARTICIPANTS = Object.freeze({
+    skilling: 20,
+    combat: 40,
+  });
   function positiveInteger(value) {
     const number = Number(value);
     return Number.isInteger(number) && number > 0 ? number : null;
@@ -1165,19 +1181,33 @@
     }
     return null;
   }
+  function guildBuildingLevelDictSnapshot() {
+    if (state.guildBuildingLevelDict && Object.keys(state.guildBuildingLevelDict).length) {
+      return state.guildBuildingLevelDict;
+    }
+    const fromGuild = state.guild?.guildBuildingLevelMap ?? state.guild?.guildBuildingLevelDict;
+    if (fromGuild && typeof fromGuild === "object" && Object.keys(fromGuild).length) return fromGuild;
+    return state.guildBuildingMap;
+  }
   function guildBuildingLevel(buildingHrid) {
-    const row = object(dictionaryValue(state.guildBuildingMap, buildingHrid));
+    const raw = dictionaryValue(guildBuildingLevelDictSnapshot(), buildingHrid);
+    if (typeof raw === "number") return positiveInteger(raw);
+    const row = object(raw);
     return positiveInteger(row.level ?? row.buildingLevel ?? row.currentLevel);
+  }
+  function encampmentTrialSlotsBonus(kind) {
+    const buildingHrid = ENCAMPMENT_BUILDING_HRIDS[kind];
+    const detail = object(dictionaryValue(state.guildBuildingDetailMap, buildingHrid));
+    const slotsPerLevel = positiveInteger(detail[ENCAMPMENT_SLOTS_PER_LEVEL_FIELDS[kind]]) ?? 0;
+    const maxLevel = positiveInteger(detail.maxLevel);
+    const buildingLevel = guildBuildingLevel(buildingHrid) ?? 0;
+    const effectiveLevel = maxLevel != null ? Math.min(buildingLevel, maxLevel) : buildingLevel;
+    return Math.max(0, effectiveLevel) * slotsPerLevel;
   }
   function encampmentMaxParticipants(kind) {
     const direct = readTrialCapacityField(state.guild, GUILD_TRIAL_CAPACITY_FIELDS[kind]);
     if (direct != null) return direct;
-    const buildingHrid = ENCAMPMENT_BUILDING_HRIDS[kind];
-    const level = guildBuildingLevel(buildingHrid);
-    const detail = object(dictionaryValue(state.guildBuildingDetailMap, buildingHrid));
-    const slotsPerLevel = positiveInteger(detail[ENCAMPMENT_SLOTS_PER_LEVEL_FIELDS[kind]]);
-    if (level != null && slotsPerLevel != null) return level * slotsPerLevel;
-    return null;
+    return TRIAL_BASE_PARTICIPANTS[kind] + encampmentTrialSlotsBonus(kind);
   }
   function trialMaxParticipants(detail, kind) {
     const fromDetail = readTrialCapacityField(detail, TRIAL_CAPACITY_FIELDS);
