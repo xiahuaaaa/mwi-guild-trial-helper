@@ -2,7 +2,7 @@
 // @name         MWI 公会试炼资料同步助手
 // @name:en      MWI Guild Trial Sync
 // @namespace    https://greasyfork.org/users/1466859-adudu
-// @version      0.6.10
+// @version      0.6.11
 // @description  TMD 公会专用：自动同步成员名单、本周试炼、怪物面板、全部配装、技能与光环。
 // @description:en  TMD guild sync: roster, weekly trials, monster panels, loadouts, abilities, and auras.
 // @author       adudu
@@ -68,6 +68,7 @@
     syncUnreachable: "无法连接公会资料服务",
     waitingName: "等待读取游戏角色名。",
     notTmdYet: "尚未从游戏确认当前角色属于 TMD；请打开公会界面后重试。",
+    notTmdDetail: (detail) => `尚未从游戏确认当前角色属于 TMD（${detail}）。请打开「公会」界面后点「立即同步」。`,
     waitingEquipmentAuto: "已检测到配装名称，正在等待游戏装备数据…",
     waitingEquipmentManual: "检测到配装名称，但尚未从游戏读取装备；请等待游戏加载完成后重试",
     checkingEligibility: (memberId) => `正在检查 ${memberId} 的 TMD 成员资格…`,
@@ -106,6 +107,7 @@
     syncUnreachable: "Cannot reach the guild data service",
     waitingName: "Waiting for character name.",
     notTmdYet: "Could not confirm this character is in TMD. Open the guild panel and try again.",
+    notTmdDetail: (detail) => `Could not confirm TMD membership (${detail}). Open the Guild panel, then Sync Now.`,
     waitingEquipmentAuto: "Loadout names found; waiting for equipment data…",
     waitingEquipmentManual: "Loadout names found, but equipment is not ready yet. Wait for the game to finish loading and try again.",
     checkingEligibility: (memberId) => `Checking TMD membership for ${memberId}…`,
@@ -127,9 +129,9 @@
   });
   function lang() {
     const stored = [
-      localStorage.getItem("i18nextLng"),
-      localStorage.getItem("i18nextLng-milkywayidle"),
-      localStorage.getItem("mwi_language"),
+      readPageStorage("i18nextLng"),
+      readPageStorage("i18nextLng-milkywayidle"),
+      readPageStorage("mwi_language"),
     ].filter(Boolean).join(" ").toLowerCase();
     if (stored.includes("zh") || stored.includes("cn")) return zh;
     if (stored.includes("en")) return en;
@@ -147,6 +149,22 @@
     const table = lang();
     const value = table[key] ?? en[key] ?? key;
     return typeof value === "function" ? value(...args) : value;
+  }
+  /** Page-origin storage. Sandboxed Edge/TM contexts must not use the extension localStorage. */
+  function pageStorage() {
+    try {
+      const page = typeof unsafeWindow === "object" ? unsafeWindow : window;
+      return page.localStorage ?? localStorage;
+    } catch {
+      return localStorage;
+    }
+  }
+  function readPageStorage(key) {
+    try {
+      return pageStorage().getItem(key);
+    } catch {
+      return null;
+    }
   }
   const state = {
     character: {},
@@ -396,9 +414,34 @@
     const character = data.character ?? characterInfo.character;
     if (character && typeof character === "object") state.character = character;
     const guild = data.guild ?? characterInfo.guild;
-    if (guild && typeof guild === "object") state.guild = { ...state.guild, ...guild };
-    const guildName = data.guildName ?? character?.guildName ?? characterInfo.character?.guildName;
+    if (guild && typeof guild === "object") {
+      // Explicit fields: Edge/Chromium guild objects may expose id/name via
+      // getters that object-spread does not always copy into state.guild.
+      state.guild = {
+        ...state.guild,
+        ...guild,
+        id: guild.id ?? guild.guildId ?? state.guild.id,
+        guildId: guild.guildId ?? guild.id ?? state.guild.guildId,
+        name: guild.name ?? guild.guildName ?? state.guild.name,
+        guildName: guild.guildName ?? guild.name ?? state.guild.guildName,
+      };
+    }
+    const guildName = data.guildName ?? character?.guildName ?? characterInfo.character?.guildName
+      ?? guild?.name ?? guild?.guildName;
     if (typeof guildName === "string" && guildName.trim()) state.guild.name = guildName.trim();
+    const guildId = data.guildId ?? data.guildID ?? character?.guildId ?? character?.guildID
+      ?? guild?.id ?? guild?.guildId;
+    if (guildId != null && guildId !== "" && Number(guildId) > 0) {
+      state.guild.id = Number(guildId);
+      if (state.character && typeof state.character === "object") {
+        if (state.character.guildId == null && state.character.guildID == null) {
+          state.character.guildId = Number(guildId);
+        }
+        if (!state.character.guildName && state.guild.name) {
+          state.character.guildName = state.guild.name;
+        }
+      }
+    }
     const guildCharacterMap = data.guildCharacterMap ?? data.guildCharacterDict;
     if (guildCharacterMap && typeof guildCharacterMap === "object") state.guildCharacterMap = guildCharacterMap;
     const guildSharableCharacterMap = data.guildSharableCharacterMap ?? data.guildSharableCharacterDict;
@@ -445,12 +488,12 @@
    * WebSocket message; it reads no general storage or authentication data.
    */
   function hydrateFromGameCache() {
-    const init = parseJson(localStorage.getItem("init_character_data"));
+    const init = parseJson(readPageStorage("init_character_data"));
     if (init) applyCharacterData(init.data ?? init.payload ?? init);
     // Current MWI clients store the initial event stream under initClientData.
     // It can be plain JSON or LZString-compressed JSON, depending on client
     // version.  This stays entirely same-origin and read-only.
-    const initClientRaw = localStorage.getItem("initClientData");
+    const initClientRaw = readPageStorage("initClientData");
     if (initClientRaw) {
       const page = typeof unsafeWindow === "object" ? unsafeWindow : window;
       const lz = page.LZString ?? window.LZString;
@@ -461,7 +504,7 @@
         ?? parseJson(lz?.decompressFromBase64?.(initClientRaw));
       if (initClient) applyCharacterData(initClient.data ?? initClient.payload ?? initClient);
     }
-    const skills = parseJson(localStorage.getItem("characterSkills"));
+    const skills = parseJson(readPageStorage("characterSkills"));
     if (skills && !state.skills.length) state.skills = values(skills);
     refresh();
     return Boolean(init && hasCharacterData()) || hasCharacterData();
@@ -710,6 +753,10 @@
               message.includes('"init_character_data"')
               || message.includes('"loadouts_updated"')
               || message.includes('"items_updated"')
+              || message.includes('"guildCharacterMap"')
+              || message.includes('"guildSharableCharacterMap"')
+              || message.includes('"guildName"')
+              || message.includes('"guildWeeklyTrialSet"')
             )
           ) {
             seen.add(this);
@@ -735,6 +782,49 @@
   function pageBridgeMain(channel) {
     if (window.__ADUDU_GUILD_TRIAL_BRIDGE__) return;
     window.__ADUDU_GUILD_TRIAL_BRIDGE__ = true;
+    // Edge/TM document-start can miss the userscript-side MessageEvent hook.
+    // Install the same read-only getter in true page context before React/WS.
+    try {
+      if (!window.__ADUDU_GUILD_TRIAL_PAGE_MESSAGE_OBSERVER__) {
+        const prototype = window.MessageEvent?.prototype;
+        const descriptor = prototype && Object.getOwnPropertyDescriptor(prototype, "data");
+        if (descriptor?.get && descriptor.configurable !== false) {
+          const originalGet = descriptor.get;
+          const seen = new WeakSet();
+          Object.defineProperty(prototype, "data", {
+            ...descriptor,
+            get() {
+              const message = originalGet.call(this);
+              if (
+                typeof message === "string"
+                && !seen.has(this)
+                && (
+                  message.includes('"init_character_data"')
+                  || message.includes('"loadouts_updated"')
+                  || message.includes('"items_updated"')
+                  || message.includes('"guildCharacterMap"')
+                  || message.includes('"guildSharableCharacterMap"')
+                  || message.includes('"guildName"')
+                  || message.includes('"guildWeeklyTrialSet"')
+                )
+              ) {
+                seen.add(this);
+                queueMicrotask(() => {
+                  try {
+                    window.postMessage(
+                      { source: channel, type: "packet", packet: JSON.parse(message) },
+                      window.location.origin,
+                    );
+                  } catch { /* ignore unrelated frames */ }
+                });
+              }
+              return message;
+            },
+          });
+          window.__ADUDU_GUILD_TRIAL_PAGE_MESSAGE_OBSERVER__ = true;
+        }
+      }
+    } catch { /* MessageEvent hook unavailable */ }
     const mapLike = (value) => value && typeof value === "object"
       && typeof value.entries === "function" && typeof value.values === "function"
       && Number.isFinite(Number(value.size));
@@ -951,12 +1041,62 @@
     const name = String(state.guild.name ?? state.guild.guildName ?? state.character.guildName ?? "").trim();
     return { id: Number.isInteger(id) && id > 0 ? id : null, name };
   }
+  function tmdConfirmDetail() {
+    const guild = detectedGameGuild();
+    const parts = [];
+    if (guild.name !== FIXED_GUILD_ID) {
+      parts.push(guild.name ? `guild=${guild.name}` : "missing guild name");
+    }
+    if (guild.id == null) parts.push("missing guild id");
+    const characterGuildId = Number(state.character.guildId ?? state.character.guildID);
+    if (Number.isInteger(characterGuildId) && guild.id != null && characterGuildId !== guild.id) {
+      parts.push(`character guildId=${characterGuildId}≠${guild.id}`);
+    }
+    return parts.join("; ") || "incomplete guild state";
+  }
   function confirmedTmdGuild() {
     const guild = detectedGameGuild();
     const characterGuildId = Number(state.character.guildId ?? state.character.guildID);
     return guild.name === FIXED_GUILD_ID
       && guild.id != null
       && (!Number.isInteger(characterGuildId) || characterGuildId === guild.id);
+  }
+  /** Ask the page bridge to re-read React/core state; Edge often needs this after opening Guild. */
+  function requestPageBridgeState(timeoutMs = 900) {
+    return new Promise((resolve) => {
+      let settled = false;
+      const finish = () => {
+        if (settled) return;
+        settled = true;
+        window.removeEventListener("message", onMessage);
+        clearTimeout(timer);
+        resolve(confirmedTmdGuild());
+      };
+      const onMessage = (event) => {
+        if (event.origin !== location.origin || event.data?.source !== PAGE_BRIDGE_CHANNEL) return;
+        if (event.data?.type === "state" || event.data?.type === "packet") {
+          // Existing listener applies payload; wait one tick then re-check.
+          queueMicrotask(() => {
+            hydrateFromLiveGame();
+            finish();
+          });
+        }
+      };
+      const timer = setTimeout(() => {
+        hydrateFromGameCache();
+        hydrateFromLiveGame();
+        finish();
+      }, timeoutMs);
+      window.addEventListener("message", onMessage);
+      installPageBridge();
+      window.postMessage({ source: PAGE_BRIDGE_CHANNEL, type: "request" }, location.origin);
+    });
+  }
+  async function ensureTmdGuildConfirmed() {
+    hydrateFromGameCache();
+    hydrateFromLiveGame();
+    if (confirmedTmdGuild()) return true;
+    return requestPageBridgeState();
   }
   function guildRosterPayload() {
     if (!confirmedTmdGuild()) return null;
@@ -1431,7 +1571,11 @@
     }
     if (!confirmedTmdGuild()) {
       setStatus(tr("notTmdYet"), true);
-      return;
+      const ok = await ensureTmdGuildConfirmed();
+      if (!ok) {
+        setStatus(tr("notTmdDetail", tmdConfirmDetail()), true);
+        return;
+      }
     }
     if (snapshot.loadoutCatalog.length > 0
       && snapshot.loadoutCatalog.every((loadout) => loadout.equipment.length === 0)) {
