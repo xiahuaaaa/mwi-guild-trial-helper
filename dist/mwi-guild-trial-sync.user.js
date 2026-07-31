@@ -2,7 +2,7 @@
 // @name         MWI 公会试炼资料同步助手
 // @name:en      MWI Guild Trial Sync
 // @namespace    https://greasyfork.org/users/1466859-adudu
-// @version      0.6.11
+// @version      0.6.12
 // @description  TMD 公会专用：自动同步成员名单、本周试炼、怪物面板、全部配装、技能与光环。
 // @description:en  TMD guild sync: roster, weekly trials, monster panels, loadouts, abilities, and auras.
 // @author       adudu
@@ -180,6 +180,7 @@
     combatMonsterDetailMap: {},
     loadouts: [],
     authorizedEquipment: [],
+    itemByHash: new Map(),
     skills: [],
     learnedAbilities: [],
     auras: [],
@@ -307,34 +308,80 @@
     if (typeof value.entries === "function" && Number.isFinite(Number(value.size))) return [...value.entries()];
     return Object.entries(value);
   };
+  // MWI wearableMap values are usually:
+  //   "charId::/item_locations/...::/items/...::enhancement"
+  // or an item hash that must be resolved via characterItemMap.
+  const lookupItemByReference = (reference) => {
+    if (!reference) return null;
+    if (reference && typeof reference === "object") {
+      if (reference.itemHrid || reference.hrid) return reference;
+      const key = reference.hash ?? reference.itemHash ?? reference.itemKey ?? reference.id;
+      return (key != null && state.itemByHash.get(String(key))) || null;
+    }
+    const raw = String(reference);
+    const parts = raw.split("::");
+    for (const key of [raw, parts[0], parts[2], parts[1]]) {
+      if (key == null || key === "") continue;
+      const hit = state.itemByHash.get(String(key));
+      if (hit) return hit;
+    }
+    return null;
+  };
   const referenceItemHrid = (reference) => {
     if (reference && typeof reference === "object") {
       return String(reference.itemHrid ?? reference.hrid ?? "");
     }
-    return String(reference ?? "").split("::").find((part) => part.startsWith("/items/")) || "";
+    const parts = String(reference ?? "").split("::");
+    // Canonical WS/React format: charId::locationHrid::itemHrid::enhancementLevel
+    if (parts.length >= 4 && String(parts[2]).startsWith("/items/")) return String(parts[2]);
+    const fromLookup = lookupItemByReference(reference);
+    if (fromLookup?.itemHrid || fromLookup?.hrid) {
+      return String(fromLookup.itemHrid ?? fromLookup.hrid);
+    }
+    return parts.find((part) => String(part).startsWith("/items/")) || "";
   };
   const referenceEnhancementLevel = (reference) => {
     if (reference && typeof reference === "object") {
       return Number(reference.enhancementLevel ?? reference.enhancement_level ?? 0);
     }
     const parts = String(reference ?? "").split("::");
+    if (parts.length >= 4 && Number.isFinite(Number(parts[3]))) return Number(parts[3]);
+    const fromLookup = lookupItemByReference(reference);
+    if (fromLookup && fromLookup.enhancementLevel != null) {
+      return Number(fromLookup.enhancementLevel ?? 0);
+    }
     return Number(parts.at(-1) ?? 0);
+  };
+  const indexCharacterItems = (equipment) => {
+    for (const [key, item] of mapEntries(equipment)) {
+      if (!item || typeof item !== "object") continue;
+      state.itemByHash.set(String(key), item);
+      if (item.hash != null) state.itemByHash.set(String(item.hash), item);
+      if (item.itemHash != null) state.itemByHash.set(String(item.itemHash), item);
+      if (item.id != null) state.itemByHash.set(String(item.id), item);
+      if (item.itemHrid || item.hrid) {
+        state.itemByHash.set(String(item.itemHrid ?? item.hrid), item);
+      }
+    }
   };
   const expandedLoadoutEquipment = (loadout) => {
     const direct = values(loadout?.equipment ?? loadout?.items ?? loadout?.loadoutItems)
       .filter((item) => item && typeof item === "object");
     if (direct.some((item) => item.itemHrid || item.item_hrid || item.hrid)) return direct;
-    return mapEntries(loadout?.wearableMap).flatMap(([locationHrid, reference]) => {
-      if (!reference) return [];
-      const itemHrid = referenceItemHrid(reference);
-      if (!itemHrid) return [];
-      return [{
-        locationHrid: String(locationHrid),
-        itemHrid,
-        enhancementLevel: referenceEnhancementLevel(reference),
-        ...(typeof reference === "object" ? reference : {}),
-      }];
-    });
+    const wearableEntries = mapEntries(loadout?.wearableMap);
+    if (wearableEntries.length) {
+      return wearableEntries.flatMap(([locationHrid, reference]) => {
+        if (!reference) return [];
+        const itemHrid = referenceItemHrid(reference);
+        if (!itemHrid) return [];
+        return [{
+          locationHrid: String(locationHrid),
+          itemHrid,
+          enhancementLevel: referenceEnhancementLevel(reference),
+        }];
+      });
+    }
+    return [];
   };
   const expandedLoadoutAbilities = (loadout) => {
     const direct = values(loadout?.abilities ?? loadout?.combatAbilities ?? loadout?.combat_abilities)
@@ -465,7 +512,12 @@
     if (combatMonsterDetailMap && typeof combatMonsterDetailMap === "object") state.combatMonsterDetailMap = combatMonsterDetailMap;
     const equipment = data.equipment ?? data.inventory ?? data.characterItems ?? data.characterItemMap
       ?? characterInfo.characterItems ?? characterInfo.characterItemMap;
-    if (equipment) state.authorizedEquipment = mergeAuthorizedEquipment(state.authorizedEquipment, equipment);
+    if (equipment) {
+      indexCharacterItems(equipment);
+      state.authorizedEquipment = mergeAuthorizedEquipment(state.authorizedEquipment, equipment);
+    }
+    const byLocation = data.characterItemByLocationMap ?? data.characterItemsByLocation;
+    if (byLocation) indexCharacterItems(byLocation);
     const skills = data.characterSkills ?? data.skills ?? characterInfo.characterSkills;
     if (skills) state.skills = values(skills);
     const learned = data.characterAbilities ?? data.learnedAbilities ?? data.characterAbilityMap
@@ -609,16 +661,23 @@
         if (direct.length) return direct;
         return equipment(mapEntries(loadout.wearableMap).flatMap(([locationHrid, reference]) => {
           if (!reference) return [];
-          const itemHrid = string(
+          const parts = String(reference ?? "").split("::");
+          let itemHrid = string(
             typeof reference === "object"
               ? reference.itemHrid ?? reference.hrid ?? ""
-              : String(reference).split("::").find((part) => part.startsWith("/items/")) || ""
+              : ""
           );
+          if (!itemHrid && parts.length >= 4 && String(parts[2]).startsWith("/items/")) {
+            itemHrid = string(parts[2]);
+          }
+          if (!itemHrid) {
+            itemHrid = string(parts.find((part) => String(part).startsWith("/items/")) || "");
+          }
           if (!itemHrid) return [];
           const enhancementLevel = count(
             typeof reference === "object"
               ? reference.enhancementLevel ?? reference.enhancement_level
-              : String(reference).split("::").at(-1)
+              : (parts.length >= 4 ? parts[3] : parts.at(-1))
           );
           return [{ locationHrid: string(locationHrid), itemHrid, enhancementLevel }];
         }));
@@ -845,17 +904,36 @@
       const abilityLevelByHrid = new Map(entries(gameState?.characterAbilityMap || gameState?.characterAbilities || gameState?.characterAbilityDict)
         .map(([key, ability]) => [String(ability?.abilityHrid || ability?.hrid || key), Number(ability?.level || 1)]));
       const loadouts = values(gameState?.characterLoadoutDict || gameState?.characterLoadoutMap).map((loadout) => {
-        const equipment = entries(loadout?.wearableMap || loadout?.equipment || loadout?.items).flatMap(([locationHrid, reference]) => {
+        const wearableEntries = entries(loadout?.wearableMap);
+        const equipmentEntries = wearableEntries.length
+          ? wearableEntries
+          : entries(loadout?.equipment || loadout?.items);
+        const equipment = equipmentEntries.flatMap(([locationHrid, reference]) => {
           if (!reference) return [];
           const referenceKey = typeof reference === "object"
             ? reference.hash ?? reference.itemHash ?? reference.itemKey ?? reference.id
             : reference;
-          const item = typeof reference === "object" && (reference.itemHrid || reference.hrid)
+          const parts = String(reference ?? "").split("::");
+          let item = typeof reference === "object" && (reference.itemHrid || reference.hrid)
             ? reference
-            : itemByHash.get(String(referenceKey ?? reference));
-          const parts = String(reference).split("::");
-          const itemHrid = item?.itemHrid || item?.hrid || parts.find((part) => part.startsWith("/items/")) || "";
-          const enhancementLevel = Number(item?.enhancementLevel ?? parts.at(-1) ?? 0);
+            : null;
+          if (!item) {
+            for (const key of [referenceKey, parts[0], parts[2], parts[1]]) {
+              if (key == null || key === "") continue;
+              item = itemByHash.get(String(key));
+              if (item) break;
+            }
+          }
+          const itemHrid = item?.itemHrid || item?.hrid
+            || (parts.length >= 4 && String(parts[2]).startsWith("/items/") ? parts[2] : "")
+            || parts.find((part) => String(part).startsWith("/items/"))
+            || "";
+          const enhancementLevel = Number(
+            item?.enhancementLevel
+            ?? (parts.length >= 4 ? parts[3] : undefined)
+            ?? parts.at(-1)
+            ?? 0
+          );
           return itemHrid ? [{ locationHrid: String(locationHrid), itemHrid, enhancementLevel }] : [];
         });
         const triggerMap = loadout?.abilityCombatTriggersMap || {};
@@ -881,6 +959,8 @@
           actionTypeHrid: loadout?.actionTypeHrid,
           equipment,
           abilities,
+          wearableMap: loadout?.wearableMap,
+          abilityMap: loadout?.abilityMap,
         };
       });
       return {
@@ -1002,6 +1082,7 @@
     state.guildWeeklyTrialSet = {};
     state.loadouts = [];
     state.authorizedEquipment = [];
+    state.itemByHash = new Map();
     state.skills = [];
     state.learnedAbilities = [];
     state.auras = [];
@@ -1737,8 +1818,9 @@
           : actionTypeHrid.startsWith("/action_types/")
             ? tr("categorySkilling")
             : tr("categoryUnknown");
+      const gearCount = expandedLoadoutEquipment(loadout).filter((item) => item?.itemHrid || item?.hrid).length;
       const label = document.createElement("label");
-      label.append(` [${category}] ${loadout.name ?? `Loadout ${index + 1}`}`);
+      label.append(` [${category}] ${loadout.name ?? `Loadout ${index + 1}`} (${gearCount})`);
       return label;
     }));
     if (hasCharacterData()) scheduleAutomaticUpload();
