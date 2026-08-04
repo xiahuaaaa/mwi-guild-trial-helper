@@ -1,0 +1,18 @@
+{
+  "kind": "life-assignment-report",
+  "weekStartAt": "2026-07-31T00:00:00.000Z",
+  "generatedAt": "2026-08-04T02:26:20.937Z",
+  "totalBasePoints": 4200,
+  "publicPngUrl": "https://raw.githubusercontent.com/xiahuaaaa/mwi-guild-trial-helper/main/reports/life-assignment/latest.png",
+  "publicJsonUrl": "https://raw.githubusercontent.com/xiahuaaaa/mwi-guild-trial-helper/main/reports/life-assignment/latest.json",
+  "files": [
+    {
+      "fileName": "latest.png",
+      "title": "本周生活分工"
+    },
+    {
+      "fileName": "latest.json",
+      "title": "本周生活分工 JSON"
+    }
+  ]
+}
