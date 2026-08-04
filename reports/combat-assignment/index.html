@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>本周战斗分工</title>
+  <title>本周分工</title>
   <style>
     :root {
       --bg: #0f1419;
@@ -98,8 +98,8 @@
 </head>
 <body>
   <header>
-    <h1>本周战斗分工</h1>
-    <div class="meta">生成时间：2026-08-04T02:36:11.645Z · 点选下方条目浏览对应图片</div>
+    <h1>本周分工</h1>
+    <div class="meta">战斗方案：2026-08-04T02:36:11.645Z · 点选下方条目浏览生活/战斗图片</div>
   </header>
   <pre class="summary">TMD 可用人员重排组合搜索（不按报名，开发实验不可转正）
 可用 92 人；不可用 11 人；最优分区：balanced-half-split
@@ -115,31 +115,30 @@
 职责：坦克1 奶6 减13 输出24
 名单：yeezin(弓)、ky800w(弩)、leftz(弩)、MEYS(弩)、RERoger(弩)、sylphy(弩)、XTX(弩)、YC1129(弩)、ykls(弩)、YSss(弩)、laidawoya(火)、mutallip(火)、RuiL(火)、stan2(火)、loydd(水)、PaternalMilk(水)、RainyBlues(水)、sh1ro(水)、Soyorrin(水)、ZYS1(水)、panpan0222(自)、qaq1104(自)、rain2way(自)、shuaizai(自)、threeeyessss(自)、ufjkwa(自)、wcnm(自)、xunyi(自)、y5565(自)、Zaro(自)、ze3(盾)、little87(枪)、Nixhhhhh(枪)、nye1mo(枪)、shadingyu(枪)、VOXO(枪)、xingyunTVT(枪)、yangguangniuzi(枪)、steffe(剑)、yida787(剑)、Atlus(锤)、D28(锤)、sneer(锤)、XHSe(锤)
 全库不可用：MRBIRTHDAY/自(攻击等级不足（113&lt;120）)、Y8Y/枪(攻击等级不足（101&lt;120）)、DanileKo/弩(尚未上传成员快照)、xlsx/弩(攻击等级不足（111&lt;120）)、Guoyyng/水(攻击等级不足（78&lt;120）)、Oosakiii/自(快照缺少可用的对应职业装备)、qingyuyou/枪(攻击等级不足（112&lt;120）)、Wind2025/火(攻击等级不足（91&lt;120）)、Level3000/弩(攻击等级不足（84&lt;120）)、Q17/盾(尚未上传成员快照)、Cristianon/弓(快照缺少可用的对应职业装备)</pre>
-  <nav class="tabs" aria-label="报告图片">
-      <button type="button" class="tab active" data-index="0" data-src="1-jellyfish-summary.png">獾 · 阵容与技能</button>
-      <button type="button" class="tab" data-index="1" data-src="1-jellyfish-members.png">獾 · 成员明细</button>
-      <button type="button" class="tab" data-index="2" data-src="2-hedgehog-summary.png">刺猬 · 阵容与技能</button>
-      <button type="button" class="tab" data-index="3" data-src="2-hedgehog-members.png">刺猬 · 成员明细</button>
+  <nav class="tabs" aria-label="本周分工图片">
+      <button type="button" class="tab active" data-index="0" data-src="../life-assignment/latest.png">生活分工</button>
+      <button type="button" class="tab" data-index="1" data-src="1-jellyfish-summary.png">獾 · 阵容与技能</button>
+      <button type="button" class="tab" data-index="2" data-src="1-jellyfish-members.png">獾 · 成员明细</button>
+      <button type="button" class="tab" data-index="3" data-src="2-hedgehog-summary.png">刺猬 · 阵容与技能</button>
+      <button type="button" class="tab" data-index="4" data-src="2-hedgehog-members.png">刺猬 · 成员明细</button>
   </nav>
   <main>
-    <p class="caption" id="caption">獾 · 阵容与技能 · <a class="raw" id="rawLink" href="1-jellyfish-summary.png" target="_blank" rel="noopener">打开原图</a></p>
+    <p class="caption" id="caption">生活分工 · <a class="raw" id="rawLink" href="../life-assignment/latest.png" target="_blank" rel="noopener">打开原图</a></p>
     <div class="viewer">
-      <img id="preview" src="1-jellyfish-summary.png" alt="獾 · 阵容与技能" />
+      <img id="preview" src="../life-assignment/latest.png" alt="生活分工" />
     </div>
   </main>
   <script>
     const tabs = Array.from(document.querySelectorAll(".tab"));
     const preview = document.getElementById("preview");
     const caption = document.getElementById("caption");
-    const rawLink = document.getElementById("rawLink");
     function select(tab) {
       tabs.forEach((node) => node.classList.toggle("active", node === tab));
       const src = tab.getAttribute("data-src") || "";
       const label = tab.textContent || "";
       preview.src = src;
       preview.alt = label;
-      rawLink.href = src;
-      caption.innerHTML = label + ' · <a class="raw" id="rawLink" href="' + src + '" target="_blank" rel="noopener">打开原图</a>';
+      caption.innerHTML = label + ' · <a class="raw" href="' + src + '" target="_blank" rel="noopener">打开原图</a>';
     }
     tabs.forEach((tab) => tab.addEventListener("click", () => select(tab)));
   </script>
