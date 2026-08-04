@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>本周战斗分工</title>
+  <style>
+    :root {
+      --bg: #0f1419;
+      --panel: #1a222c;
+      --text: #e8eef5;
+      --muted: #93a4b8;
+      --accent: #5eb1ff;
+      --border: #2b3644;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "PingFang SC", "Noto Sans SC", "Microsoft YaHei", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+    header {
+      padding: 20px 20px 12px;
+      border-bottom: 1px solid var(--border);
+      background: linear-gradient(180deg, #17202a, var(--bg));
+    }
+    h1 { margin: 0 0 6px; font-size: 1.35rem; font-weight: 650; }
+    .meta { color: var(--muted); font-size: 0.9rem; }
+    .tabs {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      padding: 14px 20px;
+      position: sticky;
+      top: 0;
+      z-index: 2;
+      background: rgba(15, 20, 25, 0.94);
+      backdrop-filter: blur(8px);
+      border-bottom: 1px solid var(--border);
+    }
+    .tab {
+      appearance: none;
+      border: 1px solid var(--border);
+      background: var(--panel);
+      color: var(--text);
+      border-radius: 999px;
+      padding: 8px 14px;
+      font: inherit;
+      cursor: pointer;
+    }
+    .tab:hover { border-color: var(--accent); }
+    .tab.active {
+      background: #243447;
+      border-color: var(--accent);
+      color: #fff;
+      box-shadow: 0 0 0 1px rgba(94, 177, 255, 0.35);
+    }
+    main { padding: 16px 20px 40px; }
+    .viewer {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 12px;
+      overflow: auto;
+    }
+    .viewer img {
+      display: block;
+      max-width: 100%;
+      height: auto;
+      margin: 0 auto;
+      border-radius: 6px;
+    }
+    .caption {
+      margin: 0 0 10px;
+      color: var(--muted);
+      font-size: 0.92rem;
+    }
+    .summary {
+      margin: 12px 20px 0;
+      padding: 12px 14px;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      white-space: pre-wrap;
+      color: var(--muted);
+      font-size: 0.82rem;
+      line-height: 1.45;
+      max-height: 180px;
+      overflow: auto;
+    }
+    a.raw {
+      color: var(--accent);
+      text-decoration: none;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>本周战斗分工</h1>
+    <div class="meta">生成时间：2026-08-04T02:36:11.645Z · 点选下方条目浏览对应图片</div>
+  </header>
+  <pre class="summary">TMD 可用人员重排组合搜索（不按报名，开发实验不可转正）
+可用 92 人；不可用 11 人；最优分区：balanced-half-split
+规则：獾群体/刺猬单体技能模板；缺普通技能默认 Lv40；光环/无敌/复活/疯狂自动最优分配；攻击≥120；双 Boss 人员互斥；无复制人。
+【试炼獾】48人（每层2只）；3次 14–14 层；DPS≈6220；末层平均28.6%；死亡 0–1
+技能包：aoe-ranged-pestilent-smoke
+职业：弓2 弩9 火5 水6 自11 盾1 枪7 剑3 锤4
+职责：坦克1 奶6 减15 输出26
+名单：JackLee(弓)、Tenerife(弓)、9095(弩)、AyuanQAQ(弩)、cANY(弩)、cc643(弩)、DanielKo(弩)、Debllee(弩)、fenxiao(弩)、GravesTwo(弩)、iusso(弩)、Akaset(火)、DeAthZeus(火)、Donmant(火)、JerryKing(火)、Kedy(火)、buyu(水)、honorzjn(水)、ikunkunkun(水)、ishi(水)、lcj(水)、liunian1(水)、121574(自)、Acceleratorlin(自)、ckyyp11(自)、CongeAqua(自)、Debbie(自)、Geyyzz(自)、glow(自)、Kissyou(自)、kogge(自)、MGP(自)、nytpdy(自)、sh1r0(盾)、6657(枪)、Baikaishuii(枪)、Cyeah(枪)、czl9999(枪)、demon8901(枪)、haihaihai2(枪)、Kuqiki(枪)、Chen1ey(剑)、Jotta(剑)、Sakiko155(剑)、adudu(锤)、Akaneiro(锤)、Ameratto(锤)、ASME(锤)
+【试炼刺猬】44人；3次 9–9 层；DPS≈2227；末层平均20.8%；死亡 405–423
+技能包：st-ranged-pestilent-flameblast
+职业：弓1 弩9 火4 水6 自10 盾1 枪7 剑2 锤4
+职责：坦克1 奶6 减13 输出24
+名单：yeezin(弓)、ky800w(弩)、leftz(弩)、MEYS(弩)、RERoger(弩)、sylphy(弩)、XTX(弩)、YC1129(弩)、ykls(弩)、YSss(弩)、laidawoya(火)、mutallip(火)、RuiL(火)、stan2(火)、loydd(水)、PaternalMilk(水)、RainyBlues(水)、sh1ro(水)、Soyorrin(水)、ZYS1(水)、panpan0222(自)、qaq1104(自)、rain2way(自)、shuaizai(自)、threeeyessss(自)、ufjkwa(自)、wcnm(自)、xunyi(自)、y5565(自)、Zaro(自)、ze3(盾)、little87(枪)、Nixhhhhh(枪)、nye1mo(枪)、shadingyu(枪)、VOXO(枪)、xingyunTVT(枪)、yangguangniuzi(枪)、steffe(剑)、yida787(剑)、Atlus(锤)、D28(锤)、sneer(锤)、XHSe(锤)
+全库不可用：MRBIRTHDAY/自(攻击等级不足（113&lt;120）)、Y8Y/枪(攻击等级不足（101&lt;120）)、DanileKo/弩(尚未上传成员快照)、xlsx/弩(攻击等级不足（111&lt;120）)、Guoyyng/水(攻击等级不足（78&lt;120）)、Oosakiii/自(快照缺少可用的对应职业装备)、qingyuyou/枪(攻击等级不足（112&lt;120）)、Wind2025/火(攻击等级不足（91&lt;120）)、Level3000/弩(攻击等级不足（84&lt;120）)、Q17/盾(尚未上传成员快照)、Cristianon/弓(快照缺少可用的对应职业装备)</pre>
+  <nav class="tabs" aria-label="报告图片">
+      <button type="button" class="tab active" data-index="0" data-src="1-jellyfish-summary.png">獾 · 阵容与技能</button>
+      <button type="button" class="tab" data-index="1" data-src="1-jellyfish-members.png">獾 · 成员明细</button>
+      <button type="button" class="tab" data-index="2" data-src="2-hedgehog-summary.png">刺猬 · 阵容与技能</button>
+      <button type="button" class="tab" data-index="3" data-src="2-hedgehog-members.png">刺猬 · 成员明细</button>
+  </nav>
+  <main>
+    <p class="caption" id="caption">獾 · 阵容与技能 · <a class="raw" id="rawLink" href="1-jellyfish-summary.png" target="_blank" rel="noopener">打开原图</a></p>
+    <div class="viewer">
+      <img id="preview" src="1-jellyfish-summary.png" alt="獾 · 阵容与技能" />
+    </div>
+  </main>
+  <script>
+    const tabs = Array.from(document.querySelectorAll(".tab"));
+    const preview = document.getElementById("preview");
+    const caption = document.getElementById("caption");
+    const rawLink = document.getElementById("rawLink");
+    function select(tab) {
+      tabs.forEach((node) => node.classList.toggle("active", node === tab));
+      const src = tab.getAttribute("data-src") || "";
+      const label = tab.textContent || "";
+      preview.src = src;
+      preview.alt = label;
+      rawLink.href = src;
+      caption.innerHTML = label + ' · <a class="raw" id="rawLink" href="' + src + '" target="_blank" rel="noopener">打开原图</a>';
+    }
+    tabs.forEach((tab) => tab.addEventListener("click", () => select(tab)));
+  </script>
+</body>
+</html>
