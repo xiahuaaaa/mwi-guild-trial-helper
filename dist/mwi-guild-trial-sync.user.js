@@ -2,7 +2,7 @@
 // @name         MWI 公会试炼资料同步助手
 // @name:en      MWI Guild Trial Sync
 // @namespace    https://greasyfork.org/users/1466859-adudu
-// @version      0.6.12
+// @version      0.6.13
 // @description  TMD 公会专用：自动同步成员名单、本周试炼、怪物面板、全部配装、技能与光环。
 // @description:en  TMD guild sync: roster, weekly trials, monster panels, loadouts, abilities, and auras.
 // @author       adudu
@@ -1533,53 +1533,78 @@
     const guild = detectedGameGuild();
     const sharable = state.guildSharableCharacterMap;
     const signupLevels = state.guildTrialSignupLevelMap;
-    const rows = entries(state.guildCharacterMap).flatMap(([mapKey, guildCharacter]) => {
-      const trialHrid = String(guildCharacter?.signedUpCombatTrialHrid ?? "").trim();
-      if (!Object.hasOwn(COMBAT_TRIAL_NAMES, trialHrid) || !currentWeekSignup(guildCharacter)) return [];
+    const combatRows = [];
+    const skillingRows = [];
+    for (const [mapKey, guildCharacter] of entries(state.guildCharacterMap)) {
+      if (!currentWeekSignup(guildCharacter)) continue;
       const playerId = Number(guildCharacter?.characterID ?? guildCharacter?.characterId ?? mapKey);
-      if (!Number.isInteger(playerId) || playerId <= 0) return [];
+      if (!Number.isInteger(playerId) || playerId <= 0) continue;
       const shared = sharable instanceof Map
         ? sharable.get(mapKey) ?? sharable.get(playerId) ?? sharable.get(String(playerId)) ?? {}
         : sharable?.[mapKey] ?? sharable?.[playerId] ?? sharable?.[String(playerId)] ?? {};
       const memberId = String(shared?.name ?? guildCharacter?.name ?? "").trim();
-      if (!memberId) return [];
+      if (!memberId) continue;
       const levelRow = signupLevels instanceof Map
         ? signupLevels.get(mapKey) ?? signupLevels.get(playerId) ?? signupLevels.get(String(playerId)) ?? {}
         : signupLevels?.[mapKey] ?? signupLevels?.[playerId] ?? signupLevels?.[String(playerId)] ?? {};
-      return [{
-        trialHrid,
-        playerId,
-        memberId,
-        roleHrid: String(guildCharacter?.signedUpCombatRoleHrid ?? "").trim(),
-        level: Math.max(0, Math.trunc(Number(levelRow?.combatLevel) || 0)),
-      }];
-    });
-    const configuredTrialHrids = values(state.guildWeeklyTrialSet?.combatHrids)
-      .map(String)
-      .filter((hrid) => Object.hasOwn(COMBAT_TRIAL_NAMES, hrid));
-    const trialHrids = [...new Set([
-      ...configuredTrialHrids,
-      ...rows.map((row) => row.trialHrid),
+      const combatHrid = String(guildCharacter?.signedUpCombatTrialHrid ?? "").trim();
+      if (Object.hasOwn(COMBAT_TRIAL_NAMES, combatHrid)) {
+        combatRows.push({
+          trialHrid: combatHrid,
+          playerId,
+          memberId,
+          roleHrid: String(guildCharacter?.signedUpCombatRoleHrid ?? "").trim(),
+          level: Math.max(0, Math.trunc(Number(levelRow?.combatLevel) || 0)),
+        });
+      }
+      const skillingHrid = String(guildCharacter?.signedUpSkillingTrialHrid ?? "").trim();
+      if (Object.hasOwn(SKILL_TRIAL_NAMES, skillingHrid)) {
+        skillingRows.push({
+          trialHrid: skillingHrid,
+          playerId,
+          memberId,
+          roleHrid: "",
+          level: Math.max(0, Math.trunc(Number(levelRow?.skillingLevel) || Number(levelRow?.skillLevel) || 0)),
+        });
+      }
+    }
+    const combatTrialHrids = [...new Set([
+      ...values(state.guildWeeklyTrialSet?.combatHrids).map(String).filter((hrid) => Object.hasOwn(COMBAT_TRIAL_NAMES, hrid)),
+      ...combatRows.map((row) => row.trialHrid),
+    ])];
+    const skillingTrialHrids = [...new Set([
+      ...values(state.guildWeeklyTrialSet?.skillHrids).map(String).filter((hrid) => Object.hasOwn(SKILL_TRIAL_NAMES, hrid)),
+      ...skillingRows.map((row) => row.trialHrid),
     ])];
     const reporterPlayerId = Number(state.character.id ?? state.character.characterId);
     const reporterMemberId = detectedMemberId();
-    if (!trialHrids.length || !Number.isInteger(reporterPlayerId) || reporterPlayerId <= 0) return null;
+    if (
+      (!combatTrialHrids.length && !skillingTrialHrids.length) ||
+      !Number.isInteger(reporterPlayerId) ||
+      reporterPlayerId <= 0
+    ) {
+      return null;
+    }
+    const buildTrials = (trialHrids, rows, nameMap) => trialHrids.map((trialHrid) => {
+      const members = rows
+        .filter((row) => row.trialHrid === trialHrid)
+        .map(({ trialHrid: _trialHrid, ...member }) => member)
+        .sort((left, right) => right.level - left.level || left.memberId.localeCompare(right.memberId));
+      return {
+        trialHrid,
+        trialName: nameMap[trialHrid],
+        registeredCount: members.length,
+        members,
+      };
+    });
     return {
       guild: { id: guild.id, name: guild.name },
       reporter: { playerId: reporterPlayerId, memberId: reporterMemberId },
       weekStartAt: currentGuildWeekStart().toISOString(),
-      trials: trialHrids.map((trialHrid) => {
-        const members = rows
-          .filter((row) => row.trialHrid === trialHrid)
-          .map(({ trialHrid: _trialHrid, ...member }) => member)
-          .sort((left, right) => right.level - left.level || left.memberId.localeCompare(right.memberId));
-        return {
-          trialHrid,
-          trialName: COMBAT_TRIAL_NAMES[trialHrid],
-          registeredCount: members.length,
-          members,
-        };
-      }),
+      trials: [
+        ...buildTrials(combatTrialHrids, combatRows, COMBAT_TRIAL_NAMES),
+        ...buildTrials(skillingTrialHrids, skillingRows, SKILL_TRIAL_NAMES),
+      ],
       capturedAt: new Date().toISOString(),
     };
   }
