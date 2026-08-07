@@ -1,9 +1,9 @@
 {
   "kind": "combat-assignment-report",
   "schemaVersion": 1,
-  "assignmentGeneratedAt": "2026-08-07T02:54:21.815Z",
+  "assignmentGeneratedAt": "2026-08-07T03:11:02.690Z",
   "assignmentKind": "tmd-available-roster-composition-lab",
-  "generatedAt": "2026-08-07T02:55:19.400Z",
+  "generatedAt": "2026-08-07T03:11:29.496Z",
   "publicBaseUrl": "https://raw.githubusercontent.com/xiahuaaaa/mwi-guild-trial-helper/main/reports/combat-assignment",
   "publicIndexUrl": "https://xiahuaaaa.github.io/mwi-guild-trial-helper/reports/combat-assignment/",
   "publicManifestUrl": "https://raw.githubusercontent.com/xiahuaaaa/mwi-guild-trial-helper/main/reports/combat-assignment/manifest.json",
@@ -25,7 +25,7 @@
       "publicUrl": "https://raw.githubusercontent.com/xiahuaaaa/mwi-guild-trial-helper/main/reports/combat-assignment/2-swarm-summary.png"
     },
     {
-      "title": "试炼虫群 · 44 人贡献明细",
+      "title": "试炼虫群 · 43 人贡献明细",
       "fileName": "2-swarm-members.png",
       "publicUrl": "https://raw.githubusercontent.com/xiahuaaaa/mwi-guild-trial-helper/main/reports/combat-assignment/2-swarm-members.png"
     }
@@ -47,7 +47,7 @@
       "publicUrl": "https://raw.githubusercontent.com/xiahuaaaa/mwi-guild-trial-helper/main/reports/combat-assignment/2-swarm-summary.en.png"
     },
     {
-      "title": "Trial Swarm · 44 Member Breakdown",
+      "title": "Trial Swarm · 43 Member Breakdown",
       "fileName": "2-swarm-members.en.png",
       "publicUrl": "https://raw.githubusercontent.com/xiahuaaaa/mwi-guild-trial-helper/main/reports/combat-assignment/2-swarm-members.en.png"
     }
