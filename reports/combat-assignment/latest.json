@@ -4,7 +4,7 @@
   "developmentOnly": true,
   "promotable": false,
   "guildId": "TMD",
-  "generatedAt": "2026-08-07T07:33:49.012Z",
+  "generatedAt": "2026-08-07T07:36:55.065Z",
   "engine": "shykai-full-event-runtime",
   "rules": {
     "durationSeconds": 3600,
@@ -83,7 +83,7 @@
   "partitionSearch": [
     {
       "id": "phys-chameleon-magic-swarm-1fire",
-      "jointScore": 3000001.1238664435,
+      "jointScore": 7000000.986903102,
       "jointDeaths": 0,
       "chameleon": "弓3 弩16 火1 水2 自5 盾1 枪13 剑4 锤7",
       "swarm": "弓1 弩5 火10 水10 自17 盾1 枪4 剑1 锤2",
@@ -772,21 +772,21 @@
           "abilities": [
             "疯狂Lv20",
             "元素增幅Lv66",
-            "冰枪术Lv40",
+            "法力喷泉Lv81",
             "冰霜爆裂Lv71",
             "流水冲击Lv82"
           ],
           "abilityHrids": [
             "/abilities/insanity",
             "/abilities/elemental_affinity",
-            "/abilities/ice_spear",
+            "/abilities/mana_spring",
             "/abilities/frost_surge",
             "/abilities/water_strike"
           ],
           "abilityLevels": {
             "/abilities/insanity": 20,
             "/abilities/elemental_affinity": 66,
-            "/abilities/ice_spear": 40,
+            "/abilities/mana_spring": 81,
             "/abilities/frost_surge": 71,
             "/abilities/water_strike": 82
           },
@@ -1697,31 +1697,31 @@
         {
           "seed": 1297565953,
           "wavesCleared": 16,
-          "finalMonsterHp": 1036347,
+          "finalMonsterHp": 1480459,
           "finalMonsterMaxHp": 2052000,
-          "finalProgressPercent": 49.5,
-          "teamDps": 6531.014722222222,
-          "totalDeaths": 131,
+          "finalProgressPercent": 27.85,
+          "teamDps": 6407.650277777778,
+          "totalDeaths": 176,
           "oomMembers": 0
         },
         {
           "seed": 1297565954,
           "wavesCleared": 16,
-          "finalMonsterHp": 683752,
+          "finalMonsterHp": 96376,
           "finalMonsterMaxHp": 2052000,
-          "finalProgressPercent": 66.68,
-          "teamDps": 6628.957777777778,
-          "totalDeaths": 118,
+          "finalProgressPercent": 95.3,
+          "teamDps": 6792.1177777777775,
+          "totalDeaths": 50,
           "oomMembers": 0
         },
         {
           "seed": 1297565955,
           "wavesCleared": 16,
-          "finalMonsterHp": 87675,
+          "finalMonsterHp": 1648692,
           "finalMonsterMaxHp": 2052000,
-          "finalProgressPercent": 95.73,
-          "teamDps": 6794.534722222223,
-          "totalDeaths": 51,
+          "finalProgressPercent": 19.65,
+          "teamDps": 6360.918888888889,
+          "totalDeaths": 157,
           "oomMembers": 0
         }
       ],
@@ -1730,28 +1730,28 @@
           "memberId": "yeezin",
           "label": "yeezin·弓·输出",
           "role": "dps",
-          "averageDps": 137,
-          "averageDamageTaken": 70530.33,
+          "averageDps": 135.35,
+          "averageDamageTaken": 70715.33,
           "averageHealingDone": 0,
-          "averageHealingReceived": 74253.67,
+          "averageHealingReceived": 73904,
           "averageHealing": 0,
-          "deaths": 12,
+          "deaths": 16,
           "oomRuns": 0,
           "averageOomDurationSeconds": 0,
-          "averageManaSpent": 32408.33,
-          "averageManaRestored": 28503.67,
+          "averageManaSpent": 31775,
+          "averageManaRestored": 28687.33,
           "topAbilities": [
             {
               "abilityHrid": "autoAttack",
               "nameZh": "autoAttack",
-              "averageDamage": 425741,
-              "averageDps": 118.26
+              "averageDamage": 415588,
+              "averageDps": 115.44
             },
             {
               "abilityHrid": "/abilities/pestilent_shot",
               "nameZh": "疫病射击",
-              "averageDamage": 67444,
-              "averageDps": 18.73
+              "averageDamage": 71665.3,
+              "averageDps": 19.91
             }
           ]
         },
@@ -1759,28 +1759,28 @@
           "memberId": "JackLee",
           "label": "JackLee·弓·输出",
           "role": "dps",
-          "averageDps": 143.11,
-          "averageDamageTaken": 65747,
+          "averageDps": 140.38,
+          "averageDamageTaken": 65409.33,
           "averageHealingDone": 0,
-          "averageHealingReceived": 68932.67,
+          "averageHealingReceived": 68657.33,
           "averageHealing": 0,
-          "deaths": 10,
+          "deaths": 12,
           "oomRuns": 0,
           "averageOomDurationSeconds": 0,
-          "averageManaSpent": 32468.33,
-          "averageManaRestored": 30050.33,
+          "averageManaSpent": 31183.33,
+          "averageManaRestored": 28847.33,
           "topAbilities": [
             {
               "abilityHrid": "autoAttack",
               "nameZh": "autoAttack",
-              "averageDamage": 429007.3,
-              "averageDps": 119.17
+              "averageDamage": 425563,
+              "averageDps": 118.21
             },
             {
               "abilityHrid": "/abilities/pestilent_shot",
               "nameZh": "疫病射击",
-              "averageDamage": 86178.3,
-              "averageDps": 23.94
+              "averageDamage": 79800.7,
+              "averageDps": 22.17
             }
           ]
         },
@@ -1788,28 +1788,28 @@
           "memberId": "Tenerife",
           "label": "Tenerife·弓·输出",
           "role": "dps",
-          "averageDps": 151.99,
-          "averageDamageTaken": 67566.33,
+          "averageDps": 151.07,
+          "averageDamageTaken": 59820,
           "averageHealingDone": 0,
-          "averageHealingReceived": 69541,
+          "averageHealingReceived": 63577.33,
           "averageHealing": 0,
-          "deaths": 9,
+          "deaths": 13,
           "oomRuns": 0,
           "averageOomDurationSeconds": 0,
-          "averageManaSpent": 31451.67,
-          "averageManaRestored": 29186,
+          "averageManaSpent": 31025,
+          "averageManaRestored": 28848.67,
           "topAbilities": [
             {
               "abilityHrid": "autoAttack",
               "nameZh": "autoAttack",
-              "averageDamage": 470085.7,
-              "averageDps": 130.58
+              "averageDamage": 467448.3,
+              "averageDps": 129.85
             },
             {
               "abilityHrid": "/abilities/pestilent_shot",
               "nameZh": "疫病射击",
-              "averageDamage": 77075.3,
-              "averageDps": 21.41
+              "averageDamage": 76406.3,
+              "averageDps": 21.22
             }
           ]
         },
@@ -1817,28 +1817,28 @@
           "memberId": "9095",
           "label": "9095·弩·减",
           "role": "debuffer",
-          "averageDps": 124.77,
-          "averageDamageTaken": 65327.33,
+          "averageDps": 120.81,
+          "averageDamageTaken": 57141.33,
           "averageHealingDone": 0,
-          "averageHealingReceived": 69456.67,
+          "averageHealingReceived": 60393,
           "averageHealing": 0,
-          "deaths": 4,
+          "deaths": 9,
           "oomRuns": 0,
           "averageOomDurationSeconds": 0,
-          "averageManaSpent": 32870,
-          "averageManaRestored": 30526.67,
+          "averageManaSpent": 31715,
+          "averageManaRestored": 29375.67,
           "topAbilities": [
             {
               "abilityHrid": "autoAttack",
               "nameZh": "autoAttack",
-              "averageDamage": 389324.7,
-              "averageDps": 108.15
+              "averageDamage": 377312.7,
+              "averageDps": 104.81
             },
             {
               "abilityHrid": "/abilities/pestilent_shot",
               "nameZh": "疫病射击",
-              "averageDamage": 59861.3,
-              "averageDps": 16.63
+              "averageDamage": 57597.7,
+              "averageDps": 16
             }
           ]
         },
@@ -1846,28 +1846,28 @@
           "memberId": "AyuanQAQ",
           "label": "AyuanQAQ·弩·减",
           "role": "debuffer",
-          "averageDps": 114.33,
-          "averageDamageTaken": 66435.67,
+          "averageDps": 112.47,
+          "averageDamageTaken": 57673,
           "averageHealingDone": 0,
-          "averageHealingReceived": 70576.33,
+          "averageHealingReceived": 60787.33,
           "averageHealing": 0,
-          "deaths": 5,
+          "deaths": 9,
           "oomRuns": 0,
           "averageOomDurationSeconds": 0,
-          "averageManaSpent": 32266.67,
-          "averageManaRestored": 29929.67,
+          "averageManaSpent": 30908.33,
+          "averageManaRestored": 28358.67,
           "topAbilities": [
             {
               "abilityHrid": "autoAttack",
               "nameZh": "autoAttack",
-              "averageDamage": 352896.7,
-              "averageDps": 98.03
+              "averageDamage": 346368.3,
+              "averageDps": 96.21
             },
             {
               "abilityHrid": "/abilities/pestilent_shot",
               "nameZh": "疫病射击",
-              "averageDamage": 58686,
-              "averageDps": 16.3
+              "averageDamage": 58526.7,
+              "averageDps": 16.26
             }
           ]
         },
@@ -1875,28 +1875,28 @@
           "memberId": "cANY",
           "label": "cANY·弩·输出",
           "role": "dps",
-          "averageDps": 111.71,
-          "averageDamageTaken": 67300,
+          "averageDps": 111.01,
+          "averageDamageTaken": 60293.67,
           "averageHealingDone": 0,
-          "averageHealingReceived": 71391,
+          "averageHealingReceived": 63243,
           "averageHealing": 0,
-          "deaths": 6,
+          "deaths": 10,
           "oomRuns": 0,
           "averageOomDurationSeconds": 0,
-          "averageManaSpent": 31853.33,
-          "averageManaRestored": 27065.67,
+          "averageManaSpent": 30715,
+          "averageManaRestored": 27254.33,
           "topAbilities": [
             {
               "abilityHrid": "autoAttack",
               "nameZh": "autoAttack",
-              "averageDamage": 345675,
-              "averageDps": 96.02
+              "averageDamage": 343842.7,
+              "averageDps": 95.51
             },
             {
               "abilityHrid": "/abilities/pestilent_shot",
               "nameZh": "疫病射击",
-              "averageDamage": 56489.3,
-              "averageDps": 15.69
+              "averageDamage": 55805,
+              "averageDps": 15.5
             }
           ]
         },
@@ -1904,28 +1904,28 @@
           "memberId": "cc643",
           "label": "cc643·弩·输出",
           "role": "dps",
-          "averageDps": 112.59,
-          "averageDamageTaken": 61417,
+          "averageDps": 113.51,
+          "averageDamageTaken": 57995.33,
           "averageHealingDone": 0,
-          "averageHealingReceived": 50670.67,
+          "averageHealingReceived": 45474.33,
           "averageHealing": 0,
-          "deaths": 7,
+          "deaths": 10,
           "oomRuns": 0,
           "averageOomDurationSeconds": 0,
-          "averageManaSpent": 31468.33,
-          "averageManaRestored": 28840.67,
+          "averageManaSpent": 30606.67,
+          "averageManaRestored": 28058.67,
           "topAbilities": [
             {
               "abilityHrid": "autoAttack",
               "nameZh": "autoAttack",
-              "averageDamage": 348025.7,
-              "averageDps": 96.67
+              "averageDamage": 346793.7,
+              "averageDps": 96.33
             },
             {
               "abilityHrid": "/abilities/pestilent_shot",
               "nameZh": "疫病射击",
-              "averageDamage": 57311.7,
-              "averageDps": 15.92
+              "averageDamage": 61843.7,
+              "averageDps": 17.18
             }
           ]
         },
@@ -1933,28 +1933,28 @@
           "memberId": "DanielKo",
           "label": "DanielKo·弩·输出",
           "role": "dps",
-          "averageDps": 108.88,
-          "averageDamageTaken": 64888.33,
-          "averageHealingDone": 715.33,
-          "averageHealingReceived": 52033,
-          "averageHealing": 715.33,
-          "deaths": 6,
+          "averageDps": 108.04,
+          "averageDamageTaken": 63343.67,
+          "averageHealingDone": 745,
+          "averageHealingReceived": 50298,
+          "averageHealing": 745,
+          "deaths": 7,
           "oomRuns": 0,
           "averageOomDurationSeconds": 0,
-          "averageManaSpent": 29861.67,
-          "averageManaRestored": 27855,
+          "averageManaSpent": 29578.33,
+          "averageManaRestored": 27866.33,
           "topAbilities": [
             {
               "abilityHrid": "autoAttack",
               "nameZh": "autoAttack",
-              "averageDamage": 341392,
-              "averageDps": 94.83
+              "averageDamage": 328405,
+              "averageDps": 91.22
             },
             {
               "abilityHrid": "/abilities/pestilent_shot",
               "nameZh": "疫病射击",
-              "averageDamage": 50573,
-              "averageDps": 14.05
+              "averageDamage": 60545,
+              "averageDps": 16.82
             }
           ]
         },
@@ -1962,28 +1962,28 @@
           "memberId": "Debllee",
           "label": "Debllee·弩·输出",
           "role": "dps",
-          "averageDps": 120.98,
-          "averageDamageTaken": 66568.67,
+          "averageDps": 112.49,
+          "averageDamageTaken": 58259.67,
           "averageHealingDone": 0,
-          "averageHealingReceived": 70643.67,
+          "averageHealingReceived": 61346.33,
           "averageHealing": 0,
-          "deaths": 5,
+          "deaths": 10,
           "oomRuns": 0,
           "averageOomDurationSeconds": 0,
-          "averageManaSpent": 33008.33,
-          "averageManaRestored": 30912.33,
+          "averageManaSpent": 31090,
+          "averageManaRestored": 28734,
           "topAbilities": [
             {
               "abilityHrid": "autoAttack",
               "nameZh": "autoAttack",
-              "averageDamage": 375082.7,
-              "averageDps": 104.19
+              "averageDamage": 350888.7,
+              "averageDps": 97.47
             },
             {
               "abilityHrid": "/abilities/pestilent_shot",
               "nameZh": "疫病射击",
-              "averageDamage": 60458.7,
-              "averageDps": 16.79
+              "averageDamage": 54080.3,
+              "averageDps": 15.02
             }
           ]
         },
@@ -1991,28 +1991,28 @@
           "memberId": "XTX",
           "label": "XTX·弩·输出",
           "role": "dps",
-          "averageDps": 130.55,
-          "averageDamageTaken": 65466.67,
+          "averageDps": 124.12,
+          "averageDamageTaken": 57935.33,
           "averageHealingDone": 0,
-          "averageHealingReceived": 67445.67,
+          "averageHealingReceived": 59874.67,
           "averageHealing": 0,
-          "deaths": 7,
+          "deaths": 12,
           "oomRuns": 0,
           "averageOomDurationSeconds": 0,
-          "averageManaSpent": 32130,
-          "averageManaRestored": 30093,
+          "averageManaSpent": 30288.33,
+          "averageManaRestored": 28059,
           "topAbilities": [
             {
               "abilityHrid": "autoAttack",
               "nameZh": "autoAttack",
-              "averageDamage": 406504.7,
-              "averageDps": 112.92
+              "averageDamage": 387838.3,
+              "averageDps": 107.73
             },
             {
               "abilityHrid": "/abilities/pestilent_shot",
               "nameZh": "疫病射击",
-              "averageDamage": 63489.7,
-              "averageDps": 17.64
+              "averageDamage": 59002.7,
+              "averageDps": 16.39
             }
           ]
         },
@@ -2020,28 +2020,28 @@
           "memberId": "fenxiao",
           "label": "fenxiao·弩·输出",
           "role": "dps",
-          "averageDps": 107.55,
-          "averageDamageTaken": 71931.67,
+          "averageDps": 103.05,
+          "averageDamageTaken": 65972,
           "averageHealingDone": 0,
-          "averageHealingReceived": 73474.67,
+          "averageHealingReceived": 67645.33,
           "averageHealing": 0,
-          "deaths": 11,
+          "deaths": 13,
           "oomRuns": 0,
           "averageOomDurationSeconds": 0,
-          "averageManaSpent": 30893.33,
-          "averageManaRestored": 25005.67,
+          "averageManaSpent": 29885,
+          "averageManaRestored": 25388,
           "topAbilities": [
             {
               "abilityHrid": "autoAttack",
               "nameZh": "autoAttack",
-              "averageDamage": 334766.3,
-              "averageDps": 92.99
+              "averageDamage": 325035,
+              "averageDps": 90.29
             },
             {
               "abilityHrid": "/abilities/pestilent_shot",
               "nameZh": "疫病射击",
-              "averageDamage": 52415,
-              "averageDps": 14.56
+              "averageDamage": 45933,
+              "averageDps": 12.76
             }
           ]
         },
@@ -2049,28 +2049,28 @@
           "memberId": "GravesTwo",
           "label": "GravesTwo·弩·输出",
           "role": "dps",
-          "averageDps": 134.54,
-          "averageDamageTaken": 63283,
+          "averageDps": 129.64,
+          "averageDamageTaken": 59027,
           "averageHealingDone": 0,
-          "averageHealingReceived": 66726,
+          "averageHealingReceived": 61498,
           "averageHealing": 0,
-          "deaths": 6,
+          "deaths": 10,
           "oomRuns": 0,
           "averageOomDurationSeconds": 0,
-          "averageManaSpent": 32418.33,
-          "averageManaRestored": 28923.33,
+          "averageManaSpent": 31585,
+          "averageManaRestored": 28592.67,
           "topAbilities": [
             {
               "abilityHrid": "autoAttack",
               "nameZh": "autoAttack",
-              "averageDamage": 420859,
-              "averageDps": 116.91
+              "averageDamage": 404422,
+              "averageDps": 112.34
             },
             {
               "abilityHrid": "/abilities/pestilent_shot",
               "nameZh": "疫病射击",
-              "averageDamage": 63487.3,
-              "averageDps": 17.64
+              "averageDamage": 62292.7,
+              "averageDps": 17.3
             }
           ]
         },
@@ -2078,28 +2078,28 @@
           "memberId": "iusso",
           "label": "iusso·弩·输出",
           "role": "dps",
-          "averageDps": 113.66,
-          "averageDamageTaken": 61566,
+          "averageDps": 107.31,
+          "averageDamageTaken": 57803.33,
           "averageHealingDone": 0,
-          "averageHealingReceived": 64350,
+          "averageHealingReceived": 61533.33,
           "averageHealing": 0,
-          "deaths": 8,
+          "deaths": 10,
           "oomRuns": 0,
           "averageOomDurationSeconds": 0,
-          "averageManaSpent": 31671.67,
-          "averageManaRestored": 28532.33,
+          "averageManaSpent": 30343.33,
+          "averageManaRestored": 27838.33,
           "topAbilities": [
             {
               "abilityHrid": "autoAttack",
               "nameZh": "autoAttack",
-              "averageDamage": 352457.3,
-              "averageDps": 97.9
+              "averageDamage": 334860,
+              "averageDps": 93.02
             },
             {
               "abilityHrid": "/abilities/pestilent_shot",
               "nameZh": "疫病射击",
-              "averageDamage": 56704,
-              "averageDps": 15.75
+              "averageDamage": 51458,
+              "averageDps": 14.29
             }
           ]
         },
@@ -2107,28 +2107,28 @@
           "memberId": "ykls",
           "label": "ykls·弩·输出",
           "role": "dps",
-          "averageDps": 119.03,
-          "averageDamageTaken": 70490.33,
+          "averageDps": 115.51,
+          "averageDamageTaken": 58625.33,
           "averageHealingDone": 0,
-          "averageHealingReceived": 73913.33,
+          "averageHealingReceived": 62482.33,
           "averageHealing": 0,
-          "deaths": 7,
+          "deaths": 9,
           "oomRuns": 0,
           "averageOomDurationSeconds": 0,
-          "averageManaSpent": 32031.67,
-          "averageManaRestored": 27776.33,
+          "averageManaSpent": 30883.33,
+          "averageManaRestored": 27698.33,
           "topAbilities": [
             {
               "abilityHrid": "autoAttack",
               "nameZh": "autoAttack",
-              "averageDamage": 369905.3,
-              "averageDps": 102.75
+              "averageDamage": 359628.7,
+              "averageDps": 99.9
             },
             {
               "abilityHrid": "/abilities/pestilent_shot",
               "nameZh": "疫病射击",
-              "averageDamage": 58593.7,
-              "averageDps": 16.28
+              "averageDamage": 56192.3,
+              "averageDps": 15.61
             }
           ]
         },
@@ -2136,28 +2136,28 @@
           "memberId": "leftz",
           "label": "leftz·弩·输出",
           "role": "dps",
-          "averageDps": 132.48,
-          "averageDamageTaken": 62905.67,
+          "averageDps": 125.17,
+          "averageDamageTaken": 56196.67,
           "averageHealingDone": 0,
-          "averageHealingReceived": 65742,
+          "averageHealingReceived": 60261.33,
           "averageHealing": 0,
           "deaths": 8,
           "oomRuns": 0,
           "averageOomDurationSeconds": 0,
-          "averageManaSpent": 31890,
-          "averageManaRestored": 29744,
+          "averageManaSpent": 31028.33,
+          "averageManaRestored": 28975.67,
           "topAbilities": [
             {
               "abilityHrid": "autoAttack",
               "nameZh": "autoAttack",
-              "averageDamage": 407939.7,
-              "averageDps": 113.32
+              "averageDamage": 386962.3,
+              "averageDps": 107.49
             },
             {
               "abilityHrid": "/abilities/pestilent_shot",
               "nameZh": "疫病射击",
-              "averageDamage": 68997.7,
-              "averageDps": 19.17
+              "averageDamage": 63633.3,
+              "averageDps": 17.68
             }
           ]
         },
@@ -2165,28 +2165,28 @@
           "memberId": "Lucian717",
           "label": "Lucian717·弩·输出",
           "role": "dps",
-          "averageDps": 117.74,
-          "averageDamageTaken": 65184.67,
+          "averageDps": 114.82,
+          "averageDamageTaken": 59805.33,
           "averageHealingDone": 0,
-          "averageHealingReceived": 67784,
+          "averageHealingReceived": 61381.67,
           "averageHealing": 0,
-          "deaths": 8,
+          "deaths": 10,
           "oomRuns": 0,
           "averageOomDurationSeconds": 0,
-          "averageManaSpent": 31276.67,
-          "averageManaRestored": 28382.33,
+          "averageManaSpent": 30523.33,
+          "averageManaRestored": 28053,
           "topAbilities": [
             {
               "abilityHrid": "autoAttack",
               "nameZh": "autoAttack",
-              "averageDamage": 363000,
-              "averageDps": 100.83
+              "averageDamage": 355877,
+              "averageDps": 98.85
             },
             {
               "abilityHrid": "/abilities/pestilent_shot",
               "nameZh": "疫病射击",
-              "averageDamage": 60878.7,
-              "averageDps": 16.91
+              "averageDamage": 57490.3,
+              "averageDps": 15.97
             }
           ]
         },
@@ -2194,28 +2194,28 @@
           "memberId": "MEYS",
           "label": "MEYS·弩·输出",
           "role": "dps",
-          "averageDps": 102.99,
-          "averageDamageTaken": 71396.67,
+          "averageDps": 103.12,
+          "averageDamageTaken": 60914,
           "averageHealingDone": 0,
-          "averageHealingReceived": 74913,
+          "averageHealingReceived": 63982.67,
           "averageHealing": 0,
-          "deaths": 8,
+          "deaths": 10,
           "oomRuns": 0,
           "averageOomDurationSeconds": 0,
-          "averageManaSpent": 32103.33,
-          "averageManaRestored": 29420.67,
+          "averageManaSpent": 30285,
+          "averageManaRestored": 28013,
           "topAbilities": [
             {
               "abilityHrid": "autoAttack",
               "nameZh": "autoAttack",
-              "averageDamage": 318393.7,
-              "averageDps": 88.44
+              "averageDamage": 320942,
+              "averageDps": 89.15
             },
             {
               "abilityHrid": "/abilities/pestilent_shot",
               "nameZh": "疫病射击",
-              "averageDamage": 52354,
-              "averageDps": 14.54
+              "averageDamage": 50302,
+              "averageDps": 13.97
             }
           ]
         },
@@ -2223,28 +2223,28 @@
           "memberId": "YSss",
           "label": "YSss·弩·输出",
           "role": "dps",
-          "averageDps": 128.43,
-          "averageDamageTaken": 63900.67,
+          "averageDps": 128.69,
+          "averageDamageTaken": 59029.67,
           "averageHealingDone": 0,
-          "averageHealingReceived": 50526,
+          "averageHealingReceived": 46953,
           "averageHealing": 0,
-          "deaths": 7,
+          "deaths": 8,
           "oomRuns": 0,
           "averageOomDurationSeconds": 0,
-          "averageManaSpent": 32283.33,
-          "averageManaRestored": 29671.67,
+          "averageManaSpent": 31628.33,
+          "averageManaRestored": 29091,
           "topAbilities": [
             {
               "abilityHrid": "autoAttack",
               "nameZh": "autoAttack",
-              "averageDamage": 391536.3,
-              "averageDps": 108.76
+              "averageDamage": 389477.7,
+              "averageDps": 108.19
             },
             {
               "abilityHrid": "/abilities/pestilent_shot",
               "nameZh": "疫病射击",
-              "averageDamage": 70825.3,
-              "averageDps": 19.67
+              "averageDamage": 73810,
+              "averageDps": 20.5
             }
           ]
         },
@@ -2252,28 +2252,28 @@
           "memberId": "sylphy",
           "label": "sylphy·弩·输出",
           "role": "dps",
-          "averageDps": 121.66,
-          "averageDamageTaken": 65180,
+          "averageDps": 118.98,
+          "averageDamageTaken": 57574,
           "averageHealingDone": 0,
-          "averageHealingReceived": 68059,
+          "averageHealingReceived": 59618.67,
           "averageHealing": 0,
-          "deaths": 7,
+          "deaths": 10,
           "oomRuns": 0,
           "averageOomDurationSeconds": 0,
-          "averageManaSpent": 32271.67,
-          "averageManaRestored": 29803,
+          "averageManaSpent": 31098.33,
+          "averageManaRestored": 28736.67,
           "topAbilities": [
             {
               "abilityHrid": "autoAttack",
               "nameZh": "autoAttack",
-              "averageDamage": 375023.7,
-              "averageDps": 104.17
+              "averageDamage": 367107,
+              "averageDps": 101.97
             },
             {
               "abilityHrid": "/abilities/pestilent_shot",
               "nameZh": "疫病射击",
-              "averageDamage": 62947.3,
-              "averageDps": 17.49
+              "averageDamage": 61229,
+              "averageDps": 17.01
             }
           ]
         },
@@ -2281,34 +2281,34 @@
           "memberId": "Akaset",
           "label": "Akaset·火·减",
           "role": "debuffer",
-          "averageDps": 55.53,
-          "averageDamageTaken": 74927,
+          "averageDps": 53.51,
+          "averageDamageTaken": 63900.67,
           "averageHealingDone": 0,
-          "averageHealingReceived": 78552.33,
+          "averageHealingReceived": 68607.67,
           "averageHealing": 0,
-          "deaths": 11,
+          "deaths": 10,
           "oomRuns": 0,
           "averageOomDurationSeconds": 0,
-          "averageManaSpent": 50816.67,
-          "averageManaRestored": 47466.67,
+          "averageManaSpent": 47970,
+          "averageManaRestored": 45398.33,
           "topAbilities": [
             {
               "abilityHrid": "/abilities/fireball",
               "nameZh": "火球",
-              "averageDamage": 120373.7,
-              "averageDps": 33.44
+              "averageDamage": 120303,
+              "averageDps": 33.42
             },
             {
               "abilityHrid": "/abilities/smoke_burst",
               "nameZh": "烟爆灭影",
-              "averageDamage": 61408,
-              "averageDps": 17.06
+              "averageDamage": 54346,
+              "averageDps": 15.1
             },
             {
               "abilityHrid": "blaze",
               "nameZh": "blaze",
-              "averageDamage": 18131.7,
-              "averageDps": 5.04
+              "averageDamage": 17994,
+              "averageDps": 5
             }
           ]
         },
@@ -2316,34 +2316,34 @@
           "memberId": "buyu",
           "label": "buyu·水·输出",
           "role": "dps",
-          "averageDps": 39.48,
-          "averageDamageTaken": 82099,
+          "averageDps": 38.05,
+          "averageDamageTaken": 69918.33,
           "averageHealingDone": 0,
-          "averageHealingReceived": 67271.67,
+          "averageHealingReceived": 55815.33,
           "averageHealing": 0,
           "deaths": 9,
           "oomRuns": 0,
           "averageOomDurationSeconds": 0,
-          "averageManaSpent": 62326.67,
-          "averageManaRestored": 49346,
+          "averageManaSpent": 59646.67,
+          "averageManaRestored": 49742.33,
           "topAbilities": [
             {
               "abilityHrid": "/abilities/water_strike",
               "nameZh": "流水冲击",
-              "averageDamage": 82634.3,
-              "averageDps": 22.95
+              "averageDamage": 80248.3,
+              "averageDps": 22.29
             },
             {
               "abilityHrid": "/abilities/frost_surge",
               "nameZh": "冰霜爆裂",
-              "averageDamage": 32009.3,
-              "averageDps": 8.89
+              "averageDamage": 31241,
+              "averageDps": 8.68
             },
             {
               "abilityHrid": "/abilities/mana_spring",
               "nameZh": "法力喷泉",
-              "averageDamage": 27487,
-              "averageDps": 7.64
+              "averageDamage": 25494.7,
+              "averageDps": 7.08
             }
           ]
         },
@@ -2351,34 +2351,34 @@
           "memberId": "dark6666",
           "label": "dark6666·水·输出",
           "role": "dps",
-          "averageDps": 40.63,
-          "averageDamageTaken": 79799.67,
+          "averageDps": 38.59,
+          "averageDamageTaken": 75747.67,
           "averageHealingDone": 0,
-          "averageHealingReceived": 87043,
+          "averageHealingReceived": 83714,
           "averageHealing": 0,
-          "deaths": 11,
+          "deaths": 12,
           "oomRuns": 0,
           "averageOomDurationSeconds": 0,
-          "averageManaSpent": 56220,
-          "averageManaRestored": 47317,
+          "averageManaSpent": 62010,
+          "averageManaRestored": 48537,
           "topAbilities": [
             {
               "abilityHrid": "/abilities/water_strike",
               "nameZh": "流水冲击",
-              "averageDamage": 76837,
-              "averageDps": 21.34
-            },
-            {
-              "abilityHrid": "/abilities/ice_spear",
-              "nameZh": "冰枪术",
-              "averageDamage": 36325.7,
-              "averageDps": 10.09
+              "averageDamage": 81853.7,
+              "averageDps": 22.74
             },
             {
               "abilityHrid": "/abilities/frost_surge",
               "nameZh": "冰霜爆裂",
-              "averageDamage": 33114.7,
-              "averageDps": 9.2
+              "averageDamage": 31309,
+              "averageDps": 8.7
+            },
+            {
+              "abilityHrid": "/abilities/mana_spring",
+              "nameZh": "法力喷泉",
+              "averageDamage": 25758.3,
+              "averageDps": 7.16
             }
           ]
         },
@@ -2386,28 +2386,28 @@
           "memberId": "MRBIRTHDAY",
           "label": "MRBIRTHDAY·自·奶",
           "role": "healer",
-          "averageDps": 24.03,
-          "averageDamageTaken": 74830.67,
-          "averageHealingDone": 566414.33,
-          "averageHealingReceived": 59583.33,
-          "averageHealing": 566414.33,
-          "deaths": 10,
+          "averageDps": 24.84,
+          "averageDamageTaken": 71109.67,
+          "averageHealingDone": 483077,
+          "averageHealingReceived": 55524.33,
+          "averageHealing": 483077,
+          "deaths": 11,
           "oomRuns": 0,
           "averageOomDurationSeconds": 0,
-          "averageManaSpent": 44201.67,
-          "averageManaRestored": 42528.33,
+          "averageManaSpent": 42891.67,
+          "averageManaRestored": 41300.67,
           "topAbilities": [
             {
               "abilityHrid": "/abilities/entangle",
               "nameZh": "缠绕",
-              "averageDamage": 70737.3,
-              "averageDps": 19.65
+              "averageDamage": 70910.3,
+              "averageDps": 19.7
             },
             {
               "abilityHrid": "/abilities/toxic_pollen",
               "nameZh": "剧毒粉尘",
-              "averageDamage": 15760,
-              "averageDps": 4.38
+              "averageDamage": 18506.7,
+              "averageDps": 5.14
             }
           ]
         },
@@ -2415,28 +2415,28 @@
           "memberId": "Acceleratorlin",
           "label": "Acceleratorlin·自·奶",
           "role": "healer",
-          "averageDps": 23.56,
-          "averageDamageTaken": 75183.33,
-          "averageHealingDone": 618111.67,
-          "averageHealingReceived": 59656,
-          "averageHealing": 618111.67,
-          "deaths": 11,
+          "averageDps": 25.79,
+          "averageDamageTaken": 69461.33,
+          "averageHealingDone": 586528.33,
+          "averageHealingReceived": 55234,
+          "averageHealing": 586528.33,
+          "deaths": 7,
           "oomRuns": 0,
           "averageOomDurationSeconds": 0,
-          "averageManaSpent": 44208.33,
-          "averageManaRestored": 42097,
+          "averageManaSpent": 44868.33,
+          "averageManaRestored": 42996.67,
           "topAbilities": [
             {
               "abilityHrid": "/abilities/entangle",
               "nameZh": "缠绕",
-              "averageDamage": 67182.7,
-              "averageDps": 18.66
+              "averageDamage": 74482.7,
+              "averageDps": 20.69
             },
             {
               "abilityHrid": "/abilities/toxic_pollen",
               "nameZh": "剧毒粉尘",
-              "averageDamage": 17643.3,
-              "averageDps": 4.9
+              "averageDamage": 18355.3,
+              "averageDps": 5.1
             }
           ]
         },
@@ -2444,28 +2444,28 @@
           "memberId": "ckyyp11",
           "label": "ckyyp11·自·奶",
           "role": "healer",
-          "averageDps": 17.94,
-          "averageDamageTaken": 85731.67,
-          "averageHealingDone": 677602.33,
-          "averageHealingReceived": 88735,
-          "averageHealing": 677602.33,
-          "deaths": 13,
+          "averageDps": 17.12,
+          "averageDamageTaken": 78291,
+          "averageHealingDone": 670033,
+          "averageHealingReceived": 81555,
+          "averageHealing": 670033,
+          "deaths": 12,
           "oomRuns": 0,
           "averageOomDurationSeconds": 0,
-          "averageManaSpent": 45771.67,
-          "averageManaRestored": 41470,
+          "averageManaSpent": 44876.67,
+          "averageManaRestored": 42057,
           "topAbilities": [
             {
               "abilityHrid": "/abilities/entangle",
               "nameZh": "缠绕",
-              "averageDamage": 50403.3,
-              "averageDps": 14
+              "averageDamage": 49395,
+              "averageDps": 13.72
             },
             {
               "abilityHrid": "/abilities/toxic_pollen",
               "nameZh": "剧毒粉尘",
-              "averageDamage": 14180,
-              "averageDps": 3.94
+              "averageDamage": 12245.3,
+              "averageDps": 3.4
             }
           ]
         },
@@ -2473,28 +2473,28 @@
           "memberId": "CongeAqua",
           "label": "CongeAqua·自·奶",
           "role": "healer",
-          "averageDps": 26.82,
-          "averageDamageTaken": 78691,
-          "averageHealingDone": 667165.33,
-          "averageHealingReceived": 83210.67,
-          "averageHealing": 667165.33,
-          "deaths": 9,
+          "averageDps": 26.16,
+          "averageDamageTaken": 68473.33,
+          "averageHealingDone": 538103.33,
+          "averageHealingReceived": 72930.67,
+          "averageHealing": 538103.33,
+          "deaths": 10,
           "oomRuns": 0,
           "averageOomDurationSeconds": 0,
-          "averageManaSpent": 48458.33,
-          "averageManaRestored": 45413.67,
+          "averageManaSpent": 45843.33,
+          "averageManaRestored": 43485,
           "topAbilities": [
             {
               "abilityHrid": "/abilities/entangle",
               "nameZh": "缠绕",
-              "averageDamage": 78368.7,
-              "averageDps": 21.77
+              "averageDamage": 77587.7,
+              "averageDps": 21.55
             },
             {
               "abilityHrid": "/abilities/toxic_pollen",
               "nameZh": "剧毒粉尘",
-              "averageDamage": 18187,
-              "averageDps": 5.05
+              "averageDamage": 16578.3,
+              "averageDps": 4.61
             }
           ]
         },
@@ -2502,28 +2502,28 @@
           "memberId": "Debbie",
           "label": "Debbie·自·奶",
           "role": "healer",
-          "averageDps": 27.87,
-          "averageDamageTaken": 78120.33,
-          "averageHealingDone": 615591,
-          "averageHealingReceived": 62759.33,
-          "averageHealing": 615591,
+          "averageDps": 27.4,
+          "averageDamageTaken": 71897.67,
+          "averageHealingDone": 601464.67,
+          "averageHealingReceived": 57861.33,
+          "averageHealing": 601464.67,
           "deaths": 8,
           "oomRuns": 0,
           "averageOomDurationSeconds": 0,
-          "averageManaSpent": 44618.33,
-          "averageManaRestored": 43048,
+          "averageManaSpent": 43658.33,
+          "averageManaRestored": 42082,
           "topAbilities": [
             {
               "abilityHrid": "/abilities/entangle",
               "nameZh": "缠绕",
-              "averageDamage": 80498.7,
-              "averageDps": 22.36
+              "averageDamage": 78506.3,
+              "averageDps": 21.81
             },
             {
               "abilityHrid": "/abilities/toxic_pollen",
               "nameZh": "剧毒粉尘",
-              "averageDamage": 19825,
-              "averageDps": 5.51
+              "averageDamage": 20116.3,
+              "averageDps": 5.59
             }
           ]
         },
@@ -2531,34 +2531,34 @@
           "memberId": "sh1r0",
           "label": "sh1r0·盾·坦",
           "role": "tank",
-          "averageDps": 87.45,
-          "averageDamageTaken": 86718.33,
+          "averageDps": 89.54,
+          "averageDamageTaken": 82825.67,
           "averageHealingDone": 0,
-          "averageHealingReceived": 63256.33,
+          "averageHealingReceived": 60327.67,
           "averageHealing": 0,
           "deaths": 4,
           "oomRuns": 0,
           "averageOomDurationSeconds": 0,
-          "averageManaSpent": 32526.67,
-          "averageManaRestored": 29694,
+          "averageManaSpent": 31805,
+          "averageManaRestored": 29563.67,
           "topAbilities": [
             {
               "abilityHrid": "autoAttack",
               "nameZh": "autoAttack",
-              "averageDamage": 177233.7,
-              "averageDps": 49.23
-            },
-            {
-              "abilityHrid": "retaliation",
-              "nameZh": "retaliation",
-              "averageDamage": 71462.7,
-              "averageDps": 19.85
+              "averageDamage": 187621,
+              "averageDps": 52.12
             },
             {
               "abilityHrid": "physicalThorns",
               "nameZh": "physicalThorns",
-              "averageDamage": 66120,
-              "averageDps": 18.37
+              "averageDamage": 67718.7,
+              "averageDps": 18.81
+            },
+            {
+              "abilityHrid": "retaliation",
+              "nameZh": "retaliation",
+              "averageDamage": 67008.7,
+              "averageDps": 18.61
             }
           ]
         },
@@ -2566,28 +2566,28 @@
           "memberId": "6657",
           "label": "6657·枪·减",
           "role": "debuffer",
-          "averageDps": 160.99,
-          "averageDamageTaken": 48221.67,
+          "averageDps": 159.26,
+          "averageDamageTaken": 44017,
           "averageHealingDone": 0,
-          "averageHealingReceived": 50565.33,
+          "averageHealingReceived": 47189,
           "averageHealing": 0,
-          "deaths": 4,
+          "deaths": 5,
           "oomRuns": 0,
           "averageOomDurationSeconds": 0,
-          "averageManaSpent": 33491.67,
-          "averageManaRestored": 30332.33,
+          "averageManaSpent": 32658.33,
+          "averageManaRestored": 30095,
           "topAbilities": [
             {
               "abilityHrid": "autoAttack",
               "nameZh": "autoAttack",
-              "averageDamage": 521017.7,
-              "averageDps": 144.73
+              "averageDamage": 516478.7,
+              "averageDps": 143.47
             },
             {
               "abilityHrid": "/abilities/puncture",
               "nameZh": "破甲之刺",
-              "averageDamage": 58545.7,
-              "averageDps": 16.26
+              "averageDamage": 56861.3,
+              "averageDps": 15.79
             }
           ]
         },
@@ -2595,28 +2595,28 @@
           "memberId": "Baikaishuii",
           "label": "Baikaishuii·枪·减",
           "role": "debuffer",
-          "averageDps": 197.04,
-          "averageDamageTaken": 44801.33,
+          "averageDps": 191.86,
+          "averageDamageTaken": 41835.33,
           "averageHealingDone": 0,
-          "averageHealingReceived": 52204.67,
+          "averageHealingReceived": 48817.67,
           "averageHealing": 0,
-          "deaths": 3,
+          "deaths": 4,
           "oomRuns": 0,
           "averageOomDurationSeconds": 0,
-          "averageManaSpent": 33363.33,
-          "averageManaRestored": 31050.67,
+          "averageManaSpent": 32628.33,
+          "averageManaRestored": 30715,
           "topAbilities": [
             {
               "abilityHrid": "autoAttack",
               "nameZh": "autoAttack",
-              "averageDamage": 634902.7,
-              "averageDps": 176.36
+              "averageDamage": 625527.3,
+              "averageDps": 173.76
             },
             {
               "abilityHrid": "/abilities/puncture",
               "nameZh": "破甲之刺",
-              "averageDamage": 74444.7,
-              "averageDps": 20.68
+              "averageDamage": 65174.3,
+              "averageDps": 18.1
             }
           ]
         },
@@ -2624,28 +2624,28 @@
           "memberId": "Cyeah",
           "label": "Cyeah·枪·输出",
           "role": "dps",
-          "averageDps": 158.8,
-          "averageDamageTaken": 48498.67,
+          "averageDps": 153.49,
+          "averageDamageTaken": 40636,
           "averageHealingDone": 0,
-          "averageHealingReceived": 52085,
+          "averageHealingReceived": 44712,
           "averageHealing": 0,
-          "deaths": 3,
+          "deaths": 5,
           "oomRuns": 0,
           "averageOomDurationSeconds": 0,
-          "averageManaSpent": 33141.67,
-          "averageManaRestored": 30803,
+          "averageManaSpent": 32066.67,
+          "averageManaRestored": 29796.67,
           "topAbilities": [
             {
               "abilityHrid": "autoAttack",
               "nameZh": "autoAttack",
-              "averageDamage": 513638.7,
-              "averageDps": 142.68
+              "averageDamage": 497428.7,
+              "averageDps": 138.17
             },
             {
               "abilityHrid": "/abilities/puncture",
               "nameZh": "破甲之刺",
-              "averageDamage": 58056,
-              "averageDps": 16.13
+              "averageDamage": 55143.3,
+              "averageDps": 15.32
             }
           ]
         },
@@ -2653,28 +2653,28 @@
           "memberId": "czl9999",
           "label": "czl9999·枪·输出",
           "role": "dps",
-          "averageDps": 164.09,
-          "averageDamageTaken": 48700.67,
+          "averageDps": 160.31,
+          "averageDamageTaken": 44735.67,
           "averageHealingDone": 0,
-          "averageHealingReceived": 51695,
+          "averageHealingReceived": 47385.33,
           "averageHealing": 0,
-          "deaths": 2,
+          "deaths": 5,
           "oomRuns": 0,
           "averageOomDurationSeconds": 0,
-          "averageManaSpent": 33438.33,
-          "averageManaRestored": 28005.67,
+          "averageManaSpent": 32593.33,
+          "averageManaRestored": 28081.33,
           "topAbilities": [
             {
               "abilityHrid": "autoAttack",
               "nameZh": "autoAttack",
-              "averageDamage": 523299,
-              "averageDps": 145.36
+              "averageDamage": 514472,
+              "averageDps": 142.91
             },
             {
               "abilityHrid": "/abilities/puncture",
               "nameZh": "破甲之刺",
-              "averageDamage": 67432.3,
-              "averageDps": 18.73
+              "averageDamage": 62649,
+              "averageDps": 17.4
             }
           ]
         },
@@ -2682,28 +2682,28 @@
           "memberId": "demon8901",
           "label": "demon8901·枪·输出",
           "role": "dps",
-          "averageDps": 187.02,
-          "averageDamageTaken": 44656,
+          "averageDps": 181.79,
+          "averageDamageTaken": 41080.33,
           "averageHealingDone": 0,
-          "averageHealingReceived": 51561.33,
+          "averageHealingReceived": 48412,
           "averageHealing": 0,
-          "deaths": 4,
+          "deaths": 5,
           "oomRuns": 0,
           "averageOomDurationSeconds": 0,
-          "averageManaSpent": 33431.67,
-          "averageManaRestored": 31084,
+          "averageManaSpent": 32550,
+          "averageManaRestored": 30571,
           "topAbilities": [
             {
               "abilityHrid": "autoAttack",
               "nameZh": "autoAttack",
-              "averageDamage": 612613,
-              "averageDps": 170.17
+              "averageDamage": 591611,
+              "averageDps": 164.34
             },
             {
               "abilityHrid": "/abilities/puncture",
               "nameZh": "破甲之刺",
-              "averageDamage": 60645.7,
-              "averageDps": 16.85
+              "averageDamage": 62824.7,
+              "averageDps": 17.45
             }
           ]
         },
@@ -2711,28 +2711,28 @@
           "memberId": "shadingyu",
           "label": "shadingyu·枪·输出",
           "role": "dps",
-          "averageDps": 206.22,
-          "averageDamageTaken": 43902.33,
+          "averageDps": 199.26,
+          "averageDamageTaken": 42636,
           "averageHealingDone": 0,
-          "averageHealingReceived": 51884,
+          "averageHealingReceived": 49587,
           "averageHealing": 0,
-          "deaths": 2,
+          "deaths": 4,
           "oomRuns": 0,
           "averageOomDurationSeconds": 0,
-          "averageManaSpent": 33196.67,
-          "averageManaRestored": 30527.67,
+          "averageManaSpent": 32536.67,
+          "averageManaRestored": 30167.67,
           "topAbilities": [
             {
               "abilityHrid": "autoAttack",
               "nameZh": "autoAttack",
-              "averageDamage": 670005.3,
-              "averageDps": 186.11
+              "averageDamage": 648800.3,
+              "averageDps": 180.22
             },
             {
               "abilityHrid": "/abilities/puncture",
               "nameZh": "破甲之刺",
-              "averageDamage": 72389,
-              "averageDps": 20.11
+              "averageDamage": 68537,
+              "averageDps": 19.04
             }
           ]
         },
@@ -2740,28 +2740,28 @@
           "memberId": "haihaihai2",
           "label": "haihaihai2·枪·输出",
           "role": "dps",
-          "averageDps": 203.73,
-          "averageDamageTaken": 43898.33,
+          "averageDps": 199.19,
+          "averageDamageTaken": 40122.67,
           "averageHealingDone": 0,
-          "averageHealingReceived": 51764.33,
+          "averageHealingReceived": 47825.33,
           "averageHealing": 0,
-          "deaths": 2,
+          "deaths": 5,
           "oomRuns": 0,
           "averageOomDurationSeconds": 0,
-          "averageManaSpent": 33261.67,
-          "averageManaRestored": 29221.67,
+          "averageManaSpent": 32481.67,
+          "averageManaRestored": 29450.67,
           "topAbilities": [
             {
               "abilityHrid": "autoAttack",
               "nameZh": "autoAttack",
-              "averageDamage": 655364,
-              "averageDps": 182.05
+              "averageDamage": 640140.3,
+              "averageDps": 177.82
             },
             {
               "abilityHrid": "/abilities/puncture",
               "nameZh": "破甲之刺",
-              "averageDamage": 78051.7,
-              "averageDps": 21.68
+              "averageDamage": 76960,
+              "averageDps": 21.38
             }
           ]
         },
@@ -2769,28 +2769,28 @@
           "memberId": "Kuqiki",
           "label": "Kuqiki·枪·输出",
           "role": "dps",
-          "averageDps": 158.12,
-          "averageDamageTaken": 50079,
+          "averageDps": 159.82,
+          "averageDamageTaken": 43703.67,
           "averageHealingDone": 0,
-          "averageHealingReceived": 58428.33,
+          "averageHealingReceived": 52759.67,
           "averageHealing": 0,
-          "deaths": 3,
+          "deaths": 5,
           "oomRuns": 0,
           "averageOomDurationSeconds": 0,
-          "averageManaSpent": 33345,
-          "averageManaRestored": 25121.67,
+          "averageManaSpent": 32588.33,
+          "averageManaRestored": 25268.33,
           "topAbilities": [
             {
               "abilityHrid": "autoAttack",
               "nameZh": "autoAttack",
-              "averageDamage": 513386.3,
-              "averageDps": 142.61
+              "averageDamage": 518724,
+              "averageDps": 144.09
             },
             {
               "abilityHrid": "/abilities/puncture",
               "nameZh": "破甲之刺",
-              "averageDamage": 55832.7,
-              "averageDps": 15.51
+              "averageDamage": 56631.3,
+              "averageDps": 15.73
             }
           ]
         },
@@ -2798,28 +2798,28 @@
           "memberId": "little87",
           "label": "little87·枪·输出",
           "role": "dps",
-          "averageDps": 194.14,
-          "averageDamageTaken": 42186.67,
+          "averageDps": 192.61,
+          "averageDamageTaken": 37265,
           "averageHealingDone": 0,
-          "averageHealingReceived": 50685.33,
+          "averageHealingReceived": 45784.67,
           "averageHealing": 0,
-          "deaths": 3,
+          "deaths": 4,
           "oomRuns": 0,
           "averageOomDurationSeconds": 0,
-          "averageManaSpent": 33400,
-          "averageManaRestored": 31414,
+          "averageManaSpent": 32893.33,
+          "averageManaRestored": 31072.67,
           "topAbilities": [
             {
               "abilityHrid": "autoAttack",
               "nameZh": "autoAttack",
-              "averageDamage": 627147.3,
-              "averageDps": 174.21
+              "averageDamage": 621982,
+              "averageDps": 172.77
             },
             {
               "abilityHrid": "/abilities/puncture",
               "nameZh": "破甲之刺",
-              "averageDamage": 71754.3,
-              "averageDps": 19.93
+              "averageDamage": 71401,
+              "averageDps": 19.83
             }
           ]
         },
@@ -2827,28 +2827,28 @@
           "memberId": "McYi",
           "label": "McYi·枪·输出",
           "role": "dps",
-          "averageDps": 186.17,
-          "averageDamageTaken": 43627.67,
+          "averageDps": 182.98,
+          "averageDamageTaken": 39292.67,
           "averageHealingDone": 0,
-          "averageHealingReceived": 51710.67,
+          "averageHealingReceived": 47669.67,
           "averageHealing": 0,
-          "deaths": 3,
+          "deaths": 4,
           "oomRuns": 0,
           "averageOomDurationSeconds": 0,
-          "averageManaSpent": 33291.67,
-          "averageManaRestored": 30236.33,
+          "averageManaSpent": 32703.33,
+          "averageManaRestored": 30157,
           "topAbilities": [
             {
               "abilityHrid": "autoAttack",
               "nameZh": "autoAttack",
-              "averageDamage": 603281.7,
-              "averageDps": 167.58
+              "averageDamage": 590156.7,
+              "averageDps": 163.93
             },
             {
               "abilityHrid": "/abilities/puncture",
               "nameZh": "破甲之刺",
-              "averageDamage": 66924.3,
-              "averageDps": 18.59
+              "averageDamage": 68581,
+              "averageDps": 19.05
             }
           ]
         },
@@ -2856,28 +2856,28 @@
           "memberId": "xingyunTVT",
           "label": "xingyunTVT·枪·输出",
           "role": "dps",
-          "averageDps": 183.58,
-          "averageDamageTaken": 44920.67,
+          "averageDps": 178.35,
+          "averageDamageTaken": 42756,
           "averageHealingDone": 0,
-          "averageHealingReceived": 52597.67,
+          "averageHealingReceived": 50026,
           "averageHealing": 0,
-          "deaths": 2,
+          "deaths": 5,
           "oomRuns": 0,
           "averageOomDurationSeconds": 0,
-          "averageManaSpent": 33520,
-          "averageManaRestored": 30023,
+          "averageManaSpent": 32696.67,
+          "averageManaRestored": 29956.33,
           "topAbilities": [
             {
               "abilityHrid": "autoAttack",
               "nameZh": "autoAttack",
-              "averageDamage": 594308,
-              "averageDps": 165.09
+              "averageDamage": 582191,
+              "averageDps": 161.72
             },
             {
               "abilityHrid": "/abilities/puncture",
               "nameZh": "破甲之刺",
-              "averageDamage": 66591.7,
-              "averageDps": 18.5
+              "averageDamage": 59881,
+              "averageDps": 16.63
             }
           ]
         },
@@ -2885,28 +2885,28 @@
           "memberId": "nye1mo",
           "label": "nye1mo·枪·输出",
           "role": "dps",
-          "averageDps": 179.73,
-          "averageDamageTaken": 43737.67,
+          "averageDps": 171.79,
+          "averageDamageTaken": 41174,
           "averageHealingDone": 0,
-          "averageHealingReceived": 51586.67,
+          "averageHealingReceived": 48729.33,
           "averageHealing": 0,
-          "deaths": 3,
+          "deaths": 4,
           "oomRuns": 0,
           "averageOomDurationSeconds": 0,
-          "averageManaSpent": 33271.67,
-          "averageManaRestored": 31101.33,
+          "averageManaSpent": 32661.67,
+          "averageManaRestored": 30587.33,
           "topAbilities": [
             {
               "abilityHrid": "autoAttack",
               "nameZh": "autoAttack",
-              "averageDamage": 587731.3,
-              "averageDps": 163.26
+              "averageDamage": 566485,
+              "averageDps": 157.36
             },
             {
               "abilityHrid": "/abilities/puncture",
               "nameZh": "破甲之刺",
-              "averageDamage": 59305,
-              "averageDps": 16.47
+              "averageDamage": 51944,
+              "averageDps": 14.43
             }
           ]
         },
@@ -2914,28 +2914,28 @@
           "memberId": "yangguangniuzi",
           "label": "yangguangniuzi·枪·输出",
           "role": "dps",
-          "averageDps": 208.16,
-          "averageDamageTaken": 43609,
+          "averageDps": 212.4,
+          "averageDamageTaken": 40956.67,
           "averageHealingDone": 0,
-          "averageHealingReceived": 51630,
+          "averageHealingReceived": 49043.67,
           "averageHealing": 0,
-          "deaths": 3,
+          "deaths": 4,
           "oomRuns": 0,
           "averageOomDurationSeconds": 0,
-          "averageManaSpent": 33313.33,
-          "averageManaRestored": 31364.33,
+          "averageManaSpent": 32855,
+          "averageManaRestored": 30957,
           "topAbilities": [
             {
               "abilityHrid": "autoAttack",
               "nameZh": "autoAttack",
-              "averageDamage": 669661,
-              "averageDps": 186.02
+              "averageDamage": 687430.7,
+              "averageDps": 190.95
             },
             {
               "abilityHrid": "/abilities/puncture",
               "nameZh": "破甲之刺",
-              "averageDamage": 79725,
-              "averageDps": 22.15
+              "averageDamage": 77219,
+              "averageDps": 21.45
             }
           ]
         },
@@ -2943,46 +2943,46 @@
           "memberId": "Chen1ey",
           "label": "Chen1ey·剑·减",
           "role": "debuffer",
-          "averageDps": 153.04,
-          "averageDamageTaken": 40848,
+          "averageDps": 155.69,
+          "averageDamageTaken": 38871,
           "averageHealingDone": 0,
-          "averageHealingReceived": 49543.33,
+          "averageHealingReceived": 47570.33,
           "averageHealing": 0,
-          "deaths": 3,
+          "deaths": 4,
           "oomRuns": 0,
           "averageOomDurationSeconds": 0,
-          "averageManaSpent": 34541.67,
-          "averageManaRestored": 32500.67,
+          "averageManaSpent": 33813.33,
+          "averageManaRestored": 32065.67,
           "topAbilities": [
             {
               "abilityHrid": "autoAttack",
               "nameZh": "autoAttack",
-              "averageDamage": 399347,
-              "averageDps": 110.93
+              "averageDamage": 398674,
+              "averageDps": 110.74
             },
             {
               "abilityHrid": "parry",
               "nameZh": "parry",
-              "averageDamage": 54236.7,
-              "averageDps": 15.07
+              "averageDamage": 62149.7,
+              "averageDps": 17.26
             },
             {
               "abilityHrid": "/abilities/crippling_slash",
               "nameZh": "致残斩",
-              "averageDamage": 34727,
-              "averageDps": 9.65
+              "averageDamage": 33717.3,
+              "averageDps": 9.37
             },
             {
               "abilityHrid": "/abilities/maim",
               "nameZh": "血刃斩",
-              "averageDamage": 31567,
-              "averageDps": 8.77
+              "averageDamage": 33591.3,
+              "averageDps": 9.33
             },
             {
               "abilityHrid": "damageOverTime",
               "nameZh": "damageOverTime",
-              "averageDamage": 31064.3,
-              "averageDps": 8.63
+              "averageDamage": 32365,
+              "averageDps": 8.99
             }
           ]
         },
@@ -2990,46 +2990,46 @@
           "memberId": "Jotta",
           "label": "Jotta·剑·减",
           "role": "debuffer",
-          "averageDps": 135.56,
-          "averageDamageTaken": 44537,
+          "averageDps": 131.99,
+          "averageDamageTaken": 42238,
           "averageHealingDone": 0,
-          "averageHealingReceived": 51945.33,
+          "averageHealingReceived": 49920.33,
           "averageHealing": 0,
-          "deaths": 2,
+          "deaths": 4,
           "oomRuns": 0,
           "averageOomDurationSeconds": 0,
-          "averageManaSpent": 35170,
-          "averageManaRestored": 31021.33,
+          "averageManaSpent": 34211.67,
+          "averageManaRestored": 31151,
           "topAbilities": [
             {
               "abilityHrid": "autoAttack",
               "nameZh": "autoAttack",
-              "averageDamage": 347888,
-              "averageDps": 96.64
+              "averageDamage": 333012.3,
+              "averageDps": 92.5
             },
             {
               "abilityHrid": "parry",
               "nameZh": "parry",
-              "averageDamage": 46341.3,
-              "averageDps": 12.87
-            },
-            {
-              "abilityHrid": "/abilities/crippling_slash",
-              "nameZh": "致残斩",
-              "averageDamage": 33781.7,
-              "averageDps": 9.38
+              "averageDamage": 49349,
+              "averageDps": 13.71
             },
             {
               "abilityHrid": "/abilities/maim",
               "nameZh": "血刃斩",
-              "averageDamage": 30510.7,
-              "averageDps": 8.48
+              "averageDamage": 31748.7,
+              "averageDps": 8.82
             },
             {
               "abilityHrid": "damageOverTime",
               "nameZh": "damageOverTime",
-              "averageDamage": 29504.7,
-              "averageDps": 8.2
+              "averageDamage": 30650,
+              "averageDps": 8.51
+            },
+            {
+              "abilityHrid": "/abilities/crippling_slash",
+              "nameZh": "致残斩",
+              "averageDamage": 30390.7,
+              "averageDps": 8.44
             }
           ]
         },
@@ -3037,46 +3037,46 @@
           "memberId": "Sakiko155",
           "label": "Sakiko155·剑·减",
           "role": "debuffer",
-          "averageDps": 160.01,
-          "averageDamageTaken": 43628.67,
+          "averageDps": 155.63,
+          "averageDamageTaken": 38754,
           "averageHealingDone": 0,
-          "averageHealingReceived": 50206.67,
+          "averageHealingReceived": 46312.67,
           "averageHealing": 0,
           "deaths": 4,
           "oomRuns": 0,
           "averageOomDurationSeconds": 0,
-          "averageManaSpent": 34333.33,
-          "averageManaRestored": 29400.67,
+          "averageManaSpent": 33791.67,
+          "averageManaRestored": 30224.67,
           "topAbilities": [
             {
               "abilityHrid": "autoAttack",
               "nameZh": "autoAttack",
-              "averageDamage": 419498,
-              "averageDps": 116.53
+              "averageDamage": 402572,
+              "averageDps": 111.83
             },
             {
               "abilityHrid": "parry",
               "nameZh": "parry",
-              "averageDamage": 54087,
-              "averageDps": 15.02
-            },
-            {
-              "abilityHrid": "/abilities/maim",
-              "nameZh": "血刃斩",
-              "averageDamage": 35157.3,
-              "averageDps": 9.77
-            },
-            {
-              "abilityHrid": "damageOverTime",
-              "nameZh": "damageOverTime",
-              "averageDamage": 33695,
-              "averageDps": 9.36
+              "averageDamage": 54515.7,
+              "averageDps": 15.14
             },
             {
               "abilityHrid": "/abilities/crippling_slash",
               "nameZh": "致残斩",
-              "averageDamage": 33588,
-              "averageDps": 9.33
+              "averageDamage": 37967.3,
+              "averageDps": 10.55
+            },
+            {
+              "abilityHrid": "/abilities/maim",
+              "nameZh": "血刃斩",
+              "averageDamage": 33284.7,
+              "averageDps": 9.25
+            },
+            {
+              "abilityHrid": "damageOverTime",
+              "nameZh": "damageOverTime",
+              "averageDamage": 31913.7,
+              "averageDps": 8.86
             }
           ]
         },
@@ -3084,46 +3084,46 @@
           "memberId": "steffe",
           "label": "steffe·剑·减",
           "role": "debuffer",
-          "averageDps": 129.35,
-          "averageDamageTaken": 43512,
+          "averageDps": 126.05,
+          "averageDamageTaken": 42312.67,
           "averageHealingDone": 0,
-          "averageHealingReceived": 51117.67,
+          "averageHealingReceived": 49979.33,
           "averageHealing": 0,
-          "deaths": 3,
+          "deaths": 4,
           "oomRuns": 0,
           "averageOomDurationSeconds": 0,
-          "averageManaSpent": 34428.33,
-          "averageManaRestored": 31280.33,
+          "averageManaSpent": 33705,
+          "averageManaRestored": 31413,
           "topAbilities": [
             {
               "abilityHrid": "autoAttack",
               "nameZh": "autoAttack",
-              "averageDamage": 329387.3,
-              "averageDps": 91.5
+              "averageDamage": 324202,
+              "averageDps": 90.06
             },
             {
               "abilityHrid": "parry",
               "nameZh": "parry",
-              "averageDamage": 50141.7,
-              "averageDps": 13.93
+              "averageDamage": 42822,
+              "averageDps": 11.89
             },
             {
               "abilityHrid": "/abilities/maim",
               "nameZh": "血刃斩",
-              "averageDamage": 30668.7,
-              "averageDps": 8.52
+              "averageDamage": 31129.3,
+              "averageDps": 8.65
             },
             {
               "abilityHrid": "damageOverTime",
               "nameZh": "damageOverTime",
-              "averageDamage": 29971.3,
+              "averageDamage": 29974.7,
               "averageDps": 8.33
             },
             {
               "abilityHrid": "/abilities/crippling_slash",
               "nameZh": "致残斩",
-              "averageDamage": 25473.3,
-              "averageDps": 7.08
+              "averageDamage": 25651.3,
+              "averageDps": 7.13
             }
           ]
         },
@@ -3131,28 +3131,28 @@
           "memberId": "adudu",
           "label": "adudu·锤·减",
           "role": "debuffer",
-          "averageDps": 187.39,
-          "averageDamageTaken": 40846,
+          "averageDps": 185.23,
+          "averageDamageTaken": 36424,
           "averageHealingDone": 0,
-          "averageHealingReceived": 29468.33,
+          "averageHealingReceived": 25052,
           "averageHealing": 0,
-          "deaths": 2,
+          "deaths": 4,
           "oomRuns": 0,
           "averageOomDurationSeconds": 0,
-          "averageManaSpent": 33433.33,
-          "averageManaRestored": 31819,
+          "averageManaSpent": 32718.33,
+          "averageManaRestored": 30899,
           "topAbilities": [
             {
               "abilityHrid": "autoAttack",
               "nameZh": "autoAttack",
-              "averageDamage": 619713,
-              "averageDps": 172.14
+              "averageDamage": 609910,
+              "averageDps": 169.42
             },
             {
               "abilityHrid": "/abilities/fracturing_impact",
               "nameZh": "碎裂冲击",
-              "averageDamage": 54906,
-              "averageDps": 15.25
+              "averageDamage": 56919,
+              "averageDps": 15.81
             }
           ]
         },
@@ -3160,28 +3160,28 @@
           "memberId": "Akaneiro",
           "label": "Akaneiro·锤·减",
           "role": "debuffer",
-          "averageDps": 128.65,
-          "averageDamageTaken": 44160.67,
+          "averageDps": 123.97,
+          "averageDamageTaken": 40173.33,
           "averageHealingDone": 0,
-          "averageHealingReceived": 51827,
+          "averageHealingReceived": 47196.33,
           "averageHealing": 0,
-          "deaths": 3,
+          "deaths": 4,
           "oomRuns": 0,
           "averageOomDurationSeconds": 0,
-          "averageManaSpent": 34133.33,
-          "averageManaRestored": 31153.33,
+          "averageManaSpent": 33390,
+          "averageManaRestored": 31036.67,
           "topAbilities": [
             {
               "abilityHrid": "autoAttack",
               "nameZh": "autoAttack",
-              "averageDamage": 433512.3,
-              "averageDps": 120.42
+              "averageDamage": 414088.3,
+              "averageDps": 115.02
             },
             {
               "abilityHrid": "/abilities/fracturing_impact",
               "nameZh": "碎裂冲击",
-              "averageDamage": 29623.3,
-              "averageDps": 8.23
+              "averageDamage": 32192,
+              "averageDps": 8.94
             }
           ]
         },
@@ -3189,28 +3189,28 @@
           "memberId": "XHSe",
           "label": "XHSe·锤·输出",
           "role": "dps",
-          "averageDps": 133.27,
-          "averageDamageTaken": 46287,
+          "averageDps": 124.35,
+          "averageDamageTaken": 40498.33,
           "averageHealingDone": 0,
-          "averageHealingReceived": 53561,
+          "averageHealingReceived": 48541.67,
           "averageHealing": 0,
           "deaths": 4,
           "oomRuns": 0,
           "averageOomDurationSeconds": 0,
-          "averageManaSpent": 34023.33,
-          "averageManaRestored": 30074.33,
+          "averageManaSpent": 33556.67,
+          "averageManaRestored": 30501.33,
           "topAbilities": [
             {
               "abilityHrid": "autoAttack",
               "nameZh": "autoAttack",
-              "averageDamage": 446581.7,
-              "averageDps": 124.05
+              "averageDamage": 415927.3,
+              "averageDps": 115.54
             },
             {
               "abilityHrid": "/abilities/fracturing_impact",
               "nameZh": "碎裂冲击",
-              "averageDamage": 33191.3,
-              "averageDps": 9.22
+              "averageDamage": 31742.7,
+              "averageDps": 8.82
             }
           ]
         },
@@ -3218,28 +3218,28 @@
           "memberId": "Tooru0524",
           "label": "Tooru0524·锤·输出",
           "role": "dps",
-          "averageDps": 134.58,
-          "averageDamageTaken": 42870.33,
+          "averageDps": 135.31,
+          "averageDamageTaken": 41653.67,
           "averageHealingDone": 0,
-          "averageHealingReceived": 51021.33,
+          "averageHealingReceived": 49084,
           "averageHealing": 0,
-          "deaths": 3,
+          "deaths": 5,
           "oomRuns": 0,
           "averageOomDurationSeconds": 0,
-          "averageManaSpent": 34353.33,
-          "averageManaRestored": 29778.67,
+          "averageManaSpent": 33361.67,
+          "averageManaRestored": 30057,
           "topAbilities": [
             {
               "abilityHrid": "autoAttack",
               "nameZh": "autoAttack",
-              "averageDamage": 448128.7,
-              "averageDps": 124.48
+              "averageDamage": 449480.7,
+              "averageDps": 124.86
             },
             {
               "abilityHrid": "/abilities/fracturing_impact",
               "nameZh": "碎裂冲击",
-              "averageDamage": 36343.7,
-              "averageDps": 10.1
+              "averageDamage": 37637.7,
+              "averageDps": 10.45
             }
           ]
         },
@@ -3247,28 +3247,28 @@
           "memberId": "Atlus",
           "label": "Atlus·锤·输出",
           "role": "dps",
-          "averageDps": 154.04,
-          "averageDamageTaken": 45043,
+          "averageDps": 153.76,
+          "averageDamageTaken": 39618.33,
           "averageHealingDone": 0,
-          "averageHealingReceived": 52350.67,
+          "averageHealingReceived": 47742.67,
           "averageHealing": 0,
           "deaths": 4,
           "oomRuns": 0,
           "averageOomDurationSeconds": 0,
-          "averageManaSpent": 34035,
-          "averageManaRestored": 29131,
+          "averageManaSpent": 33528.33,
+          "averageManaRestored": 29691.33,
           "topAbilities": [
             {
               "abilityHrid": "autoAttack",
               "nameZh": "autoAttack",
-              "averageDamage": 518076,
-              "averageDps": 143.91
+              "averageDamage": 517249.7,
+              "averageDps": 143.68
             },
             {
               "abilityHrid": "/abilities/fracturing_impact",
               "nameZh": "碎裂冲击",
-              "averageDamage": 36457.3,
-              "averageDps": 10.13
+              "averageDamage": 36291,
+              "averageDps": 10.08
             }
           ]
         },
@@ -3276,28 +3276,28 @@
           "memberId": "D28",
           "label": "D28·锤·输出",
           "role": "dps",
-          "averageDps": 140.06,
-          "averageDamageTaken": 46342.33,
+          "averageDps": 138.09,
+          "averageDamageTaken": 40321.33,
           "averageHealingDone": 0,
-          "averageHealingReceived": 53204,
+          "averageHealingReceived": 47975,
           "averageHealing": 0,
           "deaths": 4,
           "oomRuns": 0,
           "averageOomDurationSeconds": 0,
-          "averageManaSpent": 33898.33,
-          "averageManaRestored": 31238.67,
+          "averageManaSpent": 33176.67,
+          "averageManaRestored": 30725.33,
           "topAbilities": [
             {
               "abilityHrid": "autoAttack",
               "nameZh": "autoAttack",
-              "averageDamage": 471863.3,
-              "averageDps": 131.07
+              "averageDamage": 458032.7,
+              "averageDps": 127.23
             },
             {
               "abilityHrid": "/abilities/fracturing_impact",
               "nameZh": "碎裂冲击",
-              "averageDamage": 32354,
-              "averageDps": 8.99
+              "averageDamage": 39098.3,
+              "averageDps": 10.86
             }
           ]
         },
@@ -3305,35 +3305,35 @@
           "memberId": "sneer",
           "label": "sneer·锤·输出",
           "role": "dps",
-          "averageDps": 130.46,
-          "averageDamageTaken": 44386.67,
+          "averageDps": 130.5,
+          "averageDamageTaken": 40221,
           "averageHealingDone": 0,
-          "averageHealingReceived": 52456.33,
+          "averageHealingReceived": 48154,
           "averageHealing": 0,
           "deaths": 4,
           "oomRuns": 0,
           "averageOomDurationSeconds": 0,
-          "averageManaSpent": 33846.67,
-          "averageManaRestored": 28988.33,
+          "averageManaSpent": 33321.67,
+          "averageManaRestored": 29958.33,
           "topAbilities": [
             {
               "abilityHrid": "autoAttack",
               "nameZh": "autoAttack",
-              "averageDamage": 436563.7,
-              "averageDps": 121.27
+              "averageDamage": 438527.7,
+              "averageDps": 121.81
             },
             {
               "abilityHrid": "/abilities/fracturing_impact",
               "nameZh": "碎裂冲击",
-              "averageDamage": 33093.7,
-              "averageDps": 9.19
+              "averageDamage": 31257.3,
+              "averageDps": 8.68
             }
           ]
         }
       ],
       "supportContributions": {
-        "averageTeamDps": 6651.5,
-        "totalAverageHealingDone": 3145600,
+        "averageTeamDps": 6520.2,
+        "totalAverageHealingDone": 2879951.3,
         "auras": [
           {
             "memberId": "cc643",
@@ -3355,7 +3355,7 @@
                 "ratioPercent": 0
               }
             ],
-            "estimatedTeamDpsGain": 585,
+            "estimatedTeamDpsGain": 573.5,
             "estimatedTeamDpsGainPercent": 8.8,
             "survivalNotes": [],
             "note": "光环按常驻覆盖估算对团队 DPS/生存的名义贡献，非消融实验精确值"
@@ -3380,7 +3380,7 @@
                 "ratioPercent": 0
               }
             ],
-            "estimatedTeamDpsGain": 823.6,
+            "estimatedTeamDpsGain": 807.4,
             "estimatedTeamDpsGainPercent": 12.38,
             "survivalNotes": [],
             "note": "光环按常驻覆盖估算对团队 DPS/生存的名义贡献，非消融实验精确值"
@@ -3411,7 +3411,7 @@
                 "ratioPercent": 0
               }
             ],
-            "estimatedTeamDpsGain": 2251.8,
+            "estimatedTeamDpsGain": 2207.3,
             "estimatedTeamDpsGainPercent": 33.85,
             "survivalNotes": [],
             "note": "光环按常驻覆盖估算对团队 DPS/生存的名义贡献，非消融实验精确值"
@@ -3486,7 +3486,7 @@
                 "ratioPercent": 0
               }
             ],
-            "estimatedTeamDpsGain": 538,
+            "estimatedTeamDpsGain": 527.4,
             "estimatedTeamDpsGainPercent": 8.09,
             "survivalNotes": [],
             "note": "光环按常驻覆盖估算对团队 DPS/生存的名义贡献，非消融实验精确值"
@@ -3496,61 +3496,61 @@
           {
             "memberId": "ckyyp11",
             "combatType": "自",
-            "averageHealingDone": 677602.33,
-            "averageHps": 188.22,
-            "teamHealingSharePercent": 21.5,
-            "averageDamageTaken": 85731.67,
-            "deaths": 13,
-            "note": "治疗量为技能/复活实际抬血（不含被动回血与吸血）"
-          },
-          {
-            "memberId": "CongeAqua",
-            "combatType": "自",
-            "averageHealingDone": 667165.33,
-            "averageHps": 185.32,
-            "teamHealingSharePercent": 21.2,
-            "averageDamageTaken": 78691,
-            "deaths": 9,
-            "note": "治疗量为技能/复活实际抬血（不含被动回血与吸血）"
-          },
-          {
-            "memberId": "Acceleratorlin",
-            "combatType": "自",
-            "averageHealingDone": 618111.67,
-            "averageHps": 171.7,
-            "teamHealingSharePercent": 19.7,
-            "averageDamageTaken": 75183.33,
-            "deaths": 11,
+            "averageHealingDone": 670033,
+            "averageHps": 186.12,
+            "teamHealingSharePercent": 23.3,
+            "averageDamageTaken": 78291,
+            "deaths": 12,
             "note": "治疗量为技能/复活实际抬血（不含被动回血与吸血）"
           },
           {
             "memberId": "Debbie",
             "combatType": "自",
-            "averageHealingDone": 615591,
-            "averageHps": 171,
-            "teamHealingSharePercent": 19.6,
-            "averageDamageTaken": 78120.33,
+            "averageHealingDone": 601464.67,
+            "averageHps": 167.07,
+            "teamHealingSharePercent": 20.9,
+            "averageDamageTaken": 71897.67,
             "deaths": 8,
+            "note": "治疗量为技能/复活实际抬血（不含被动回血与吸血）"
+          },
+          {
+            "memberId": "Acceleratorlin",
+            "combatType": "自",
+            "averageHealingDone": 586528.33,
+            "averageHps": 162.92,
+            "teamHealingSharePercent": 20.4,
+            "averageDamageTaken": 69461.33,
+            "deaths": 7,
+            "note": "治疗量为技能/复活实际抬血（不含被动回血与吸血）"
+          },
+          {
+            "memberId": "CongeAqua",
+            "combatType": "自",
+            "averageHealingDone": 538103.33,
+            "averageHps": 149.47,
+            "teamHealingSharePercent": 18.7,
+            "averageDamageTaken": 68473.33,
+            "deaths": 10,
             "note": "治疗量为技能/复活实际抬血（不含被动回血与吸血）"
           },
           {
             "memberId": "MRBIRTHDAY",
             "combatType": "自",
-            "averageHealingDone": 566414.33,
-            "averageHps": 157.34,
-            "teamHealingSharePercent": 18,
-            "averageDamageTaken": 74830.67,
-            "deaths": 10,
+            "averageHealingDone": 483077,
+            "averageHps": 134.19,
+            "teamHealingSharePercent": 16.8,
+            "averageDamageTaken": 71109.67,
+            "deaths": 11,
             "note": "治疗量为技能/复活实际抬血（不含被动回血与吸血）"
           },
           {
             "memberId": "DanielKo",
             "combatType": "弩",
-            "averageHealingDone": 715.33,
-            "averageHps": 0.2,
+            "averageHealingDone": 745,
+            "averageHps": 0.21,
             "teamHealingSharePercent": 0,
-            "averageDamageTaken": 64888.33,
-            "deaths": 6,
+            "averageDamageTaken": 63343.67,
+            "deaths": 7,
             "note": "治疗量为技能/复活实际抬血（不含被动回血与吸血）"
           }
         ],
@@ -3559,9 +3559,9 @@
             "memberId": "9095",
             "combatType": "弩",
             "duty": "debuffer",
-            "averageDps": 124.77,
-            "averageDamageTaken": 65327.33,
-            "deaths": 4,
+            "averageDps": 120.81,
+            "averageDamageTaken": 57141.33,
+            "deaths": 9,
             "supportAbilityDamage": [],
             "note": "减益位技能直接伤害（减益对全队增伤需看覆盖，此处列技能伤害贡献）"
           },
@@ -3569,9 +3569,9 @@
             "memberId": "AyuanQAQ",
             "combatType": "弩",
             "duty": "debuffer",
-            "averageDps": 114.33,
-            "averageDamageTaken": 66435.67,
-            "deaths": 5,
+            "averageDps": 112.47,
+            "averageDamageTaken": 57673,
+            "deaths": 9,
             "supportAbilityDamage": [],
             "note": "减益位技能直接伤害（减益对全队增伤需看覆盖，此处列技能伤害贡献）"
           },
@@ -3579,23 +3579,23 @@
             "memberId": "Akaset",
             "combatType": "火",
             "duty": "debuffer",
-            "averageDps": 55.53,
-            "averageDamageTaken": 74927,
-            "deaths": 11,
+            "averageDps": 53.51,
+            "averageDamageTaken": 63900.67,
+            "deaths": 10,
             "supportAbilityDamage": [
               {
                 "abilityHrid": "/abilities/fireball",
                 "nameZh": "火球",
-                "averageDamage": 120373.7,
-                "averageDps": 33.44,
-                "shareOfMemberDpsPercent": 60.2
+                "averageDamage": 120303,
+                "averageDps": 33.42,
+                "shareOfMemberDpsPercent": 62.5
               },
               {
                 "abilityHrid": "/abilities/smoke_burst",
                 "nameZh": "烟爆灭影",
-                "averageDamage": 61408,
-                "averageDps": 17.06,
-                "shareOfMemberDpsPercent": 30.7
+                "averageDamage": 54346,
+                "averageDps": 15.1,
+                "shareOfMemberDpsPercent": 28.2
               }
             ],
             "note": "减益位技能直接伤害（减益对全队增伤需看覆盖，此处列技能伤害贡献）"
@@ -3604,8 +3604,8 @@
             "memberId": "sh1r0",
             "combatType": "盾",
             "duty": "tank",
-            "averageDps": 87.45,
-            "averageDamageTaken": 86718.33,
+            "averageDps": 89.54,
+            "averageDamageTaken": 82825.67,
             "deaths": 4,
             "supportAbilityDamage": [],
             "note": "坦克承伤与无敌/嘲讽相关技能输出"
@@ -3614,9 +3614,9 @@
             "memberId": "6657",
             "combatType": "枪",
             "duty": "debuffer",
-            "averageDps": 160.99,
-            "averageDamageTaken": 48221.67,
-            "deaths": 4,
+            "averageDps": 159.26,
+            "averageDamageTaken": 44017,
+            "deaths": 5,
             "supportAbilityDamage": [],
             "note": "减益位技能直接伤害（减益对全队增伤需看覆盖，此处列技能伤害贡献）"
           },
@@ -3624,9 +3624,9 @@
             "memberId": "Baikaishuii",
             "combatType": "枪",
             "duty": "debuffer",
-            "averageDps": 197.04,
-            "averageDamageTaken": 44801.33,
-            "deaths": 3,
+            "averageDps": 191.86,
+            "averageDamageTaken": 41835.33,
+            "deaths": 4,
             "supportAbilityDamage": [],
             "note": "减益位技能直接伤害（减益对全队增伤需看覆盖，此处列技能伤害贡献）"
           },
@@ -3634,9 +3634,9 @@
             "memberId": "Chen1ey",
             "combatType": "剑",
             "duty": "debuffer",
-            "averageDps": 153.04,
-            "averageDamageTaken": 40848,
-            "deaths": 3,
+            "averageDps": 155.69,
+            "averageDamageTaken": 38871,
+            "deaths": 4,
             "supportAbilityDamage": [],
             "note": "减益位技能直接伤害（减益对全队增伤需看覆盖，此处列技能伤害贡献）"
           },
@@ -3644,9 +3644,9 @@
             "memberId": "Jotta",
             "combatType": "剑",
             "duty": "debuffer",
-            "averageDps": 135.56,
-            "averageDamageTaken": 44537,
-            "deaths": 2,
+            "averageDps": 131.99,
+            "averageDamageTaken": 42238,
+            "deaths": 4,
             "supportAbilityDamage": [],
             "note": "减益位技能直接伤害（减益对全队增伤需看覆盖，此处列技能伤害贡献）"
           },
@@ -3654,8 +3654,8 @@
             "memberId": "Sakiko155",
             "combatType": "剑",
             "duty": "debuffer",
-            "averageDps": 160.01,
-            "averageDamageTaken": 43628.67,
+            "averageDps": 155.63,
+            "averageDamageTaken": 38754,
             "deaths": 4,
             "supportAbilityDamage": [],
             "note": "减益位技能直接伤害（减益对全队增伤需看覆盖，此处列技能伤害贡献）"
@@ -3664,9 +3664,9 @@
             "memberId": "steffe",
             "combatType": "剑",
             "duty": "debuffer",
-            "averageDps": 129.35,
-            "averageDamageTaken": 43512,
-            "deaths": 3,
+            "averageDps": 126.05,
+            "averageDamageTaken": 42312.67,
+            "deaths": 4,
             "supportAbilityDamage": [],
             "note": "减益位技能直接伤害（减益对全队增伤需看覆盖，此处列技能伤害贡献）"
           },
@@ -3674,9 +3674,9 @@
             "memberId": "adudu",
             "combatType": "锤",
             "duty": "debuffer",
-            "averageDps": 187.39,
-            "averageDamageTaken": 40846,
-            "deaths": 2,
+            "averageDps": 185.23,
+            "averageDamageTaken": 36424,
+            "deaths": 4,
             "supportAbilityDamage": [],
             "note": "减益位技能直接伤害（减益对全队增伤需看覆盖，此处列技能伤害贡献）"
           },
@@ -3684,9 +3684,9 @@
             "memberId": "Akaneiro",
             "combatType": "锤",
             "duty": "debuffer",
-            "averageDps": 128.65,
-            "averageDamageTaken": 44160.67,
-            "deaths": 3,
+            "averageDps": 123.97,
+            "averageDamageTaken": 40173.33,
+            "deaths": 4,
             "supportAbilityDamage": [],
             "note": "减益位技能直接伤害（减益对全队增伤需看覆盖，此处列技能伤害贡献）"
           }
@@ -3699,8 +3699,8 @@
             "specialNameZh": "疯狂",
             "level": 33,
             "averageHealingDone": 0,
-            "averageDps": 137,
-            "deaths": 12
+            "averageDps": 135.35,
+            "deaths": 16
           },
           {
             "memberId": "JackLee",
@@ -3709,8 +3709,8 @@
             "specialNameZh": "疯狂",
             "level": 42,
             "averageHealingDone": 0,
-            "averageDps": 143.11,
-            "deaths": 10
+            "averageDps": 140.38,
+            "deaths": 12
           },
           {
             "memberId": "Tenerife",
@@ -3719,8 +3719,8 @@
             "specialNameZh": "疯狂",
             "level": 44,
             "averageHealingDone": 0,
-            "averageDps": 151.99,
-            "deaths": 9
+            "averageDps": 151.07,
+            "deaths": 13
           },
           {
             "memberId": "9095",
@@ -3729,8 +3729,8 @@
             "specialNameZh": "疯狂",
             "level": 23,
             "averageHealingDone": 0,
-            "averageDps": 124.77,
-            "deaths": 4
+            "averageDps": 120.81,
+            "deaths": 9
           },
           {
             "memberId": "AyuanQAQ",
@@ -3739,8 +3739,8 @@
             "specialNameZh": "疯狂",
             "level": 16,
             "averageHealingDone": 0,
-            "averageDps": 114.33,
-            "deaths": 5
+            "averageDps": 112.47,
+            "deaths": 9
           },
           {
             "memberId": "cANY",
@@ -3749,8 +3749,8 @@
             "specialNameZh": "疯狂",
             "level": 7,
             "averageHealingDone": 0,
-            "averageDps": 111.71,
-            "deaths": 6
+            "averageDps": 111.01,
+            "deaths": 10
           },
           {
             "memberId": "DanielKo",
@@ -3758,9 +3758,9 @@
             "specialHrid": "/abilities/revive",
             "specialNameZh": "复活",
             "level": 42,
-            "averageHealingDone": 715.33,
-            "averageDps": 108.88,
-            "deaths": 6
+            "averageHealingDone": 745,
+            "averageDps": 108.04,
+            "deaths": 7
           },
           {
             "memberId": "Debllee",
@@ -3769,8 +3769,8 @@
             "specialNameZh": "疯狂",
             "level": 1,
             "averageHealingDone": 0,
-            "averageDps": 120.98,
-            "deaths": 5
+            "averageDps": 112.49,
+            "deaths": 10
           },
           {
             "memberId": "XTX",
@@ -3779,8 +3779,8 @@
             "specialNameZh": "疯狂",
             "level": 8,
             "averageHealingDone": 0,
-            "averageDps": 130.55,
-            "deaths": 7
+            "averageDps": 124.12,
+            "deaths": 12
           },
           {
             "memberId": "fenxiao",
@@ -3789,8 +3789,8 @@
             "specialNameZh": "疯狂",
             "level": 15,
             "averageHealingDone": 0,
-            "averageDps": 107.55,
-            "deaths": 11
+            "averageDps": 103.05,
+            "deaths": 13
           },
           {
             "memberId": "GravesTwo",
@@ -3799,8 +3799,8 @@
             "specialNameZh": "疯狂",
             "level": 11,
             "averageHealingDone": 0,
-            "averageDps": 134.54,
-            "deaths": 6
+            "averageDps": 129.64,
+            "deaths": 10
           },
           {
             "memberId": "iusso",
@@ -3809,8 +3809,8 @@
             "specialNameZh": "疯狂",
             "level": 21,
             "averageHealingDone": 0,
-            "averageDps": 113.66,
-            "deaths": 8
+            "averageDps": 107.31,
+            "deaths": 10
           },
           {
             "memberId": "ykls",
@@ -3819,8 +3819,8 @@
             "specialNameZh": "疯狂",
             "level": 1,
             "averageHealingDone": 0,
-            "averageDps": 119.03,
-            "deaths": 7
+            "averageDps": 115.51,
+            "deaths": 9
           },
           {
             "memberId": "leftz",
@@ -3829,7 +3829,7 @@
             "specialNameZh": "疯狂",
             "level": 6,
             "averageHealingDone": 0,
-            "averageDps": 132.48,
+            "averageDps": 125.17,
             "deaths": 8
           },
           {
@@ -3839,8 +3839,8 @@
             "specialNameZh": "疯狂",
             "level": 22,
             "averageHealingDone": 0,
-            "averageDps": 117.74,
-            "deaths": 8
+            "averageDps": 114.82,
+            "deaths": 10
           },
           {
             "memberId": "MEYS",
@@ -3849,8 +3849,8 @@
             "specialNameZh": "疯狂",
             "level": 1,
             "averageHealingDone": 0,
-            "averageDps": 102.99,
-            "deaths": 8
+            "averageDps": 103.12,
+            "deaths": 10
           },
           {
             "memberId": "sylphy",
@@ -3859,8 +3859,8 @@
             "specialNameZh": "疯狂",
             "level": 1,
             "averageHealingDone": 0,
-            "averageDps": 121.66,
-            "deaths": 7
+            "averageDps": 118.98,
+            "deaths": 10
           },
           {
             "memberId": "Akaset",
@@ -3869,8 +3869,8 @@
             "specialNameZh": "疯狂",
             "level": 3,
             "averageHealingDone": 0,
-            "averageDps": 55.53,
-            "deaths": 11
+            "averageDps": 53.51,
+            "deaths": 10
           },
           {
             "memberId": "dark6666",
@@ -3879,8 +3879,8 @@
             "specialNameZh": "疯狂",
             "level": 20,
             "averageHealingDone": 0,
-            "averageDps": 40.63,
-            "deaths": 11
+            "averageDps": 38.59,
+            "deaths": 12
           },
           {
             "memberId": "MRBIRTHDAY",
@@ -3888,9 +3888,9 @@
             "specialHrid": "/abilities/revive",
             "specialNameZh": "复活",
             "level": 1,
-            "averageHealingDone": 566414.33,
-            "averageDps": 24.03,
-            "deaths": 10
+            "averageHealingDone": 483077,
+            "averageDps": 24.84,
+            "deaths": 11
           },
           {
             "memberId": "Acceleratorlin",
@@ -3898,9 +3898,9 @@
             "specialHrid": "/abilities/revive",
             "specialNameZh": "复活",
             "level": 1,
-            "averageHealingDone": 618111.67,
-            "averageDps": 23.56,
-            "deaths": 11
+            "averageHealingDone": 586528.33,
+            "averageDps": 25.79,
+            "deaths": 7
           },
           {
             "memberId": "ckyyp11",
@@ -3908,9 +3908,9 @@
             "specialHrid": "/abilities/insanity",
             "specialNameZh": "疯狂",
             "level": 6,
-            "averageHealingDone": 677602.33,
-            "averageDps": 17.94,
-            "deaths": 13
+            "averageHealingDone": 670033,
+            "averageDps": 17.12,
+            "deaths": 12
           },
           {
             "memberId": "CongeAqua",
@@ -3918,9 +3918,9 @@
             "specialHrid": "/abilities/insanity",
             "specialNameZh": "疯狂",
             "level": 21,
-            "averageHealingDone": 667165.33,
-            "averageDps": 26.82,
-            "deaths": 9
+            "averageHealingDone": 538103.33,
+            "averageDps": 26.16,
+            "deaths": 10
           },
           {
             "memberId": "Debbie",
@@ -3928,8 +3928,8 @@
             "specialHrid": "/abilities/revive",
             "specialNameZh": "复活",
             "level": 11,
-            "averageHealingDone": 615591,
-            "averageDps": 27.87,
+            "averageHealingDone": 601464.67,
+            "averageDps": 27.4,
             "deaths": 8
           },
           {
@@ -3939,8 +3939,8 @@
             "specialNameZh": "疯狂",
             "level": 1,
             "averageHealingDone": 0,
-            "averageDps": 160.99,
-            "deaths": 4
+            "averageDps": 159.26,
+            "deaths": 5
           },
           {
             "memberId": "Baikaishuii",
@@ -3949,8 +3949,8 @@
             "specialNameZh": "疯狂",
             "level": 30,
             "averageHealingDone": 0,
-            "averageDps": 197.04,
-            "deaths": 3
+            "averageDps": 191.86,
+            "deaths": 4
           },
           {
             "memberId": "Cyeah",
@@ -3959,8 +3959,8 @@
             "specialNameZh": "疯狂",
             "level": 30,
             "averageHealingDone": 0,
-            "averageDps": 158.8,
-            "deaths": 3
+            "averageDps": 153.49,
+            "deaths": 5
           },
           {
             "memberId": "czl9999",
@@ -3969,8 +3969,8 @@
             "specialNameZh": "疯狂",
             "level": 5,
             "averageHealingDone": 0,
-            "averageDps": 164.09,
-            "deaths": 2
+            "averageDps": 160.31,
+            "deaths": 5
           },
           {
             "memberId": "demon8901",
@@ -3979,8 +3979,8 @@
             "specialNameZh": "疯狂",
             "level": 1,
             "averageHealingDone": 0,
-            "averageDps": 187.02,
-            "deaths": 4
+            "averageDps": 181.79,
+            "deaths": 5
           },
           {
             "memberId": "shadingyu",
@@ -3989,8 +3989,8 @@
             "specialNameZh": "疯狂",
             "level": 1,
             "averageHealingDone": 0,
-            "averageDps": 206.22,
-            "deaths": 2
+            "averageDps": 199.26,
+            "deaths": 4
           },
           {
             "memberId": "haihaihai2",
@@ -3999,8 +3999,8 @@
             "specialNameZh": "疯狂",
             "level": 22,
             "averageHealingDone": 0,
-            "averageDps": 203.73,
-            "deaths": 2
+            "averageDps": 199.19,
+            "deaths": 5
           },
           {
             "memberId": "Kuqiki",
@@ -4009,8 +4009,8 @@
             "specialNameZh": "疯狂",
             "level": 16,
             "averageHealingDone": 0,
-            "averageDps": 158.12,
-            "deaths": 3
+            "averageDps": 159.82,
+            "deaths": 5
           },
           {
             "memberId": "little87",
@@ -4019,8 +4019,8 @@
             "specialNameZh": "疯狂",
             "level": 11,
             "averageHealingDone": 0,
-            "averageDps": 194.14,
-            "deaths": 3
+            "averageDps": 192.61,
+            "deaths": 4
           },
           {
             "memberId": "McYi",
@@ -4029,8 +4029,8 @@
             "specialNameZh": "疯狂",
             "level": 35,
             "averageHealingDone": 0,
-            "averageDps": 186.17,
-            "deaths": 3
+            "averageDps": 182.98,
+            "deaths": 4
           },
           {
             "memberId": "xingyunTVT",
@@ -4039,8 +4039,8 @@
             "specialNameZh": "疯狂",
             "level": 20,
             "averageHealingDone": 0,
-            "averageDps": 183.58,
-            "deaths": 2
+            "averageDps": 178.35,
+            "deaths": 5
           },
           {
             "memberId": "nye1mo",
@@ -4049,8 +4049,8 @@
             "specialNameZh": "疯狂",
             "level": 1,
             "averageHealingDone": 0,
-            "averageDps": 179.73,
-            "deaths": 3
+            "averageDps": 171.79,
+            "deaths": 4
           },
           {
             "memberId": "yangguangniuzi",
@@ -4059,8 +4059,8 @@
             "specialNameZh": "疯狂",
             "level": 16,
             "averageHealingDone": 0,
-            "averageDps": 208.16,
-            "deaths": 3
+            "averageDps": 212.4,
+            "deaths": 4
           },
           {
             "memberId": "Chen1ey",
@@ -4069,8 +4069,8 @@
             "specialNameZh": "疯狂",
             "level": 30,
             "averageHealingDone": 0,
-            "averageDps": 153.04,
-            "deaths": 3
+            "averageDps": 155.69,
+            "deaths": 4
           },
           {
             "memberId": "Jotta",
@@ -4079,8 +4079,8 @@
             "specialNameZh": "疯狂",
             "level": 20,
             "averageHealingDone": 0,
-            "averageDps": 135.56,
-            "deaths": 2
+            "averageDps": 131.99,
+            "deaths": 4
           },
           {
             "memberId": "Sakiko155",
@@ -4089,7 +4089,7 @@
             "specialNameZh": "疯狂",
             "level": 13,
             "averageHealingDone": 0,
-            "averageDps": 160.01,
+            "averageDps": 155.63,
             "deaths": 4
           },
           {
@@ -4099,8 +4099,8 @@
             "specialNameZh": "疯狂",
             "level": 38,
             "averageHealingDone": 0,
-            "averageDps": 129.35,
-            "deaths": 3
+            "averageDps": 126.05,
+            "deaths": 4
           },
           {
             "memberId": "Akaneiro",
@@ -4109,8 +4109,8 @@
             "specialNameZh": "疯狂",
             "level": 21,
             "averageHealingDone": 0,
-            "averageDps": 128.65,
-            "deaths": 3
+            "averageDps": 123.97,
+            "deaths": 4
           },
           {
             "memberId": "XHSe",
@@ -4119,7 +4119,7 @@
             "specialNameZh": "疯狂",
             "level": 1,
             "averageHealingDone": 0,
-            "averageDps": 133.27,
+            "averageDps": 124.35,
             "deaths": 4
           },
           {
@@ -4129,8 +4129,8 @@
             "specialNameZh": "疯狂",
             "level": 1,
             "averageHealingDone": 0,
-            "averageDps": 134.58,
-            "deaths": 3
+            "averageDps": 135.31,
+            "deaths": 5
           },
           {
             "memberId": "Atlus",
@@ -4139,7 +4139,7 @@
             "specialNameZh": "疯狂",
             "level": 24,
             "averageHealingDone": 0,
-            "averageDps": 154.04,
+            "averageDps": 153.76,
             "deaths": 4
           },
           {
@@ -4149,7 +4149,7 @@
             "specialNameZh": "疯狂",
             "level": 30,
             "averageHealingDone": 0,
-            "averageDps": 140.06,
+            "averageDps": 138.09,
             "deaths": 4
           },
           {
@@ -4159,13 +4159,13 @@
             "specialNameZh": "疯狂",
             "level": 13,
             "averageHealingDone": 0,
-            "averageDps": 130.46,
+            "averageDps": 130.5,
             "deaths": 4
           }
         ]
       },
-      "averageScore": 15900000.706339506,
-      "averageDeaths": 100
+      "averageScore": 15872333.809368582,
+      "averageDeaths": 127.66666666666667
     },
     {
       "bossId": "/guild_combat/swarm",
@@ -8858,5 +8858,5 @@
       "averageDeaths": 595.6666666666666
     }
   ],
-  "summaryText": "TMD 可用人员重排组合搜索（不按报名，开发实验不可转正）\n可用 103 人；不可用 6 人；最优分区：phys-chameleon-magic-swarm-1fire\n规则：变色龙偏物理、虫群偏魔法AOE 分区搜索；变色龙单体（自/水/火固定模板+模拟择优，守护光环固定盾）；虫群群体技能包；攻击≥110；双 Boss 人员互斥；无复制人。\n【试炼变色龙】52人；3次 16–16 层；DPS≈6652；末层平均70.6%；死亡 51–131\n技能包：st-ranged-pestilent-flameblast\n职业：弓3 弩16 火1 水2 自5 盾1 枪13 剑4 锤7\n职责：坦克1 奶5 减11 输出35\n名单：yeezin(弓)、JackLee(弓)、Tenerife(弓)、9095(弩)、AyuanQAQ(弩)、cANY(弩)、cc643(弩)、DanielKo(弩)、Debllee(弩)、XTX(弩)、fenxiao(弩)、GravesTwo(弩)、iusso(弩)、ykls(弩)、leftz(弩)、Lucian717(弩)、MEYS(弩)、YSss(弩)、sylphy(弩)、Akaset(火)、buyu(水)、dark6666(水)、MRBIRTHDAY(自)、Acceleratorlin(自)、ckyyp11(自)、CongeAqua(自)、Debbie(自)、sh1r0(盾)、6657(枪)、Baikaishuii(枪)、Cyeah(枪)、czl9999(枪)、demon8901(枪)、shadingyu(枪)、haihaihai2(枪)、Kuqiki(枪)、little87(枪)、McYi(枪)、xingyunTVT(枪)、nye1mo(枪)、yangguangniuzi(枪)、Chen1ey(剑)、Jotta(剑)、Sakiko155(剑)、steffe(剑)、adudu(锤)、Akaneiro(锤)、XHSe(锤)、Tooru0524(锤)、Atlus(锤)、D28(锤)、sneer(锤)\n【试炼虫群】51人（每层4只）；3次 8–8 层；DPS≈4232；末层平均53.3%；死亡 586–610\n技能包：aoe-ranged-pestilent-flameblast\n职业：弓1 弩5 火10 水10 自17 盾1 枪4 剑1 锤2\n职责：坦克1 奶1 减18 输出31\n名单：Cristianon(弓)、xlsx(弩)、DogeArmani(弩)、YC1129(弩)、ky800w(弩)、RERoger(弩)、DeAthZeus(火)、Donmant(火)、JerryKing(火)、Kedy(火)、laidawoya(火)、Mizuk1(火)、mutallip(火)、RuiL(火)、stan2(火)、Wind2025(火)、honorzjn(水)、ikunkunkun(水)、ishi(水)、lcj(水)、liunian1(水)、loydd(水)、PaternalMilk(水)、RainyBlues(水)、Soyorrin(水)、ZYS1(水)、Geyyzz(自)、glow(自)、Kissyou(自)、kogge(自)、MGP(自)、121574(自)、nytpdy(自)、Oosakiii(自)、qaq1104(自)、rain2way(自)、shuaizai(自)、threeeyessss(自)、ufjkwa(自)、wcnm(自)、xunyi(自)、y5565(自)、Zaro(自)、ze3(盾)、GodOfOIdlers(枪)、VOXO(枪)、Nixhhhhh(枪)、qingyuyou(枪)、yida787(剑)、ASME(锤)、Ameratto(锤)\n全库不可用：Y8Y/枪(攻击等级不足（101<110）)、Eureka3204/自(攻击等级不足（78<110）)、Guoyyng/水(攻击等级不足（78<110）)、xiong000/弩(攻击等级不足（101<110）)、Level3000/弩(攻击等级不足（84<110）)、sh1ro/水(手动排除（不参加）)"
+  "summaryText": "TMD 可用人员重排组合搜索（不按报名，开发实验不可转正）\n可用 103 人；不可用 6 人；最优分区：phys-chameleon-magic-swarm-1fire\n规则：变色龙偏物理、虫群偏魔法AOE 分区搜索；变色龙单体（自/水/火固定模板+模拟择优，守护光环固定盾）；虫群群体技能包；攻击≥110；双 Boss 人员互斥；无复制人。\n【试炼变色龙】52人；3次 16–16 层；DPS≈6520；末层平均47.6%；死亡 50–176\n技能包：st-ranged-pestilent-flameblast\n职业：弓3 弩16 火1 水2 自5 盾1 枪13 剑4 锤7\n职责：坦克1 奶5 减11 输出35\n名单：yeezin(弓)、JackLee(弓)、Tenerife(弓)、9095(弩)、AyuanQAQ(弩)、cANY(弩)、cc643(弩)、DanielKo(弩)、Debllee(弩)、XTX(弩)、fenxiao(弩)、GravesTwo(弩)、iusso(弩)、ykls(弩)、leftz(弩)、Lucian717(弩)、MEYS(弩)、YSss(弩)、sylphy(弩)、Akaset(火)、buyu(水)、dark6666(水)、MRBIRTHDAY(自)、Acceleratorlin(自)、ckyyp11(自)、CongeAqua(自)、Debbie(自)、sh1r0(盾)、6657(枪)、Baikaishuii(枪)、Cyeah(枪)、czl9999(枪)、demon8901(枪)、shadingyu(枪)、haihaihai2(枪)、Kuqiki(枪)、little87(枪)、McYi(枪)、xingyunTVT(枪)、nye1mo(枪)、yangguangniuzi(枪)、Chen1ey(剑)、Jotta(剑)、Sakiko155(剑)、steffe(剑)、adudu(锤)、Akaneiro(锤)、XHSe(锤)、Tooru0524(锤)、Atlus(锤)、D28(锤)、sneer(锤)\n【试炼虫群】51人（每层4只）；3次 8–8 层；DPS≈4232；末层平均53.3%；死亡 586–610\n技能包：aoe-ranged-pestilent-flameblast\n职业：弓1 弩5 火10 水10 自17 盾1 枪4 剑1 锤2\n职责：坦克1 奶1 减18 输出31\n名单：Cristianon(弓)、xlsx(弩)、DogeArmani(弩)、YC1129(弩)、ky800w(弩)、RERoger(弩)、DeAthZeus(火)、Donmant(火)、JerryKing(火)、Kedy(火)、laidawoya(火)、Mizuk1(火)、mutallip(火)、RuiL(火)、stan2(火)、Wind2025(火)、honorzjn(水)、ikunkunkun(水)、ishi(水)、lcj(水)、liunian1(水)、loydd(水)、PaternalMilk(水)、RainyBlues(水)、Soyorrin(水)、ZYS1(水)、Geyyzz(自)、glow(自)、Kissyou(自)、kogge(自)、MGP(自)、121574(自)、nytpdy(自)、Oosakiii(自)、qaq1104(自)、rain2way(自)、shuaizai(自)、threeeyessss(自)、ufjkwa(自)、wcnm(自)、xunyi(自)、y5565(自)、Zaro(自)、ze3(盾)、GodOfOIdlers(枪)、VOXO(枪)、Nixhhhhh(枪)、qingyuyou(枪)、yida787(剑)、ASME(锤)、Ameratto(锤)\n全库不可用：Y8Y/枪(攻击等级不足（101<110）)、Eureka3204/自(攻击等级不足（78<110）)、Guoyyng/水(攻击等级不足（78<110）)、xiong000/弩(攻击等级不足（101<110）)、Level3000/弩(攻击等级不足（84<110）)、sh1ro/水(手动排除（不参加）)"
 }
