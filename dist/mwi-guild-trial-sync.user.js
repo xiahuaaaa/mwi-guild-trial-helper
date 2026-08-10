@@ -2,9 +2,9 @@
 // @name         MWI 公会试炼资料同步助手
 // @name:en      MWI Guild Trial Sync
 // @namespace    https://greasyfork.org/users/1466859-adudu
-// @version      0.6.13
-// @description  TMD 公会专用：自动同步成员名单、本周试炼、怪物面板、全部配装、技能与光环。
-// @description:en  TMD guild sync: roster, weekly trials, monster panels, loadouts, abilities, and auras.
+// @version      0.6.14
+// @description  TMD 公会专用：自动同步成员名单、本周试炼、怪物面板、全部配装、技能与光环，并高亮最新战斗分工。
+// @description:en  TMD guild sync: roster, weekly trials, monster panels, loadouts, abilities, auras, and the latest combat assignment.
 // @author       adudu
 // @license      MIT
 // @homepageURL  https://github.com/xiahuaaaa/mwi-guild-trial-helper
@@ -20,6 +20,7 @@
 // @connect      127.0.0.1
 // @connect      localhost
 // @connect      adudu.tailab136f.ts.net
+// @connect      raw.githubusercontent.com
 // @run-at       document-start
 // ==/UserScript==
 
@@ -38,6 +39,10 @@
   const MAX_COMBAT_CANDIDATES = 4;
   const FIXED_GUILD_ID = "TMD";
   const DEFAULT_API_BASE = "https://adudu.tailab136f.ts.net";
+  const COMBAT_ASSIGNMENT_JSON_URL = "https://raw.githubusercontent.com/xiahuaaaa/mwi-guild-trial-helper/main/reports/combat-assignment/latest.json";
+  const COMBAT_ASSIGNMENT_CACHE_MS = 5 * 60 * 1000;
+  const COMBAT_ASSIGNMENT_POLL_MS = 30 * 1000;
+  const COMBAT_TRIAL_CARD_SELECTOR = "div[class*=trialTile]";
   const PAGE_BRIDGE_CHANNEL = "adudu-mwi-guild-snapshot-v1";
   const UI_COLLAPSED_KEY = "uiCollapsed";
   const UI_POSITION_KEY = "uiCollapsedPosition";
@@ -84,6 +89,11 @@
     syncingSignups: "正在同步本周战斗试炼报名名单…",
     signupsOk: (summary) => `报名 ${summary}、`,
     signupsFailed: (detail) => `报名未更新（${detail}）、`,
+    assignmentLoading: "正在读取最新战斗分工…",
+    assignmentLoaded: (trial, skills) => `已高亮${trial}；技能：${skills}`,
+    assignmentNotAssigned: "本周最新分工中没有找到你的战斗试炼。",
+    assignmentUnavailable: "暂时无法读取最新战斗分工，未显示过期高亮。",
+    assignmentCardsNotFound: "已读取最新分工，但尚未匹配到战斗试炼卡片。",
     syncingLoadouts: "正在自动同步全部配装…",
     synced: (prefix, count, memberId) => `已同步${prefix}${count} 套配装（${memberId}）。`,
     syncFailed: (message) => `同步失败：${message}`,
@@ -123,6 +133,11 @@
     syncingSignups: "Syncing this week's combat trial signups…",
     signupsOk: (summary) => `signups ${summary}, `,
     signupsFailed: (detail) => `signups not updated (${detail}), `,
+    assignmentLoading: "Loading the latest combat assignment…",
+    assignmentLoaded: (trial, skills) => `Highlighted ${trial}; abilities: ${skills}`,
+    assignmentNotAssigned: "You were not found in this week's latest combat assignment.",
+    assignmentUnavailable: "The latest combat assignment is unavailable; stale highlights were cleared.",
+    assignmentCardsNotFound: "The latest assignment loaded, but no combat trial card matched.",
     syncingLoadouts: "Auto-syncing all loadouts…",
     synced: (prefix, count, memberId) => `Synced ${prefix}${count} loadouts (${memberId}).`,
     syncFailed: (message) => `Sync failed: ${message}`,
@@ -187,6 +202,18 @@
   };
   const hydration = { attempt: 0, timer: 0, characterId: "" };
   const automaticSync = { timer: 0, running: false, lastSignature: "", suppressSchedule: false };
+  const combatAssignmentState = {
+    document: null,
+    fetchedAt: 0,
+    inFlight: false,
+    timer: 0,
+    pollTimer: 0,
+    domTimer: 0,
+    observer: null,
+    lastMemberId: "",
+    lastCardSignature: "",
+    rendering: false,
+  };
   let pageBridgeInstalled = false;
   let pageBridgeListenerInstalled = false;
 
@@ -1086,6 +1113,12 @@
     state.skills = [];
     state.learnedAbilities = [];
     state.auras = [];
+    clearTimeout(combatAssignmentState.timer);
+    combatAssignmentState.document = null;
+    combatAssignmentState.fetchedAt = 0;
+    combatAssignmentState.lastMemberId = "";
+    combatAssignmentState.lastCardSignature = "";
+    clearCombatAssignmentUi();
     refresh();
   }
 
@@ -1663,6 +1696,371 @@
       onerror: () => reject(new Error(tr("syncUnreachable"))),
     }));
   }
+
+  const COMBAT_ABILITY_NAMES_ZH = Object.freeze({
+    "/abilities/insanity": "疯狂",
+    "/abilities/invincible": "无敌",
+    "/abilities/revive": "复活",
+    "/abilities/guardian_aura": "守护光环",
+    "/abilities/speed_aura": "速度光环",
+    "/abilities/fierce_aura": "物理光环",
+    "/abilities/critical_aura": "暴击光环",
+    "/abilities/mystic_aura": "元素光环",
+    "/abilities/elemental_affinity": "元素增幅",
+    "/abilities/precision": "精确",
+    "/abilities/berserk": "狂暴",
+    "/abilities/frenzy": "狂速",
+    "/abilities/pestilent_shot": "疫病射击",
+    "/abilities/penetrating_shot": "贯穿射击",
+    "/abilities/penetrating_strike": "贯心之刺",
+    "/abilities/puncture": "破甲之刺",
+    "/abilities/maim": "血刃斩",
+    "/abilities/crippling_slash": "致残斩",
+    "/abilities/fracturing_impact": "碎裂冲击",
+    "/abilities/sweep": "重扫",
+    "/abilities/stunning_blow": "重锤",
+    "/abilities/quick_shot": "快速射击",
+    "/abilities/steady_shot": "稳定射击",
+    "/abilities/rain_of_arrows": "箭雨",
+    "/abilities/water_strike": "流水冲击",
+    "/abilities/ice_spear": "冰枪术",
+    "/abilities/frost_surge": "冰霜爆裂",
+    "/abilities/mana_spring": "法力喷泉",
+    "/abilities/entangle": "缠绕",
+    "/abilities/toxic_pollen": "剧毒粉尘",
+    "/abilities/natures_veil": "自然菌幕",
+    "/abilities/life_drain": "生命吸取",
+    "/abilities/fireball": "火球",
+    "/abilities/flame_blast": "熔岩爆裂",
+    "/abilities/firestorm": "火焰风暴",
+    "/abilities/smoke_burst": "烟爆灭影",
+    "/abilities/rejuvenate": "群体治疗术",
+    "/abilities/quick_aid": "快速治疗术",
+    "/abilities/taunt": "嘲讽",
+    "/abilities/provoke": "挑衅",
+    "/abilities/toughness": "坚韧",
+    "/abilities/elusiveness": "闪避",
+  });
+  const COMBAT_ABILITY_NAMES_EN = Object.freeze({
+    "/abilities/insanity": "Insanity",
+    "/abilities/invincible": "Invincible",
+    "/abilities/revive": "Revive",
+    "/abilities/guardian_aura": "Guardian Aura",
+    "/abilities/speed_aura": "Speed Aura",
+    "/abilities/fierce_aura": "Fierce Aura",
+    "/abilities/critical_aura": "Critical Aura",
+    "/abilities/mystic_aura": "Mystic Aura",
+    "/abilities/elemental_affinity": "Elemental Affinity",
+    "/abilities/precision": "Precision",
+    "/abilities/berserk": "Berserk",
+    "/abilities/frenzy": "Frenzy",
+    "/abilities/pestilent_shot": "Pestilent Shot",
+    "/abilities/penetrating_shot": "Penetrating Shot",
+    "/abilities/penetrating_strike": "Penetrating Strike",
+    "/abilities/puncture": "Puncture",
+    "/abilities/maim": "Maim",
+    "/abilities/crippling_slash": "Crippling Slash",
+    "/abilities/fracturing_impact": "Fracturing Impact",
+    "/abilities/sweep": "Sweep",
+    "/abilities/stunning_blow": "Stunning Blow",
+    "/abilities/quick_shot": "Quick Shot",
+    "/abilities/steady_shot": "Steady Shot",
+    "/abilities/rain_of_arrows": "Rain of Arrows",
+    "/abilities/water_strike": "Water Strike",
+    "/abilities/ice_spear": "Ice Spear",
+    "/abilities/frost_surge": "Frost Surge",
+    "/abilities/mana_spring": "Mana Spring",
+    "/abilities/entangle": "Entangle",
+    "/abilities/toxic_pollen": "Toxic Pollen",
+    "/abilities/natures_veil": "Nature's Veil",
+    "/abilities/life_drain": "Life Drain",
+    "/abilities/fireball": "Fireball",
+    "/abilities/flame_blast": "Flame Blast",
+    "/abilities/firestorm": "Firestorm",
+    "/abilities/smoke_burst": "Smoke Burst",
+    "/abilities/rejuvenate": "Rejuvenate",
+    "/abilities/quick_aid": "Quick Aid",
+    "/abilities/taunt": "Taunt",
+    "/abilities/provoke": "Provoke",
+    "/abilities/toughness": "Toughness",
+    "/abilities/elusiveness": "Elusiveness",
+  });
+
+  function assignmentInteger(value, fallback = 0) {
+    const number = Number(value);
+    return Number.isInteger(number) ? number : fallback;
+  }
+
+  function assignmentName(value) {
+    return String(value ?? "").trim().toLocaleLowerCase();
+  }
+
+  function combatAbilityName(abilityHrid) {
+    const names = lang() === zh ? COMBAT_ABILITY_NAMES_ZH : COMBAT_ABILITY_NAMES_EN;
+    if (names[abilityHrid]) return names[abilityHrid];
+    return String(abilityHrid || "").split("/").at(-1)?.split("_")
+      .filter(Boolean).map((part) => part[0]?.toUpperCase() + part.slice(1)).join(" ") || "未知技能";
+  }
+
+  function normalizeAssignmentAbilities(member) {
+    const direct = Array.isArray(member?.simulatedAbilities) ? member.simulatedAbilities : [];
+    if (direct.length >= 5) {
+      return direct.slice(0, 5).map((ability, slot) => ({
+        slot,
+        abilityHrid: String(ability?.abilityHrid ?? ""),
+        level: Math.max(1, assignmentInteger(ability?.level, 1)),
+      })).filter((ability) => /^\/abilities\/[a-z0-9_]+$/.test(ability.abilityHrid));
+    }
+    const abilityHrids = Array.isArray(member?.abilityHrids) ? member.abilityHrids : [];
+    const abilityLevels = member?.abilityLevels && typeof member.abilityLevels === "object"
+      ? member.abilityLevels : {};
+    return abilityHrids.slice(0, 5).map((abilityHrid, slot) => ({
+      slot,
+      abilityHrid: String(abilityHrid ?? ""),
+      level: Math.max(1, assignmentInteger(abilityLevels[abilityHrid], 1)),
+    })).filter((ability) => /^\/abilities\/[a-z0-9_]+$/.test(ability.abilityHrid));
+  }
+
+  function normalizeCombatAssignment(source) {
+    if (!source || typeof source !== "object") throw new Error("invalid assignment document");
+    const generatedAt = Date.parse(String(source.generatedAt ?? ""));
+    const currentWeekStart = currentGuildWeekStart().getTime();
+    if (!Number.isFinite(generatedAt) || generatedAt < currentWeekStart - 12 * 60 * 60 * 1000) {
+      throw new Error("assignment is not from the current guild week");
+    }
+    const rawBosses = Array.isArray(source.bosses)
+      ? source.bosses
+      : Array.isArray(source.combatTrials) ? source.combatTrials : [];
+    const bosses = rawBosses.flatMap((boss, index) => {
+      const trialHrid = String(boss?.bossId ?? boss?.trialHrid ?? boss?.id ?? "").trim();
+      if (!trialHrid.startsWith("/guild_combat/")) return [];
+      const bossKey = String(boss?.bossKey ?? trialHrid.split("/").at(-1) ?? index).trim();
+      const members = Array.isArray(boss?.roster)
+        ? boss.roster
+        : Array.isArray(boss?.members) ? boss.members : [];
+      return [{
+        trialHrid,
+        bossKey,
+        bossName: String(boss?.bossName ?? boss?.trialName ?? boss?.name ?? displayCombatTrialName(trialHrid)).trim(),
+        members: members.flatMap((member) => {
+          const memberId = String(member?.memberId ?? member?.name ?? member?.characterName ?? "").trim();
+          if (!memberId) return [];
+          return [{
+            memberId,
+            abilities: normalizeAssignmentAbilities(member),
+            combatType: String(member?.combatType ?? "").trim(),
+            duty: String(member?.duty ?? member?.role ?? "").trim(),
+            auraHrid: String(member?.auraHrid ?? "").trim(),
+          }];
+        }),
+      }];
+    });
+    if (!bosses.length) throw new Error("assignment has no combat rosters");
+    return {
+      generatedAt: new Date(generatedAt).toISOString(),
+      bosses,
+    };
+  }
+
+  function combatAssignmentCardSignature(cards) {
+    return cards.map((card) => {
+      const name = card.querySelector("[class*=tileName]")?.textContent?.trim() || "";
+      const icon = card.querySelector("use")?.getAttribute("href") || "";
+      return `${name}|${icon}`;
+    }).join(";");
+  }
+
+  function combatAssignmentCardMatches(boss, card) {
+    const explicit = card.getAttribute("data-trial-hrid") || card.dataset?.trialHrid || "";
+    if (explicit && explicit === boss.trialHrid) return true;
+    const href = card.querySelector("use")?.getAttribute("href") || "";
+    const iconKey = href.split("#").at(-1)?.replace(/^trial_/, "").toLocaleLowerCase() || "";
+    if (iconKey && iconKey === boss.bossKey.toLocaleLowerCase()) return true;
+    const text = String(card.textContent || "").toLocaleLowerCase();
+    const names = [
+      boss.bossName,
+      COMBAT_TRIAL_NAMES[boss.trialHrid],
+      COMBAT_TRIAL_NAMES_EN[boss.trialHrid],
+      boss.bossKey.replaceAll("_", " "),
+    ].filter(Boolean).map((value) => String(value).toLocaleLowerCase());
+    return names.some((name) => name.length >= 2 && text.includes(name));
+  }
+
+  function injectCombatAssignmentStyle() {
+    if (document.getElementById("adudu-guild-sync-assignment-style")) return;
+    const style = document.createElement("style");
+    style.id = "adudu-guild-sync-assignment-style";
+    style.textContent = `
+      [data-adudu-guild-assignment="combat"]{position:relative;z-index:2;outline:3px solid #ffd60a!important;outline-offset:-3px;box-shadow:inset 0 0 0 2px #fff3a0,0 0 0 2px #ffd60a,0 0 22px #ffd60a88!important}
+      .adudu-guild-sync-assignment-badge{position:absolute;z-index:4;right:6px;top:6px;padding:3px 7px;border-radius:999px;background:#0a84ff;color:#fff;font:700 11px/1.2 system-ui,sans-serif;box-shadow:0 2px 8px #0008;pointer-events:none;white-space:nowrap}
+      .adudu-guild-sync-skill-panel{width:100%;box-sizing:border-box;margin:14px 0 4px;padding:12px 14px;border:1px solid #ff5a6499;border-left:4px solid #ff453a;border-radius:10px;background:linear-gradient(105deg,#25181dd9,#171a24e8);color:#f5f7ff;box-shadow:0 8px 20px #0005;font:600 12px/1.3 system-ui,sans-serif}
+      .adudu-guild-sync-skill-panel-heading{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin-bottom:9px}
+      .adudu-guild-sync-skill-panel-heading strong{color:#ff737b;font-size:16px}
+      .adudu-guild-sync-skill-panel-heading span{color:#c9cedd;font-size:11px}
+      .adudu-guild-sync-skill-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:7px}
+      .adudu-guild-sync-skill-chip{display:flex;min-width:0;flex-direction:column;align-items:center;gap:2px;padding:7px 3px;border:1px solid #59647d;border-radius:7px;background:#252b3a;color:#f5f7ff;text-align:center}
+      .adudu-guild-sync-skill-chip[data-required-aura="true"]{border:2px solid #ff453a;background:#4a1f25;color:#fff0f0;box-shadow:0 0 9px #ff453a99}
+      .adudu-guild-sync-skill-chip small{color:#c9d4ff;font-size:10px}
+      .adudu-guild-sync-skill-required{color:#ff8f8f;font-size:9px}
+      @media (max-width:760px){.adudu-guild-sync-assignment-badge{top:3px;right:3px;font-size:9px}.adudu-guild-sync-skill-panel{padding:9px 7px}.adudu-guild-sync-skill-panel-heading{align-items:flex-start;flex-direction:column;gap:2px}.adudu-guild-sync-skill-panel-heading strong{font-size:14px}.adudu-guild-sync-skill-grid{gap:3px}.adudu-guild-sync-skill-chip{padding:5px 2px;font-size:10px}.adudu-guild-sync-skill-chip small{font-size:8px}}
+    `;
+    document.head?.appendChild(style);
+  }
+
+  function clearCombatAssignmentUi() {
+    document.querySelectorAll("[data-adudu-guild-assignment]").forEach((node) => delete node.dataset.aduduGuildAssignment);
+    document.querySelectorAll(".adudu-guild-sync-assignment-badge,.adudu-guild-sync-skill-panel").forEach((node) => node.remove());
+  }
+
+  function renderCombatAssignmentCard(card, boss, member) {
+    card.dataset.aduduGuildAssignment = "combat";
+    card.title = `${boss.bossName}：${tr("你的本周战斗分工", "Your weekly combat assignment")}`;
+    const badge = document.createElement("span");
+    badge.className = "adudu-guild-sync-assignment-badge";
+    badge.textContent = tr("你的分工", "Your assignment");
+    card.appendChild(badge);
+  }
+
+  function renderCombatAssignmentSkillPanel(entry, cards) {
+    const { boss, member, card } = entry;
+    const anchor = card?.parentElement;
+    const host = anchor?.parentElement;
+    if (!host) return false;
+    const panel = document.createElement("section");
+    panel.className = "adudu-guild-sync-skill-panel";
+    panel.setAttribute("aria-label", tr("应该携带的战斗技能", "Combat abilities to equip"));
+    const heading = document.createElement("div");
+    heading.className = "adudu-guild-sync-skill-panel-heading";
+    const title = document.createElement("strong");
+    title.textContent = tr("本周战斗技能", "Weekly combat abilities");
+    const trial = document.createElement("span");
+    trial.textContent = `${boss.bossName} · ${tr("按从左到右顺序携带", "equip from left to right")}`;
+    heading.append(title, trial);
+    const grid = document.createElement("div");
+    grid.className = "adudu-guild-sync-skill-grid";
+    const auraRequired = Boolean(member.auraHrid)
+      || /^\/abilities\/[a-z0-9_]+_aura$/.test(member.abilities[0]?.abilityHrid || "");
+    for (const ability of member.abilities) {
+      const chip = document.createElement("span");
+      chip.className = "adudu-guild-sync-skill-chip";
+      const required = auraRequired && ability.slot === 0;
+      if (required) chip.dataset.requiredAura = "true";
+      chip.textContent = `${ability.slot + 1}. ${combatAbilityName(ability.abilityHrid)}`;
+      const level = document.createElement("small");
+      level.textContent = `Lv.${ability.level}`;
+      chip.appendChild(level);
+      if (required) {
+        const must = document.createElement("span");
+        must.className = "adudu-guild-sync-skill-required";
+        must.textContent = tr("必带", "Must");
+        chip.appendChild(must);
+      }
+      grid.appendChild(chip);
+    }
+    panel.append(heading, grid);
+    host.insertAdjacentElement("afterend", panel);
+    return true;
+  }
+
+  function renderCombatAssignmentUi() {
+    if (!document.body) return;
+    injectCombatAssignmentStyle();
+    const cards = [...document.querySelectorAll(COMBAT_TRIAL_CARD_SELECTOR)];
+    const signature = combatAssignmentCardSignature(cards);
+    combatAssignmentState.lastCardSignature = signature;
+    combatAssignmentState.rendering = true;
+    try {
+      clearCombatAssignmentUi();
+      const bosses = combatAssignmentState.document?.bosses || [];
+      const own = bosses.flatMap((boss) => boss.members
+        .filter((member) => assignmentName(member.memberId) === assignmentName(detectedMemberId()))
+        .map((member) => ({ boss, member })));
+      if (!own.length) {
+        if (cards.length) setStatus(tr("assignmentNotAssigned"), true);
+        return;
+      }
+      const highlighted = own.map(({ boss, member }) => {
+        const card = cards.find((candidate) => combatAssignmentCardMatches(boss, candidate));
+        if (card) renderCombatAssignmentCard(card, boss, member);
+        return { boss, member, card };
+      });
+      const first = highlighted.find((entry) => entry.card) || highlighted[0];
+      if (!first.card) {
+        setStatus(tr("assignmentCardsNotFound"), true);
+        return;
+      }
+      renderCombatAssignmentSkillPanel(first, cards);
+      const skills = first.member.abilities.map((ability) => combatAbilityName(ability.abilityHrid)).join("、");
+      setStatus(tr("assignmentLoaded", first.boss.bossName, skills));
+    } finally {
+      combatAssignmentState.rendering = false;
+    }
+  }
+
+  function scheduleCombatAssignmentRefresh(delay = 0) {
+    clearTimeout(combatAssignmentState.timer);
+    if (!detectedMemberId()) return;
+    if (
+      combatAssignmentState.document
+      && combatAssignmentState.lastMemberId === detectedMemberId()
+      && Date.now() - combatAssignmentState.fetchedAt < COMBAT_ASSIGNMENT_CACHE_MS
+    ) {
+      if (document.querySelector(COMBAT_TRIAL_CARD_SELECTOR)) renderCombatAssignmentUi();
+      return;
+    }
+    combatAssignmentState.timer = setTimeout(() => void refreshCombatAssignment(), delay);
+  }
+
+  async function refreshCombatAssignment({ force = false } = {}) {
+    const memberId = detectedMemberId();
+    if (!memberId || !confirmedTmdGuild() || combatAssignmentState.inFlight) return;
+    const cards = [...document.querySelectorAll(COMBAT_TRIAL_CARD_SELECTOR)];
+    if (!force
+      && combatAssignmentState.document
+      && combatAssignmentState.lastMemberId === memberId
+      && Date.now() - combatAssignmentState.fetchedAt < COMBAT_ASSIGNMENT_CACHE_MS) {
+      if (cards.length) renderCombatAssignmentUi();
+      return;
+    }
+    combatAssignmentState.inFlight = true;
+    combatAssignmentState.lastMemberId = memberId;
+    if (!combatAssignmentState.document) setStatus(tr("assignmentLoading"));
+    try {
+      const response = await requestJson({ method: "GET", url: COMBAT_ASSIGNMENT_JSON_URL });
+      if (response.status !== 200) throw new Error(`HTTP ${response.status}`);
+      const source = JSON.parse(response.responseText || "{}");
+      combatAssignmentState.document = normalizeCombatAssignment(source);
+      combatAssignmentState.fetchedAt = Date.now();
+      renderCombatAssignmentUi();
+    } catch (error) {
+      combatAssignmentState.document = null;
+      combatAssignmentState.fetchedAt = 0;
+      clearCombatAssignmentUi();
+      if (cards.length) setStatus(tr("assignmentUnavailable"), true);
+      console.warn("[MWI Guild Trial Sync] latest combat assignment unavailable", error?.message || error);
+    } finally {
+      combatAssignmentState.inFlight = false;
+    }
+  }
+
+  function installCombatAssignmentObserver() {
+    if (combatAssignmentState.observer || !document.body) return;
+    combatAssignmentState.observer = new MutationObserver(() => {
+      if (combatAssignmentState.rendering) return;
+      clearTimeout(combatAssignmentState.domTimer);
+      combatAssignmentState.domTimer = setTimeout(() => {
+        const cards = [...document.querySelectorAll(COMBAT_TRIAL_CARD_SELECTOR)];
+        const signature = combatAssignmentCardSignature(cards);
+        if (combatAssignmentState.document && signature !== combatAssignmentState.lastCardSignature) {
+          renderCombatAssignmentUi();
+        } else if (!combatAssignmentState.document && cards.length) {
+          scheduleCombatAssignmentRefresh();
+        }
+      }, 80);
+    });
+    combatAssignmentState.observer.observe(document.body, { childList: true, subtree: true });
+  }
+
   async function upload({ automatic = false } = {}) {
     if (automaticSync.running) {
       if (automatic) scheduleAutomaticUpload(800);
@@ -1849,6 +2247,7 @@
       return label;
     }));
     if (hasCharacterData()) scheduleAutomaticUpload();
+    if (detectedMemberId()) scheduleCombatAssignmentRefresh(250);
   }
   function actionButton(label, action) {
     const button = document.createElement("button");
@@ -2000,6 +2399,7 @@
     });
     panel.append(content, toggle);
     document.body.append(panel);
+    installCombatAssignmentObserver();
     applyCollapsed(Boolean(GM_getValue(UI_COLLAPSED_KEY, false)));
     window.addEventListener("resize", () => {
       if (panel.dataset.collapsed !== "true") return;
@@ -2010,8 +2410,17 @@
     setInterval(() => {
       if (currentCharacterId() !== hydration.characterId) requestCharacterData({ reset: true });
     }, 3000);
+    combatAssignmentState.pollTimer = setInterval(() => {
+      if (!document.querySelector(COMBAT_TRIAL_CARD_SELECTOR)) return;
+      if (combatAssignmentState.document && Date.now() - combatAssignmentState.fetchedAt < COMBAT_ASSIGNMENT_CACHE_MS) {
+        renderCombatAssignmentUi();
+      } else {
+        scheduleCombatAssignmentRefresh();
+      }
+    }, COMBAT_ASSIGNMENT_POLL_MS);
     document.addEventListener("visibilitychange", () => {
       if (document.visibilityState === "visible" && !hasCharacterData()) requestCharacterData();
+      if (document.visibilityState === "visible") scheduleCombatAssignmentRefresh(100);
     });
   }
   installDirectMessageObserver();
