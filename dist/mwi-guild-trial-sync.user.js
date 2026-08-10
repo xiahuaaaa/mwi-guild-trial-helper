@@ -2,7 +2,7 @@
 // @name         MWI 公会试炼资料同步助手
 // @name:en      MWI Guild Trial Sync
 // @namespace    https://greasyfork.org/users/1466859-adudu
-// @version      0.6.15
+// @version      0.6.16
 // @description  TMD 公会专用：自动同步成员名单、本周试炼、怪物面板、全部配装、技能与光环，并高亮最新战斗分工。
 // @description:en  TMD guild sync: roster, weekly trials, monster panels, loadouts, abilities, auras, and the latest combat assignment.
 // @author       adudu
@@ -2031,8 +2031,7 @@
   }
 
   function injectCombatAssignmentStyle() {
-    if (document.getElementById("adudu-guild-sync-assignment-style")) return;
-    const style = document.createElement("style");
+    const style = document.getElementById("adudu-guild-sync-assignment-style") || document.createElement("style");
     style.id = "adudu-guild-sync-assignment-style";
     style.textContent = `
       [data-adudu-guild-assignment="combat"]{position:relative;z-index:2;outline:3px solid #ffd60a!important;outline-offset:-3px;box-shadow:inset 0 0 0 2px #fff3a0,0 0 0 2px #ffd60a,0 0 22px #ffd60a88!important}
@@ -2079,6 +2078,7 @@
   function renderCombatAssignmentCard(card, boss, member) {
     card.dataset.aduduGuildAssignment = "combat";
     card.title = `${boss.bossName}：${tr("你的本周战斗分工", "Your weekly combat assignment")}`;
+    card.querySelectorAll(".adudu-guild-sync-assignment-badge").forEach((node) => node.remove());
     const badge = document.createElement("span");
     badge.className = "adudu-guild-sync-assignment-badge";
     badge.dataset.kind = "combat";
@@ -2142,6 +2142,7 @@
     card.title = lang() === zh
       ? `${trial.trialName}：${kind === "life" ? "你的本周生活分工" : "当前报名错误"}`
       : `${trial.trialName}: ${kind === "life" ? "Your weekly life assignment" : "Wrong current signup"}`;
+    card.querySelectorAll(".adudu-guild-sync-assignment-badge").forEach((node) => node.remove());
     const badge = document.createElement("span");
     badge.className = "adudu-guild-sync-assignment-badge";
     badge.dataset.kind = kind;
