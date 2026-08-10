@@ -1,8 +1,8 @@
 // ==UserScript==
-// @name         MWI 公会试炼资料同步助手
-// @name:en      MWI Guild Trial Sync
+// @name         TMD-guild-trial-sync
+// @name:en      TMD-guild-trial-sync
 // @namespace    https://greasyfork.org/users/1466859-adudu
-// @version      0.6.16
+// @version      0.6.17
 // @description  TMD 公会专用：自动同步成员名单、本周试炼、怪物面板、全部配装、技能与光环，并高亮最新战斗分工。
 // @description:en  TMD guild sync: roster, weekly trials, monster panels, loadouts, abilities, auras, and the latest combat assignment.
 // @author       adudu
@@ -57,7 +57,7 @@
   const HYDRATION_RETRY_DELAYS_MS = [250, 500, 1000, 2000, 4000, 8000, 12000];
   // Follow game language (i18nextLng). Do not use the browser UI language.
   const zh = Object.freeze({
-    ariaLabel: "MWI 公会试炼资料同步",
+    ariaLabel: "TMD-guild-trial-sync",
     heading: "adudu · 公会试炼资料",
     intro: "TMD 专用；登录后自动同步本周试炼类型、怪物面板、当前名单、双 Boss 报名及全部配装，职业通过 QQ 机器人绑定。",
     waitingCharacter: "等待读取角色资料",
@@ -111,7 +111,7 @@
     syncFailed: (message) => `同步失败：${message}`,
   });
   const en = Object.freeze({
-    ariaLabel: "MWI Guild Trial Sync",
+    ariaLabel: "TMD-guild-trial-sync",
     heading: "adudu · Guild Trial Sync",
     intro: "TMD only. After login, auto-syncs this week's trials, monster panels, roster, dual-boss signups, and all loadouts. Bind combat roles via the QQ bot.",
     waitingCharacter: "Waiting for character data",
@@ -2288,7 +2288,7 @@
       lifeAssignmentState.mismatch = null;
       clearLifeAssignmentUi();
       if (cards.length) setStatus(tr("lifeAssignmentUnavailable"), true);
-      console.warn("[MWI Guild Trial Sync] latest life assignment unavailable", error?.message || error);
+      console.warn("[TMD-guild-trial-sync] latest life assignment unavailable", error?.message || error);
     } finally {
       lifeAssignmentState.inFlight = false;
     }
@@ -2334,7 +2334,7 @@
       combatAssignmentState.fetchedAt = 0;
       clearCombatAssignmentOnly();
       if (cards.length) setStatus(tr("assignmentUnavailable"), true);
-      console.warn("[MWI Guild Trial Sync] latest combat assignment unavailable", error?.message || error);
+      console.warn("[TMD-guild-trial-sync] latest combat assignment unavailable", error?.message || error);
     } finally {
       combatAssignmentState.inFlight = false;
     }
