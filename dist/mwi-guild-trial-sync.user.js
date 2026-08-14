@@ -2,7 +2,7 @@
 // @name         TMD-guild-trial-sync
 // @name:en      TMD-guild-trial-sync
 // @namespace    https://greasyfork.org/users/1466859-adudu
-// @version      0.6.17
+// @version      0.6.18
 // @description  TMD 公会专用：自动同步成员名单、本周试炼、怪物面板、全部配装、技能与光环，并高亮最新战斗分工。
 // @description:en  TMD guild sync: roster, weekly trials, monster panels, loadouts, abilities, auras, and the latest combat assignment.
 // @author       adudu
@@ -1412,6 +1412,7 @@
       combatStats.abilityHaste,
       detail.abilityHaste,
     ));
+    if (!Number.isFinite(result.abilityHaste)) result.abilityHaste = 0;
     includeNumber(result, "maxHp", firstFinite(combat.maxHitpoints, combat.maxHp, detail.maxHitpoints, detail.maxHp));
     includeNumber(result, "maxMp", firstFinite(combat.maxManapoints, combat.maxMp, detail.maxManapoints, detail.maxMp));
     includeNumber(result, "armor", firstFinite(combat.totalArmor, combat.armor, detail.armor));
