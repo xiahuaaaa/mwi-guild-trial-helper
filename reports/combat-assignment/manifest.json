@@ -1,23 +1,23 @@
 {
   "kind": "combat-assignment-report",
   "schemaVersion": 1,
-  "assignmentGeneratedAt": "2026-08-14T02:48:46.162Z",
+  "assignmentGeneratedAt": "2026-08-21T03:48:11.945Z",
   "assignmentKind": "tmd-available-roster-composition-lab",
-  "generatedAt": "2026-08-14T02:49:15.069Z",
+  "generatedAt": "2026-08-21T03:48:40.165Z",
   "publicBaseUrl": "https://raw.githubusercontent.com/xiahuaaaa/mwi-guild-trial-helper/main/reports/combat-assignment",
   "publicIndexUrl": "https://xiahuaaaa.github.io/mwi-guild-trial-helper/reports/combat-assignment/",
   "publicManifestUrl": "https://raw.githubusercontent.com/xiahuaaaa/mwi-guild-trial-helper/main/reports/combat-assignment/manifest.json",
   "publicJsonUrl": "https://raw.githubusercontent.com/xiahuaaaa/mwi-guild-trial-helper/main/reports/combat-assignment/latest.json",
   "files": [
     {
-      "title": "试炼刺猬 · 阵容与技能",
-      "fileName": "1-hedgehog-summary.png",
-      "publicUrl": "https://raw.githubusercontent.com/xiahuaaaa/mwi-guild-trial-helper/main/reports/combat-assignment/1-hedgehog-summary.png"
+      "title": "试炼獾 · 阵容与技能",
+      "fileName": "1-badger-summary.png",
+      "publicUrl": "https://raw.githubusercontent.com/xiahuaaaa/mwi-guild-trial-helper/main/reports/combat-assignment/1-badger-summary.png"
     },
     {
-      "title": "试炼刺猬 · 52 人贡献明细",
-      "fileName": "1-hedgehog-members.png",
-      "publicUrl": "https://raw.githubusercontent.com/xiahuaaaa/mwi-guild-trial-helper/main/reports/combat-assignment/1-hedgehog-members.png"
+      "title": "试炼獾 · 50 人贡献明细",
+      "fileName": "1-badger-members.png",
+      "publicUrl": "https://raw.githubusercontent.com/xiahuaaaa/mwi-guild-trial-helper/main/reports/combat-assignment/1-badger-members.png"
     },
     {
       "title": "试炼虫群 · 阵容与技能",
@@ -32,14 +32,14 @@
   ],
   "englishFiles": [
     {
-      "title": "Trial Hedgehog · Roster & Skills",
-      "fileName": "1-hedgehog-summary.en.png",
-      "publicUrl": "https://raw.githubusercontent.com/xiahuaaaa/mwi-guild-trial-helper/main/reports/combat-assignment/1-hedgehog-summary.en.png"
+      "title": "Trial Badger · Roster & Skills",
+      "fileName": "1-badger-summary.en.png",
+      "publicUrl": "https://raw.githubusercontent.com/xiahuaaaa/mwi-guild-trial-helper/main/reports/combat-assignment/1-badger-summary.en.png"
     },
     {
-      "title": "Trial Hedgehog · 52 Member Breakdown",
-      "fileName": "1-hedgehog-members.en.png",
-      "publicUrl": "https://raw.githubusercontent.com/xiahuaaaa/mwi-guild-trial-helper/main/reports/combat-assignment/1-hedgehog-members.en.png"
+      "title": "Trial Badger · 50 Member Breakdown",
+      "fileName": "1-badger-members.en.png",
+      "publicUrl": "https://raw.githubusercontent.com/xiahuaaaa/mwi-guild-trial-helper/main/reports/combat-assignment/1-badger-members.en.png"
     },
     {
       "title": "Trial Swarm · Roster & Skills",
