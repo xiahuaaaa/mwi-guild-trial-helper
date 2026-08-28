@@ -4,7 +4,7 @@
   "developmentOnly": true,
   "promotable": false,
   "guildId": "TMD",
-  "generatedAt": "2026-08-28T02:10:00.624Z",
+  "generatedAt": "2026-08-28T02:22:59.561Z",
   "engine": "shykai-full-event-runtime",
   "rules": {
     "durationSeconds": 3600,
@@ -44,7 +44,7 @@
       "/abilities/fracturing_impact"
     ],
     "natureDpsFromHealers": {
-      "chameleon": 1,
+      "chameleon": 0,
       "swarm": 3
     },
     "natureDpsKit": [
@@ -53,7 +53,13 @@
       "/abilities/natures_veil",
       "/abilities/entangle"
     ],
-    "natureDpsKitLabel": "elemental-affinity-pollen-veil-entangle"
+    "natureDpsKitLabel": "elemental-affinity-pollen-veil-entangle",
+    "stNatureHealerKit": "rejuvenate/affinity/life_drain/entangle",
+    "stNaturePollenCoverage": [
+      "rain2way",
+      "xunyi",
+      "nytpdy"
+    ]
   },
   "source": {
     "mode": "all-available-bound-members-reassigned",
@@ -190,9 +196,9 @@
           "锤": 6
         },
         "duties": {
-          "dps": 32,
+          "dps": 31,
           "debuffer": 10,
-          "healer": 9,
+          "healer": 10,
           "tank": 1
         }
       },
@@ -800,29 +806,29 @@
         {
           "memberId": "kogge",
           "combatType": "自",
-          "duty": "dps",
+          "duty": "healer",
           "cloneIndex": 1,
           "aura": null,
           "special": "复活",
           "abilities": [
             "复活Lv1",
+            "群体治疗术Lv40",
             "元素增幅Lv48",
-            "剧毒粉尘Lv72",
-            "自然菌幕Lv65",
+            "生命吸取Lv80",
             "缠绕Lv79"
           ],
           "abilityHrids": [
             "/abilities/revive",
+            "/abilities/rejuvenate",
             "/abilities/elemental_affinity",
-            "/abilities/toxic_pollen",
-            "/abilities/natures_veil",
+            "/abilities/life_drain",
             "/abilities/entangle"
           ],
           "abilityLevels": {
             "/abilities/revive": 1,
+            "/abilities/rejuvenate": 40,
             "/abilities/elemental_affinity": 48,
-            "/abilities/toxic_pollen": 72,
-            "/abilities/natures_veil": 65,
+            "/abilities/life_drain": 80,
             "/abilities/entangle": 79
           },
           "auraHrid": null
@@ -838,21 +844,21 @@
             "复活Lv1",
             "群体治疗术Lv40",
             "元素增幅Lv63",
-            "剧毒粉尘Lv69",
+            "生命吸取Lv86",
             "缠绕Lv76"
           ],
           "abilityHrids": [
             "/abilities/revive",
             "/abilities/rejuvenate",
             "/abilities/elemental_affinity",
-            "/abilities/toxic_pollen",
+            "/abilities/life_drain",
             "/abilities/entangle"
           ],
           "abilityLevels": {
             "/abilities/revive": 1,
             "/abilities/rejuvenate": 40,
             "/abilities/elemental_affinity": 63,
-            "/abilities/toxic_pollen": 69,
+            "/abilities/life_drain": 86,
             "/abilities/entangle": 76
           },
           "auraHrid": null
@@ -868,21 +874,21 @@
             "复活Lv1",
             "群体治疗术Lv40",
             "元素增幅Lv40",
-            "剧毒粉尘Lv67",
+            "生命吸取Lv81",
             "缠绕Lv78"
           ],
           "abilityHrids": [
             "/abilities/revive",
             "/abilities/rejuvenate",
             "/abilities/elemental_affinity",
-            "/abilities/toxic_pollen",
+            "/abilities/life_drain",
             "/abilities/entangle"
           ],
           "abilityLevels": {
             "/abilities/revive": 1,
             "/abilities/rejuvenate": 40,
             "/abilities/elemental_affinity": 40,
-            "/abilities/toxic_pollen": 67,
+            "/abilities/life_drain": 81,
             "/abilities/entangle": 78
           },
           "auraHrid": null
@@ -928,21 +934,21 @@
             "复活Lv1",
             "群体治疗术Lv40",
             "元素增幅Lv48",
-            "剧毒粉尘Lv72",
+            "生命吸取Lv69",
             "缠绕Lv79"
           ],
           "abilityHrids": [
             "/abilities/revive",
             "/abilities/rejuvenate",
             "/abilities/elemental_affinity",
-            "/abilities/toxic_pollen",
+            "/abilities/life_drain",
             "/abilities/entangle"
           ],
           "abilityLevels": {
             "/abilities/revive": 1,
             "/abilities/rejuvenate": 40,
             "/abilities/elemental_affinity": 48,
-            "/abilities/toxic_pollen": 72,
+            "/abilities/life_drain": 69,
             "/abilities/entangle": 79
           },
           "auraHrid": null
@@ -958,21 +964,21 @@
             "复活Lv1",
             "群体治疗术Lv50",
             "元素增幅Lv50",
-            "剧毒粉尘Lv65",
+            "生命吸取Lv70",
             "缠绕Lv75"
           ],
           "abilityHrids": [
             "/abilities/revive",
             "/abilities/rejuvenate",
             "/abilities/elemental_affinity",
-            "/abilities/toxic_pollen",
+            "/abilities/life_drain",
             "/abilities/entangle"
           ],
           "abilityLevels": {
             "/abilities/revive": 1,
             "/abilities/rejuvenate": 50,
             "/abilities/elemental_affinity": 50,
-            "/abilities/toxic_pollen": 65,
+            "/abilities/life_drain": 70,
             "/abilities/entangle": 75
           },
           "auraHrid": null
@@ -1018,21 +1024,21 @@
             "复活Lv1",
             "群体治疗术Lv55",
             "元素增幅Lv60",
-            "剧毒粉尘Lv71",
+            "生命吸取Lv60",
             "缠绕Lv74"
           ],
           "abilityHrids": [
             "/abilities/revive",
             "/abilities/rejuvenate",
             "/abilities/elemental_affinity",
-            "/abilities/toxic_pollen",
+            "/abilities/life_drain",
             "/abilities/entangle"
           ],
           "abilityLevels": {
             "/abilities/revive": 1,
             "/abilities/rejuvenate": 55,
             "/abilities/elemental_affinity": 60,
-            "/abilities/toxic_pollen": 71,
+            "/abilities/life_drain": 60,
             "/abilities/entangle": 74
           },
           "auraHrid": null
@@ -1048,21 +1054,21 @@
             "速度光环Lv60",
             "群体治疗术Lv46",
             "元素增幅Lv80",
-            "剧毒粉尘Lv80",
+            "生命吸取Lv99",
             "缠绕Lv79"
           ],
           "abilityHrids": [
             "/abilities/speed_aura",
             "/abilities/rejuvenate",
             "/abilities/elemental_affinity",
-            "/abilities/toxic_pollen",
+            "/abilities/life_drain",
             "/abilities/entangle"
           ],
           "abilityLevels": {
             "/abilities/speed_aura": 60,
             "/abilities/rejuvenate": 46,
             "/abilities/elemental_affinity": 80,
-            "/abilities/toxic_pollen": 80,
+            "/abilities/life_drain": 99,
             "/abilities/entangle": 79
           },
           "auraHrid": "/abilities/speed_aura"
@@ -1762,31 +1768,31 @@
         {
           "seed": 1297565953,
           "wavesCleared": 14,
-          "finalMonsterHp": 820486,
+          "finalMonsterHp": 687025,
           "finalMonsterMaxHp": 2185000,
-          "finalProgressPercent": 62.45,
-          "teamDps": 6327.087222222222,
-          "totalDeaths": 31,
+          "finalProgressPercent": 68.56,
+          "teamDps": 6364.159722222223,
+          "totalDeaths": 15,
           "oomMembers": 0
         },
         {
           "seed": 1297565954,
           "wavesCleared": 14,
-          "finalMonsterHp": 786227,
+          "finalMonsterHp": 1033592,
           "finalMonsterMaxHp": 2185000,
-          "finalProgressPercent": 64.02,
-          "teamDps": 6336.603611111111,
-          "totalDeaths": 32,
+          "finalProgressPercent": 52.7,
+          "teamDps": 6267.891111111111,
+          "totalDeaths": 20,
           "oomMembers": 0
         },
         {
           "seed": 1297565955,
           "wavesCleared": 14,
-          "finalMonsterHp": 746092,
+          "finalMonsterHp": 644464,
           "finalMonsterMaxHp": 2185000,
-          "finalProgressPercent": 65.85,
-          "teamDps": 6347.752222222222,
-          "totalDeaths": 26,
+          "finalProgressPercent": 70.51,
+          "teamDps": 6375.982222222222,
+          "totalDeaths": 15,
           "oomMembers": 0
         }
       ],
@@ -4447,9 +4453,14 @@
         "Akaset",
         "DeAthZeus"
       ],
-      "natureHealersConvertedToDps": 1,
+      "natureHealersConvertedToDps": 0,
       "natureHealersConvertedNames": [
         "kogge"
+      ],
+      "stNaturePollenCoverage": [
+        "rain2way",
+        "xunyi",
+        "nytpdy"
       ]
     },
     {
