@@ -9,8 +9,8 @@
 // @license      MIT
 // @homepageURL  https://github.com/xiahuaaaa/mwi-guild-trial-helper
 // @supportURL   https://github.com/xiahuaaaa/mwi-guild-trial-helper/issues
-// @downloadURL  https://raw.githubusercontent.com/xiahuaaaa/mwi-guild-trial-helper/main/dist/wi-guild-trial-sync.user.js?v=0.6.20-wi.1
-// @updateURL    https://raw.githubusercontent.com/xiahuaaaa/mwi-guild-trial-helper/main/dist/wi-guild-trial-sync.user.js?v=0.6.20-wi.1
+// @downloadURL  https://update.greasyfork.org/scripts/593342/WI-guild-trial-sync.user.js
+// @updateURL    https://update.greasyfork.org/scripts/593342/WI-guild-trial-sync.meta.js
 // @match        https://*.milkywayidle.com/*
 // @match        https://www.milkywayidlecn.com/*
 // @grant        GM_getValue
