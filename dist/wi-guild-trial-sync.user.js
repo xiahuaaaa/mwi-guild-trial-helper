@@ -2,7 +2,7 @@
 // @name         WI-guild-trial-sync
 // @name:en      WI-guild-trial-sync
 // @namespace    https://github.com/xiahuaaaa/mwi-guild-trial-helper/wi
-// @version      0.6.20-wi.1
+// @version      0.6.21-wi.1
 // @description  Wandering ICarus 公会专用：自动同步成员名单、本周试炼、怪物面板、全部配装、技能与光环，并高亮最新战斗分工。
 // @description:en  Wandering ICarus guild sync: roster, weekly trials, monster panels, loadouts, abilities, auras, and the latest combat assignment.
 // @author       adudu
@@ -16,6 +16,7 @@
 // @grant        GM_getValue
 // @grant        GM_setValue
 // @grant        GM_xmlhttpRequest
+// @grant        GM.xmlHttpRequest
 // @grant        unsafeWindow
 // @connect      127.0.0.1
 // @connect      localhost
@@ -1729,17 +1730,75 @@
     node.textContent = message;
     node.style.color = isError ? "#ff9d9d" : "#9ff0b2";
   }
-  function requestJson({ method, url, data }) {
-    return new Promise((resolve, reject) => GM_xmlhttpRequest({
+  function gmXmlHttpRequestFn() {
+    if (typeof GM_xmlhttpRequest === "function") return GM_xmlhttpRequest;
+    const gm = typeof GM === "object" && GM ? GM : null;
+    if (gm && typeof gm.xmlHttpRequest === "function") return gm.xmlHttpRequest;
+    return null;
+  }
+  function jsonRequestHeaders(data) {
+    return data == null ? {} : { "content-type": "application/json" };
+  }
+  function requestJsonWithFetch({ method, url, headers, body }) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 30_000);
+    return fetch(url, {
       method,
-      url,
-      headers: { "content-type": "application/json" },
-      data: data == null ? undefined : JSON.stringify(data),
-      timeout: 30_000,
-      onload: resolve,
-      ontimeout: () => reject(new Error(tr("syncTimeout"))),
-      onerror: () => reject(new Error(tr("syncUnreachable"))),
-    }));
+      headers,
+      body,
+      mode: "cors",
+      credentials: "omit",
+      signal: controller.signal,
+    }).then(async (response) => {
+      clearTimeout(timer);
+      return { status: response.status, responseText: await response.text() };
+    }, (error) => {
+      clearTimeout(timer);
+      if (error && error.name === "AbortError") throw new Error(tr("syncTimeout"));
+      throw new Error(tr("syncUnreachable"));
+    });
+  }
+  function requestJsonWithGm(gmRequest, { method, url, headers, body }) {
+    return new Promise((resolve, reject) => {
+      let settled = false;
+      const finish = (callback, value) => {
+        if (settled) return;
+        settled = true;
+        callback(value);
+      };
+      try {
+        const result = gmRequest({
+          method,
+          url,
+          headers,
+          data: body,
+          timeout: 30_000,
+          anonymous: true,
+          fetch: false,
+          onload: (response) => finish(resolve, response),
+          ontimeout: () => finish(reject, new Error(tr("syncTimeout"))),
+          onerror: () => finish(reject, new Error(tr("syncUnreachable"))),
+        });
+        if (result && typeof result.then === "function") {
+          result.then(
+            (response) => finish(resolve, response),
+            () => finish(reject, new Error(tr("syncUnreachable"))),
+          );
+        }
+      } catch {
+        finish(reject, new Error(tr("syncUnreachable")));
+      }
+    });
+  }
+  function requestJson({ method, url, data }) {
+    const headers = jsonRequestHeaders(data);
+    const body = data == null ? undefined : JSON.stringify(data);
+    const gmRequest = gmXmlHttpRequestFn();
+    if (!gmRequest) return requestJsonWithFetch({ method, url, headers, body });
+    return requestJsonWithGm(gmRequest, { method, url, headers, body }).catch((error) => {
+      if (error?.message !== tr("syncUnreachable") && error?.message !== tr("syncTimeout")) throw error;
+      return requestJsonWithFetch({ method, url, headers, body });
+    });
   }
 
   const COMBAT_ABILITY_NAMES_ZH = Object.freeze({
