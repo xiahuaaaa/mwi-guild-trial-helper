@@ -1,8 +1,8 @@
 // ==UserScript==
-// @name         TMD-guild-trial-sync
+// @name         MWI 公会试炼资料同步助手
 // @name:en      TMD-guild-trial-sync
 // @namespace    https://greasyfork.org/users/1466859-adudu
-// @version      0.6.19
+// @version      0.6.20
 // @description  TMD 公会专用：自动同步成员名单、本周试炼、怪物面板、全部配装、技能与光环，并高亮最新战斗分工。
 // @description:en  TMD guild sync: roster, weekly trials, monster panels, loadouts, abilities, auras, and the latest combat assignment.
 // @author       adudu
@@ -36,14 +36,21 @@
  */
 (function aduduGuildTrialSync() {
   "use strict";
+  const pageContext = typeof unsafeWindow === "object" ? unsafeWindow : window;
+  if (pageContext.__ADUDU_GUILD_TRIAL_BRIDGE__) return;
   const MAX_COMBAT_CANDIDATES = 4;
-  const FIXED_GUILD_ID = "TMD";
+  const GUILD_IDENTITY = Object.freeze({
+    apiSlug: "TMD",
+    gameGuildName: "TMD",
+    gameGuildId: 369,
+  });
+  const REPORTS_PREFIX = GUILD_IDENTITY.apiSlug === "WI" ? "WI/" : "";
   const DEFAULT_API_BASE = "https://adudu.tailab136f.ts.net";
-  const COMBAT_ASSIGNMENT_JSON_URL = "https://raw.githubusercontent.com/xiahuaaaa/mwi-guild-trial-helper/main/reports/combat-assignment/latest.json";
-  const LIFE_ASSIGNMENT_JSON_URL = "https://raw.githubusercontent.com/xiahuaaaa/mwi-guild-trial-helper/main/reports/life-assignment/latest.json";
+  const COMBAT_ASSIGNMENT_JSON_URL = `https://raw.githubusercontent.com/xiahuaaaa/mwi-guild-trial-helper/main/reports/${REPORTS_PREFIX}combat-assignment/latest.json`;
+  const LIFE_ASSIGNMENT_JSON_URL = `https://raw.githubusercontent.com/xiahuaaaa/mwi-guild-trial-helper/main/reports/${REPORTS_PREFIX}life-assignment/latest.json`;
   const COMBAT_ABILITY_ICON_BASE = "https://mwi-guild.43.167.210.211.sslip.io/dist/icons/abilities";
   const COMBAT_ASSIGNMENT_CACHE_MS = 5 * 60 * 1000;
-  const COMBAT_ASSIGNMENT_POLL_MS = 30 * 1000;
+  const COMBAT_ASSIGNMENT_POLL_MS = 2 * 60 * 1000;
   const COMBAT_TRIAL_CARD_SELECTOR = "div[class*=trialTile]";
   const PAGE_BRIDGE_CHANNEL = "adudu-mwi-guild-snapshot-v1";
   const UI_COLLAPSED_KEY = "uiCollapsed";
@@ -1193,10 +1200,12 @@
   function tmdConfirmDetail() {
     const guild = detectedGameGuild();
     const parts = [];
-    if (guild.name !== FIXED_GUILD_ID) {
+    if (guild.name !== GUILD_IDENTITY.gameGuildName) {
       parts.push(guild.name ? `guild=${guild.name}` : "missing guild name");
     }
-    if (guild.id == null) parts.push("missing guild id");
+    if (guild.id !== GUILD_IDENTITY.gameGuildId) {
+      parts.push(guild.id != null ? `guildId=${guild.id}≠${GUILD_IDENTITY.gameGuildId}` : "missing guild id");
+    }
     const characterGuildId = Number(state.character.guildId ?? state.character.guildID);
     if (Number.isInteger(characterGuildId) && guild.id != null && characterGuildId !== guild.id) {
       parts.push(`character guildId=${characterGuildId}≠${guild.id}`);
@@ -1206,8 +1215,8 @@
   function confirmedTmdGuild() {
     const guild = detectedGameGuild();
     const characterGuildId = Number(state.character.guildId ?? state.character.guildID);
-    return guild.name === FIXED_GUILD_ID
-      && guild.id != null
+    return guild.name === GUILD_IDENTITY.gameGuildName
+      && guild.id === GUILD_IDENTITY.gameGuildId
       && (!Number.isInteger(characterGuildId) || characterGuildId === guild.id);
   }
   /** Ask the page bridge to re-read React/core state; Edge often needs this after opening Guild. */
@@ -1701,7 +1710,7 @@
       auras: state.auras,
       memberId: detectedMemberId() || undefined,
       displayName: detectedMemberId() || undefined,
-      guildId: FIXED_GUILD_ID,
+      guildId: GUILD_IDENTITY.apiSlug,
       selectedLoadoutIds: [],
       capturedAt: new Date().toISOString(),
     });
@@ -2247,16 +2256,20 @@
     }
   }
 
+  function assignmentAttemptFresh(state, memberId = detectedMemberId()) {
+    if (!memberId || state.lastMemberId !== memberId || !state.fetchedAt) return false;
+    const windowMs = state.document ? COMBAT_ASSIGNMENT_CACHE_MS : COMBAT_ASSIGNMENT_POLL_MS;
+    return Date.now() - state.fetchedAt < windowMs;
+  }
+
   function scheduleLifeAssignmentRefresh(delay = 0) {
     clearTimeout(lifeAssignmentState.timer);
     const memberId = detectedMemberId();
     if (!memberId) return;
-    if (
-      lifeAssignmentState.document
-      && lifeAssignmentState.lastMemberId === memberId
-      && Date.now() - lifeAssignmentState.fetchedAt < COMBAT_ASSIGNMENT_CACHE_MS
-    ) {
-      if (document.querySelector(COMBAT_TRIAL_CARD_SELECTOR)) renderLifeAssignmentUi();
+    if (assignmentAttemptFresh(lifeAssignmentState, memberId)) {
+      if (lifeAssignmentState.document && document.querySelector(COMBAT_TRIAL_CARD_SELECTOR)) {
+        renderLifeAssignmentUi();
+      }
       return;
     }
     lifeAssignmentState.timer = setTimeout(() => void refreshLifeAssignment(), delay);
@@ -2266,16 +2279,15 @@
     const memberId = detectedMemberId();
     if (!memberId || !confirmedTmdGuild() || lifeAssignmentState.inFlight) return;
     const cards = [...document.querySelectorAll(COMBAT_TRIAL_CARD_SELECTOR)];
-    if (!force
-      && lifeAssignmentState.document
-      && lifeAssignmentState.lastMemberId === memberId
-      && Date.now() - lifeAssignmentState.fetchedAt < COMBAT_ASSIGNMENT_CACHE_MS) {
-      if (cards.length) renderLifeAssignmentUi();
+    if (!force && assignmentAttemptFresh(lifeAssignmentState, memberId)) {
+      if (cards.length && lifeAssignmentState.document) renderLifeAssignmentUi();
       return;
     }
     lifeAssignmentState.inFlight = true;
     lifeAssignmentState.lastMemberId = memberId;
-    if (!lifeAssignmentState.document) setStatus(tr("lifeAssignmentLoading"));
+    if (!lifeAssignmentState.document && !lifeAssignmentState.fetchedAt) {
+      setStatus(tr("lifeAssignmentLoading"));
+    }
     try {
       const response = await requestJson({ method: "GET", url: LIFE_ASSIGNMENT_JSON_URL });
       if (response.status !== 200) throw new Error(`HTTP ${response.status}`);
@@ -2285,10 +2297,10 @@
       renderLifeAssignmentUi();
     } catch (error) {
       lifeAssignmentState.document = null;
-      lifeAssignmentState.fetchedAt = 0;
+      lifeAssignmentState.fetchedAt = Date.now();
       lifeAssignmentState.mismatch = null;
       clearLifeAssignmentUi();
-      if (cards.length) setStatus(tr("lifeAssignmentUnavailable"), true);
+      setStatus(tr("lifeAssignmentUnavailable"), true);
       console.warn("[TMD-guild-trial-sync] latest life assignment unavailable", error?.message || error);
     } finally {
       lifeAssignmentState.inFlight = false;
@@ -2297,13 +2309,12 @@
 
   function scheduleCombatAssignmentRefresh(delay = 0) {
     clearTimeout(combatAssignmentState.timer);
-    if (!detectedMemberId()) return;
-    if (
-      combatAssignmentState.document
-      && combatAssignmentState.lastMemberId === detectedMemberId()
-      && Date.now() - combatAssignmentState.fetchedAt < COMBAT_ASSIGNMENT_CACHE_MS
-    ) {
-      if (document.querySelector(COMBAT_TRIAL_CARD_SELECTOR)) renderCombatAssignmentUi();
+    const memberId = detectedMemberId();
+    if (!memberId) return;
+    if (assignmentAttemptFresh(combatAssignmentState, memberId)) {
+      if (combatAssignmentState.document && document.querySelector(COMBAT_TRIAL_CARD_SELECTOR)) {
+        renderCombatAssignmentUi();
+      }
       return;
     }
     combatAssignmentState.timer = setTimeout(() => void refreshCombatAssignment(), delay);
@@ -2313,16 +2324,15 @@
     const memberId = detectedMemberId();
     if (!memberId || !confirmedTmdGuild() || combatAssignmentState.inFlight) return;
     const cards = [...document.querySelectorAll(COMBAT_TRIAL_CARD_SELECTOR)];
-    if (!force
-      && combatAssignmentState.document
-      && combatAssignmentState.lastMemberId === memberId
-      && Date.now() - combatAssignmentState.fetchedAt < COMBAT_ASSIGNMENT_CACHE_MS) {
-      if (cards.length) renderCombatAssignmentUi();
+    if (!force && assignmentAttemptFresh(combatAssignmentState, memberId)) {
+      if (cards.length && combatAssignmentState.document) renderCombatAssignmentUi();
       return;
     }
     combatAssignmentState.inFlight = true;
     combatAssignmentState.lastMemberId = memberId;
-    if (!combatAssignmentState.document) setStatus(tr("assignmentLoading"));
+    if (!combatAssignmentState.document && !combatAssignmentState.fetchedAt) {
+      setStatus(tr("assignmentLoading"));
+    }
     try {
       const response = await requestJson({ method: "GET", url: COMBAT_ASSIGNMENT_JSON_URL });
       if (response.status !== 200) throw new Error(`HTTP ${response.status}`);
@@ -2332,9 +2342,9 @@
       renderCombatAssignmentUi();
     } catch (error) {
       combatAssignmentState.document = null;
-      combatAssignmentState.fetchedAt = 0;
+      combatAssignmentState.fetchedAt = Date.now();
       clearCombatAssignmentOnly();
-      if (cards.length) setStatus(tr("assignmentUnavailable"), true);
+      setStatus(tr("assignmentUnavailable"), true);
       console.warn("[TMD-guild-trial-sync] latest combat assignment unavailable", error?.message || error);
     } finally {
       combatAssignmentState.inFlight = false;
@@ -2431,7 +2441,7 @@
       setStatus(tr("checkingEligibility", snapshot.memberId));
       const eligibility = await requestJson({
         method: "GET",
-        url: `${DEFAULT_API_BASE}/api/public/guilds/${FIXED_GUILD_ID}/members/${encodeURIComponent(snapshot.memberId)}/eligibility`,
+        url: `${DEFAULT_API_BASE}/api/public/guilds/${GUILD_IDENTITY.apiSlug}/members/${encodeURIComponent(snapshot.memberId)}/eligibility`,
       });
       const eligibilityBody = JSON.parse(eligibility.responseText || "{}");
       if (eligibility.status !== 200 || eligibilityBody.eligible !== true) {
@@ -2443,7 +2453,7 @@
         setStatus(tr("syncingRoster", roster.members.length));
         const rosterResponse = await requestJson({
           method: "POST",
-          url: `${DEFAULT_API_BASE}/api/public/guilds/${FIXED_GUILD_ID}/roster`,
+          url: `${DEFAULT_API_BASE}/api/public/guilds/${GUILD_IDENTITY.apiSlug}/roster`,
           data: roster,
         });
         if (rosterResponse.status >= 200 && rosterResponse.status < 300) {
@@ -2463,7 +2473,7 @@
         setStatus(tr("syncingWeeklyTrials"));
         const weeklyTrialResponse = await requestJson({
           method: "POST",
-          url: `${DEFAULT_API_BASE}/api/public/guilds/${FIXED_GUILD_ID}/weekly-trials`,
+          url: `${DEFAULT_API_BASE}/api/public/guilds/${GUILD_IDENTITY.apiSlug}/weekly-trials`,
           data: weeklyTrials,
         });
         if (weeklyTrialResponse.status >= 200 && weeklyTrialResponse.status < 300) {
@@ -2489,7 +2499,7 @@
         setStatus(tr("syncingSignups"));
         const trialResponse = await requestJson({
           method: "POST",
-          url: `${DEFAULT_API_BASE}/api/public/guilds/${FIXED_GUILD_ID}/trial-registrations`,
+          url: `${DEFAULT_API_BASE}/api/public/guilds/${GUILD_IDENTITY.apiSlug}/trial-registrations`,
           data: trialRegistrations,
         });
         if (trialResponse.status >= 200 && trialResponse.status < 300) {
@@ -2508,7 +2518,7 @@
       setStatus(tr("syncingLoadouts"));
       const response = await requestJson({
         method: "POST",
-        url: `${DEFAULT_API_BASE}/api/public/guilds/${FIXED_GUILD_ID}/members/${encodeURIComponent(snapshot.memberId)}/snapshots`,
+        url: `${DEFAULT_API_BASE}/api/public/guilds/${GUILD_IDENTITY.apiSlug}/members/${encodeURIComponent(snapshot.memberId)}/snapshots`,
         data: snapshot,
       });
       if (response.status < 200 || response.status >= 300) {
@@ -2723,14 +2733,14 @@
     }, 3000);
     combatAssignmentState.pollTimer = setInterval(() => {
       if (!document.querySelector(COMBAT_TRIAL_CARD_SELECTOR)) return;
-      if (combatAssignmentState.document && Date.now() - combatAssignmentState.fetchedAt < COMBAT_ASSIGNMENT_CACHE_MS) {
+      if (assignmentAttemptFresh(combatAssignmentState) && combatAssignmentState.document) {
         renderCombatAssignmentUi();
-      } else {
+      } else if (!assignmentAttemptFresh(combatAssignmentState)) {
         scheduleCombatAssignmentRefresh();
       }
-      if (lifeAssignmentState.document && Date.now() - lifeAssignmentState.fetchedAt < COMBAT_ASSIGNMENT_CACHE_MS) {
+      if (assignmentAttemptFresh(lifeAssignmentState) && lifeAssignmentState.document) {
         renderLifeAssignmentUi();
-      } else {
+      } else if (!assignmentAttemptFresh(lifeAssignmentState)) {
         scheduleLifeAssignmentRefresh();
       }
     }, COMBAT_ASSIGNMENT_POLL_MS);
