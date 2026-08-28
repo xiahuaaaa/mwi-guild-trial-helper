@@ -2,15 +2,15 @@
 // @name         WI-guild-trial-sync
 // @name:en      WI-guild-trial-sync
 // @namespace    https://github.com/xiahuaaaa/mwi-guild-trial-helper/wi
-// @version      0.6.19-wi.1
+// @version      0.6.20-wi.1
 // @description  Wandering ICarus 公会专用：自动同步成员名单、本周试炼、怪物面板、全部配装、技能与光环，并高亮最新战斗分工。
 // @description:en  Wandering ICarus guild sync: roster, weekly trials, monster panels, loadouts, abilities, auras, and the latest combat assignment.
 // @author       adudu
 // @license      MIT
 // @homepageURL  https://github.com/xiahuaaaa/mwi-guild-trial-helper
 // @supportURL   https://github.com/xiahuaaaa/mwi-guild-trial-helper/issues
-// @downloadURL  https://raw.githubusercontent.com/xiahuaaaa/mwi-guild-trial-helper/main/dist/wi-guild-trial-sync.user.js?v=0.6.19-wi.1
-// @updateURL    https://raw.githubusercontent.com/xiahuaaaa/mwi-guild-trial-helper/main/dist/wi-guild-trial-sync.user.js?v=0.6.19-wi.1
+// @downloadURL  https://raw.githubusercontent.com/xiahuaaaa/mwi-guild-trial-helper/main/dist/wi-guild-trial-sync.user.js?v=0.6.20-wi.1
+// @updateURL    https://raw.githubusercontent.com/xiahuaaaa/mwi-guild-trial-helper/main/dist/wi-guild-trial-sync.user.js?v=0.6.20-wi.1
 // @match        https://*.milkywayidle.com/*
 // @match        https://www.milkywayidlecn.com/*
 // @grant        GM_getValue
@@ -50,7 +50,7 @@
   const LIFE_ASSIGNMENT_JSON_URL = `https://raw.githubusercontent.com/xiahuaaaa/mwi-guild-trial-helper/main/reports/${REPORTS_PREFIX}life-assignment/latest.json`;
   const COMBAT_ABILITY_ICON_BASE = "https://mwi-guild.43.167.210.211.sslip.io/dist/icons/abilities";
   const COMBAT_ASSIGNMENT_CACHE_MS = 5 * 60 * 1000;
-  const COMBAT_ASSIGNMENT_POLL_MS = 30 * 1000;
+  const COMBAT_ASSIGNMENT_POLL_MS = 2 * 60 * 1000;
   const COMBAT_TRIAL_CARD_SELECTOR = "div[class*=trialTile]";
   const PAGE_BRIDGE_CHANNEL = "adudu-mwi-guild-snapshot-v1";
   const UI_COLLAPSED_KEY = "uiCollapsed";
@@ -2256,16 +2256,20 @@
     }
   }
 
+  function assignmentAttemptFresh(state, memberId = detectedMemberId()) {
+    if (!memberId || state.lastMemberId !== memberId || !state.fetchedAt) return false;
+    const windowMs = state.document ? COMBAT_ASSIGNMENT_CACHE_MS : COMBAT_ASSIGNMENT_POLL_MS;
+    return Date.now() - state.fetchedAt < windowMs;
+  }
+
   function scheduleLifeAssignmentRefresh(delay = 0) {
     clearTimeout(lifeAssignmentState.timer);
     const memberId = detectedMemberId();
     if (!memberId) return;
-    if (
-      lifeAssignmentState.document
-      && lifeAssignmentState.lastMemberId === memberId
-      && Date.now() - lifeAssignmentState.fetchedAt < COMBAT_ASSIGNMENT_CACHE_MS
-    ) {
-      if (document.querySelector(COMBAT_TRIAL_CARD_SELECTOR)) renderLifeAssignmentUi();
+    if (assignmentAttemptFresh(lifeAssignmentState, memberId)) {
+      if (lifeAssignmentState.document && document.querySelector(COMBAT_TRIAL_CARD_SELECTOR)) {
+        renderLifeAssignmentUi();
+      }
       return;
     }
     lifeAssignmentState.timer = setTimeout(() => void refreshLifeAssignment(), delay);
@@ -2275,16 +2279,15 @@
     const memberId = detectedMemberId();
     if (!memberId || !confirmedTmdGuild() || lifeAssignmentState.inFlight) return;
     const cards = [...document.querySelectorAll(COMBAT_TRIAL_CARD_SELECTOR)];
-    if (!force
-      && lifeAssignmentState.document
-      && lifeAssignmentState.lastMemberId === memberId
-      && Date.now() - lifeAssignmentState.fetchedAt < COMBAT_ASSIGNMENT_CACHE_MS) {
-      if (cards.length) renderLifeAssignmentUi();
+    if (!force && assignmentAttemptFresh(lifeAssignmentState, memberId)) {
+      if (cards.length && lifeAssignmentState.document) renderLifeAssignmentUi();
       return;
     }
     lifeAssignmentState.inFlight = true;
     lifeAssignmentState.lastMemberId = memberId;
-    if (!lifeAssignmentState.document) setStatus(tr("lifeAssignmentLoading"));
+    if (!lifeAssignmentState.document && !lifeAssignmentState.fetchedAt) {
+      setStatus(tr("lifeAssignmentLoading"));
+    }
     try {
       const response = await requestJson({ method: "GET", url: LIFE_ASSIGNMENT_JSON_URL });
       if (response.status !== 200) throw new Error(`HTTP ${response.status}`);
@@ -2294,10 +2297,10 @@
       renderLifeAssignmentUi();
     } catch (error) {
       lifeAssignmentState.document = null;
-      lifeAssignmentState.fetchedAt = 0;
+      lifeAssignmentState.fetchedAt = Date.now();
       lifeAssignmentState.mismatch = null;
       clearLifeAssignmentUi();
-      if (cards.length) setStatus(tr("lifeAssignmentUnavailable"), true);
+      setStatus(tr("lifeAssignmentUnavailable"), true);
       console.warn("[WI-guild-trial-sync] latest life assignment unavailable", error?.message || error);
     } finally {
       lifeAssignmentState.inFlight = false;
@@ -2306,13 +2309,12 @@
 
   function scheduleCombatAssignmentRefresh(delay = 0) {
     clearTimeout(combatAssignmentState.timer);
-    if (!detectedMemberId()) return;
-    if (
-      combatAssignmentState.document
-      && combatAssignmentState.lastMemberId === detectedMemberId()
-      && Date.now() - combatAssignmentState.fetchedAt < COMBAT_ASSIGNMENT_CACHE_MS
-    ) {
-      if (document.querySelector(COMBAT_TRIAL_CARD_SELECTOR)) renderCombatAssignmentUi();
+    const memberId = detectedMemberId();
+    if (!memberId) return;
+    if (assignmentAttemptFresh(combatAssignmentState, memberId)) {
+      if (combatAssignmentState.document && document.querySelector(COMBAT_TRIAL_CARD_SELECTOR)) {
+        renderCombatAssignmentUi();
+      }
       return;
     }
     combatAssignmentState.timer = setTimeout(() => void refreshCombatAssignment(), delay);
@@ -2322,16 +2324,15 @@
     const memberId = detectedMemberId();
     if (!memberId || !confirmedTmdGuild() || combatAssignmentState.inFlight) return;
     const cards = [...document.querySelectorAll(COMBAT_TRIAL_CARD_SELECTOR)];
-    if (!force
-      && combatAssignmentState.document
-      && combatAssignmentState.lastMemberId === memberId
-      && Date.now() - combatAssignmentState.fetchedAt < COMBAT_ASSIGNMENT_CACHE_MS) {
-      if (cards.length) renderCombatAssignmentUi();
+    if (!force && assignmentAttemptFresh(combatAssignmentState, memberId)) {
+      if (cards.length && combatAssignmentState.document) renderCombatAssignmentUi();
       return;
     }
     combatAssignmentState.inFlight = true;
     combatAssignmentState.lastMemberId = memberId;
-    if (!combatAssignmentState.document) setStatus(tr("assignmentLoading"));
+    if (!combatAssignmentState.document && !combatAssignmentState.fetchedAt) {
+      setStatus(tr("assignmentLoading"));
+    }
     try {
       const response = await requestJson({ method: "GET", url: COMBAT_ASSIGNMENT_JSON_URL });
       if (response.status !== 200) throw new Error(`HTTP ${response.status}`);
@@ -2341,9 +2342,9 @@
       renderCombatAssignmentUi();
     } catch (error) {
       combatAssignmentState.document = null;
-      combatAssignmentState.fetchedAt = 0;
+      combatAssignmentState.fetchedAt = Date.now();
       clearCombatAssignmentOnly();
-      if (cards.length) setStatus(tr("assignmentUnavailable"), true);
+      setStatus(tr("assignmentUnavailable"), true);
       console.warn("[WI-guild-trial-sync] latest combat assignment unavailable", error?.message || error);
     } finally {
       combatAssignmentState.inFlight = false;
@@ -2732,14 +2733,14 @@
     }, 3000);
     combatAssignmentState.pollTimer = setInterval(() => {
       if (!document.querySelector(COMBAT_TRIAL_CARD_SELECTOR)) return;
-      if (combatAssignmentState.document && Date.now() - combatAssignmentState.fetchedAt < COMBAT_ASSIGNMENT_CACHE_MS) {
+      if (assignmentAttemptFresh(combatAssignmentState) && combatAssignmentState.document) {
         renderCombatAssignmentUi();
-      } else {
+      } else if (!assignmentAttemptFresh(combatAssignmentState)) {
         scheduleCombatAssignmentRefresh();
       }
-      if (lifeAssignmentState.document && Date.now() - lifeAssignmentState.fetchedAt < COMBAT_ASSIGNMENT_CACHE_MS) {
+      if (assignmentAttemptFresh(lifeAssignmentState) && lifeAssignmentState.document) {
         renderLifeAssignmentUi();
-      } else {
+      } else if (!assignmentAttemptFresh(lifeAssignmentState)) {
         scheduleLifeAssignmentRefresh();
       }
     }, COMBAT_ASSIGNMENT_POLL_MS);
