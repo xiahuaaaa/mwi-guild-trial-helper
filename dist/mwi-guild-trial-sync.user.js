@@ -2,7 +2,7 @@
 // @name         TMD-guild-trial-sync
 // @name:en      TMD-guild-trial-sync
 // @namespace    https://greasyfork.org/users/1466859-adudu
-// @version      0.6.18
+// @version      0.6.19
 // @description  TMD 公会专用：自动同步成员名单、本周试炼、怪物面板、全部配装、技能与光环，并高亮最新战斗分工。
 // @description:en  TMD guild sync: roster, weekly trials, monster panels, loadouts, abilities, auras, and the latest combat assignment.
 // @author       adudu
@@ -76,8 +76,8 @@
     waitingName: "等待读取游戏角色名。",
     notTmdYet: "尚未从游戏确认当前角色属于 TMD；请打开公会界面后重试。",
     notTmdDetail: (detail) => `尚未从游戏确认当前角色属于 TMD（${detail}）。请打开「公会」界面后点「立即同步」。`,
-    waitingEquipmentAuto: "已检测到配装名称，正在等待游戏装备数据…",
-    waitingEquipmentManual: "检测到配装名称，但尚未从游戏读取装备；请等待游戏加载完成后重试",
+    waitingEquipmentAuto: "尚未读取到可用配装装备，正在等待游戏数据…",
+    waitingEquipmentManual: "尚未从游戏读取到可用配装装备；请等待游戏加载完成后重试",
     checkingEligibility: (memberId) => `正在检查 ${memberId} 的 TMD 成员资格…`,
     notEligible: (memberId) => `当前角色 ${memberId} 不在 TMD 成员名单中，不会上传资料。`,
     syncingRoster: (count) => `正在同步 TMD 当前名单（${count} 人）…`,
@@ -130,8 +130,8 @@
     waitingName: "Waiting for character name.",
     notTmdYet: "Could not confirm this character is in TMD. Open the guild panel and try again.",
     notTmdDetail: (detail) => `Could not confirm TMD membership (${detail}). Open the Guild panel, then Sync Now.`,
-    waitingEquipmentAuto: "Loadout names found; waiting for equipment data…",
-    waitingEquipmentManual: "Loadout names found, but equipment is not ready yet. Wait for the game to finish loading and try again.",
+    waitingEquipmentAuto: "No usable loadout equipment yet; waiting for game data…",
+    waitingEquipmentManual: "No usable loadout equipment was captured. Wait for the game to finish loading and try again.",
     checkingEligibility: (memberId) => `Checking TMD membership for ${memberId}…`,
     notEligible: (memberId) => `Character ${memberId} is not on the TMD roster; nothing will be uploaded.`,
     syncingRoster: (count) => `Syncing TMD roster (${count} members)…`,
@@ -2366,6 +2366,12 @@
     combatAssignmentState.observer.observe(document.body, { childList: true, subtree: true });
   }
 
+  function catalogMissingUsableEquipment(snapshot) {
+    const catalog = Array.isArray(snapshot?.loadoutCatalog) ? snapshot.loadoutCatalog : [];
+    return catalog.length === 0
+      || catalog.every((loadout) => !Array.isArray(loadout?.equipment) || loadout.equipment.length === 0);
+  }
+
   async function upload({ automatic = false } = {}) {
     if (automaticSync.running) {
       if (automatic) scheduleAutomaticUpload(800);
@@ -2386,8 +2392,7 @@
         return;
       }
     }
-    if (snapshot.loadoutCatalog.length > 0
-      && snapshot.loadoutCatalog.every((loadout) => loadout.equipment.length === 0)) {
+    if (catalogMissingUsableEquipment(snapshot)) {
       window.postMessage({ source: PAGE_BRIDGE_CHANNEL, type: "request" }, location.origin);
       automaticSync.suppressSchedule = true;
       try {
