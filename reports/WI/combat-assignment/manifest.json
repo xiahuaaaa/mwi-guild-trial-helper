@@ -1,0 +1,55 @@
+{
+  "kind": "combat-assignment-report",
+  "schemaVersion": 1,
+  "assignmentGeneratedAt": "2026-08-29T17:52:36.474Z",
+  "assignmentKind": "wi-available-roster-composition-lab",
+  "generatedAt": "2026-08-29T17:53:48.975Z",
+  "publicBaseUrl": "https://raw.githubusercontent.com/xiahuaaaa/mwi-guild-trial-helper/main/reports/WI/combat-assignment",
+  "publicIndexUrl": "https://xiahuaaaa.github.io/mwi-guild-trial-helper/reports/WI/combat-assignment/",
+  "publicManifestUrl": "https://raw.githubusercontent.com/xiahuaaaa/mwi-guild-trial-helper/main/reports/WI/combat-assignment/manifest.json",
+  "publicJsonUrl": "https://raw.githubusercontent.com/xiahuaaaa/mwi-guild-trial-helper/main/reports/WI/combat-assignment/latest.json",
+  "files": [
+    {
+      "title": "试炼变色龙 · 阵容与技能",
+      "fileName": "1-chameleon-summary.png",
+      "publicUrl": "https://raw.githubusercontent.com/xiahuaaaa/mwi-guild-trial-helper/main/reports/WI/combat-assignment/1-chameleon-summary.png"
+    },
+    {
+      "title": "试炼变色龙 · 48 人贡献明细",
+      "fileName": "1-chameleon-members.png",
+      "publicUrl": "https://raw.githubusercontent.com/xiahuaaaa/mwi-guild-trial-helper/main/reports/WI/combat-assignment/1-chameleon-members.png"
+    },
+    {
+      "title": "试炼虫群 · 阵容与技能",
+      "fileName": "2-swarm-summary.png",
+      "publicUrl": "https://raw.githubusercontent.com/xiahuaaaa/mwi-guild-trial-helper/main/reports/WI/combat-assignment/2-swarm-summary.png"
+    },
+    {
+      "title": "试炼虫群 · 47 人贡献明细",
+      "fileName": "2-swarm-members.png",
+      "publicUrl": "https://raw.githubusercontent.com/xiahuaaaa/mwi-guild-trial-helper/main/reports/WI/combat-assignment/2-swarm-members.png"
+    }
+  ],
+  "englishFiles": [
+    {
+      "title": "Trial Chameleon · Roster & Skills",
+      "fileName": "1-chameleon-summary.en.png",
+      "publicUrl": "https://raw.githubusercontent.com/xiahuaaaa/mwi-guild-trial-helper/main/reports/WI/combat-assignment/1-chameleon-summary.en.png"
+    },
+    {
+      "title": "Trial Chameleon · 48 Member Breakdown",
+      "fileName": "1-chameleon-members.en.png",
+      "publicUrl": "https://raw.githubusercontent.com/xiahuaaaa/mwi-guild-trial-helper/main/reports/WI/combat-assignment/1-chameleon-members.en.png"
+    },
+    {
+      "title": "Trial Swarm · Roster & Skills",
+      "fileName": "2-swarm-summary.en.png",
+      "publicUrl": "https://raw.githubusercontent.com/xiahuaaaa/mwi-guild-trial-helper/main/reports/WI/combat-assignment/2-swarm-summary.en.png"
+    },
+    {
+      "title": "Trial Swarm · 47 Member Breakdown",
+      "fileName": "2-swarm-members.en.png",
+      "publicUrl": "https://raw.githubusercontent.com/xiahuaaaa/mwi-guild-trial-helper/main/reports/WI/combat-assignment/2-swarm-members.en.png"
+    }
+  ]
+}
