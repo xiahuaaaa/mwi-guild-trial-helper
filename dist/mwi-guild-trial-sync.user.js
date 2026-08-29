@@ -2,7 +2,7 @@
 // @name         MWI 公会试炼资料同步助手
 // @name:en      TMD-guild-trial-sync
 // @namespace    https://greasyfork.org/users/1466859-adudu
-// @version      0.6.21
+// @version      0.6.22
 // @description  TMD 公会专用：自动同步成员名单、本周试炼、怪物面板、全部配装、技能与光环，并高亮最新战斗分工。
 // @description:en  TMD guild sync: roster, weekly trials, monster panels, loadouts, abilities, auras, and the latest combat assignment.
 // @author       adudu
@@ -519,11 +519,76 @@
     });
     return [...merged.values()];
   };
+  const characterIdFrom = (value) => {
+    if (!value || typeof value !== "object") return "";
+    const id = value.characterId ?? value.characterID
+      ?? value.character?.id ?? value.character?.characterId ?? value.character?.characterID
+      ?? (value.character || value.name || value.characterName ? value.id : undefined);
+    return id == null || id === "" ? "" : String(id);
+  };
+  const loadoutOwnerId = (loadout) => {
+    const direct = loadout?.characterId ?? loadout?.character_id ?? loadout?.characterID;
+    if (direct != null && direct !== "") return String(direct);
+    for (const reference of values(loadout?.wearableMap)) {
+      const raw = typeof reference === "string"
+        ? reference
+        : reference && typeof reference === "object"
+          ? String(reference.hash ?? reference.itemHash ?? reference.id ?? "")
+          : "";
+      const parts = raw.split("::");
+      if (parts.length >= 4 && String(parts[2]).startsWith("/items/") && parts[0]) {
+        return String(parts[0]);
+      }
+    }
+    return "";
+  };
+  const urlCharacterId = () => {
+    try {
+      return String(new URLSearchParams(location.search).get("characterId") || "");
+    } catch {
+      return "";
+    }
+  };
+  const liveCharacterId = () => {
+    try {
+      const page = typeof unsafeWindow === "object" ? unsafeWindow : window;
+      const core = page?.MWI_QUEUE_PLANNER?.getGameCore?.()?.state;
+      return characterIdFrom(core?.character) || characterIdFrom(core);
+    } catch {
+      return "";
+    }
+  };
+  // URL and live Game Core identify the signed-in character. Do not fall back
+  // to plugin state here, or a stale cache character would lock the session.
+  function currentCharacterId() {
+    return liveCharacterId() || urlCharacterId();
+  }
+  function resetOwnedCharacterState() {
+    state.character = {};
+    state.guild = {};
+    state.guildCharacterMap = {};
+    state.guildSharableCharacterMap = {};
+    state.guildTrialSignupLevelMap = {};
+    state.guildWeeklyTrialSet = {};
+    state.loadouts = [];
+    state.authorizedEquipment = [];
+    state.itemByHash = new Map();
+    state.skills = [];
+    state.learnedAbilities = [];
+    state.auras = [];
+  }
 
   function applyCharacterData(candidate) {
     const data = object(candidate);
     const characterInfo = object(data.characterInfo);
     const character = data.character ?? characterInfo.character;
+    const incomingId = characterIdFrom(character) || characterIdFrom(characterInfo) || characterIdFrom(data);
+    const preferred = currentCharacterId();
+    // Same-account alts (and leftover React fibers) must not merge into the
+    // signed-in character. YouCan/daydayup/NoCan share one browser profile.
+    if (incomingId && preferred && incomingId !== preferred) return;
+    const currentId = characterIdFrom(state.character);
+    if (incomingId && currentId && incomingId !== currentId) resetOwnedCharacterState();
     if (character && typeof character === "object") state.character = character;
     const guild = data.guild ?? characterInfo.guild;
     if (guild && typeof guild === "object") {
@@ -594,7 +659,11 @@
     const loadouts = data.loadouts ?? data.combatLoadouts ?? data.characterLoadoutMap
       ?? data.characterLoadoutDict ?? data.characterLoadouts ?? characterInfo.characterLoadoutMap;
     if (loadouts) {
-      const nextLoadouts = values(loadouts);
+      const ownerId = incomingId || preferred || characterIdFrom(state.character);
+      const nextLoadouts = values(loadouts).filter((loadout) => {
+        const owner = loadoutOwnerId(loadout);
+        return !owner || !ownerId || owner === ownerId;
+      });
       state.loadouts = mergeLoadouts(state.loadouts, nextLoadouts);
     }
   }
@@ -1063,9 +1132,19 @@
       const roots = [document.querySelector('[class^="GamePage_gamePage"]'), document.getElementById("root"), document.body].filter(Boolean);
       const queue = roots.flatMap((root) => Reflect.ownKeys(root).filter((key) => String(key).startsWith("__reactFiber$") || String(key).startsWith("__reactContainer$")).map((key) => root[key]));
       const seen = new Set(); let best = null; let score = -1;
+      const coreState = window.MWI_QUEUE_PLANNER?.getGameCore?.()?.state;
+      const sessionId = String(
+        coreState?.character?.id
+        ?? coreState?.character?.characterId
+        ?? coreState?.characterId
+        ?? new URLSearchParams(window.location.search).get("characterId")
+        ?? ""
+      );
       const consider = (candidate) => {
         const result = compact(candidate);
         if (!result) return;
+        const id = String(result.character?.id ?? result.character?.characterId ?? "");
+        if (sessionId && id && sessionId !== id) return;
         const loadoutDetailScore = result.loadouts.reduce((sum, loadout) =>
           sum + loadout.equipment.length * 1000 + loadout.abilities.length * 100 + 1
         , 0);
@@ -1076,7 +1155,7 @@
           + result.characterSkills.length;
         if (next > score) { best = result; score = next; }
       };
-      consider(window.MWI_QUEUE_PLANNER?.getGameCore?.()?.state);
+      consider(coreState);
       for (let index = 0; index < queue.length && index < 8000; index += 1) {
         const fiber = queue[index];
         if (!fiber || seen.has(fiber)) continue;
@@ -1134,23 +1213,8 @@
     document.documentElement.append(script); script.remove();
   }
 
-  function currentCharacterId() {
-    return new URLSearchParams(location.search).get("characterId") || "";
-  }
-
   function resetCharacterData() {
-    state.character = {};
-    state.guild = {};
-    state.guildCharacterMap = {};
-    state.guildSharableCharacterMap = {};
-    state.guildTrialSignupLevelMap = {};
-    state.guildWeeklyTrialSet = {};
-    state.loadouts = [];
-    state.authorizedEquipment = [];
-    state.itemByHash = new Map();
-    state.skills = [];
-    state.learnedAbilities = [];
-    state.auras = [];
+    resetOwnedCharacterState();
     clearTimeout(combatAssignmentState.timer);
     clearTimeout(lifeAssignmentState.timer);
     combatAssignmentState.document = null;
@@ -1174,7 +1238,9 @@
       hydration.attempt = 0;
       resetCharacterData();
     }
-    if (hydrateFromGameCache() || hydrateFromLiveGame()) {
+    const live = hydrateFromLiveGame();
+    const cache = hydrateFromGameCache();
+    if (live || cache) {
       hydration.attempt = 0;
       setStatus(tr("characterLoaded"));
       return;
