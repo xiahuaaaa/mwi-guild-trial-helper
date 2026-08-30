@@ -2,7 +2,7 @@
 // @name         WI-guild-trial-sync
 // @name:en      WI-guild-trial-sync
 // @namespace    https://github.com/xiahuaaaa/mwi-guild-trial-helper/wi
-// @version      0.6.23-wi.1
+// @version      0.6.24-wi.1
 // @description  Wandering ICarus 公会专用：自动同步成员名单、本周试炼、怪物面板、全部配装、技能与光环，并高亮最新战斗分工。
 // @description:en  Wandering ICarus guild sync: roster, weekly trials, monster panels, loadouts, abilities, auras, and the latest combat assignment.
 // @author       adudu
@@ -29,7 +29,8 @@
  * Independent MIT-licensed implementation by adudu.
  *
  * Data boundary:
- * - reads only the character, guild roster, equipment, loadout and ability
+ * - reads only the character, guild roster, equipment, loadout, ability and
+ *   permanent house/achievement/shrine records
  *   records required by the Wandering ICarus guild tools;
  * - checks the detected character against the Wandering Icarus roster before automatic sync;
  * - never includes cookies, login/session credentials or authorization data in
@@ -221,6 +222,7 @@
     guildTrialDetailMap: {},
     guildBuildingMap: {},
     guildBuildingLevelDict: {},
+    guildBuildingLevelCaptured: false,
     guildBuildingDetailMap: {},
     combatMonsterDetailMap: {},
     loadouts: [],
@@ -229,6 +231,8 @@
     skills: [],
     learnedAbilities: [],
     auras: [],
+    characterHouseRoomMap: undefined,
+    characterAchievements: undefined,
   };
   const hydration = { attempt: 0, timer: 0, characterId: "" };
   const automaticSync = { timer: 0, running: false, lastSignature: "", suppressSchedule: false };
@@ -570,6 +574,10 @@
     state.guildSharableCharacterMap = {};
     state.guildTrialSignupLevelMap = {};
     state.guildWeeklyTrialSet = {};
+    state.guildBuildingLevelDict = {};
+    state.guildBuildingLevelCaptured = false;
+    state.characterHouseRoomMap = undefined;
+    state.characterAchievements = undefined;
     state.loadouts = [];
     state.authorizedEquipment = [];
     state.itemByHash = new Map();
@@ -661,10 +669,21 @@
     if (guildWeeklyTrialSet && typeof guildWeeklyTrialSet === "object") state.guildWeeklyTrialSet = guildWeeklyTrialSet;
     const guildTrialDetailMap = data.guildTrialDetailMap ?? data.guildTrialDetailDict;
     if (guildTrialDetailMap && typeof guildTrialDetailMap === "object") state.guildTrialDetailMap = guildTrialDetailMap;
+    const characterHouseRoomMap = data.characterHouseRoomMap ?? data.characterHouseRoomDict
+      ?? characterInfo.characterHouseRoomMap ?? characterInfo.characterHouseRoomDict;
+    if (characterHouseRoomMap != null && typeof characterHouseRoomMap === "object") {
+      state.characterHouseRoomMap = characterHouseRoomMap;
+    }
+    const characterAchievements = data.characterAchievements ?? data.characterAchievementMap
+      ?? characterInfo.characterAchievements ?? characterInfo.characterAchievementMap;
+    if (characterAchievements != null && typeof characterAchievements === "object") {
+      state.characterAchievements = characterAchievements;
+    }
     const guildBuildingLevelDict = data.guildBuildingLevelDict ?? data.guildBuildingLevelMap
       ?? data.guild?.guildBuildingLevelMap ?? data.guild?.guildBuildingLevelDict;
-    if (guildBuildingLevelDict && typeof guildBuildingLevelDict === "object") {
+    if (guildBuildingLevelDict != null && typeof guildBuildingLevelDict === "object") {
       state.guildBuildingLevelDict = guildBuildingLevelDict;
+      state.guildBuildingLevelCaptured = true;
     }
     const guildBuildingMap = data.guildBuildingMap ?? data.guildBuildingDict;
     if (guildBuildingMap && typeof guildBuildingMap === "object") state.guildBuildingMap = guildBuildingMap;
@@ -750,7 +769,7 @@
         if (!fiber || typeof fiber !== "object" || seen.has(fiber)) continue;
         seen.add(fiber); visited += 1;
         const candidate = fiber.stateNode?.state;
-        if (candidate && typeof candidate === "object" && (candidate.characterLoadoutDict || candidate.characterLoadoutMap || candidate.characterLabyrinth || candidate.combatUnit || candidate.gameConn || candidate.guildCharacterMap || candidate.guildSharableCharacterMap || candidate.guildTrialSignupLevelDict || candidate.guildWeeklyTrialSet || candidate.guildBuildingLevelDict || candidate.guildBuildingLevelMap || candidate.guild)) {
+        if (candidate && typeof candidate === "object" && (candidate.characterLoadoutDict || candidate.characterLoadoutMap || candidate.characterLabyrinth || candidate.combatUnit || candidate.gameConn || candidate.guildCharacterMap || candidate.guildSharableCharacterMap || candidate.guildTrialSignupLevelDict || candidate.guildWeeklyTrialSet || candidate.characterHouseRoomMap || candidate.characterHouseRoomDict || candidate.characterAchievements || candidate.characterAchievementMap || candidate.guildBuildingLevelDict || candidate.guildBuildingLevelMap || candidate.guild)) {
           applyCharacterTree(candidate);
         }
         if (fiber.return) queue.push(fiber.return);
@@ -774,7 +793,7 @@
       const { value, depth } = queue.shift();
       if (!value || typeof value !== "object" || seen.has(value)) continue;
       seen.add(value); visited += 1;
-      if (value.character || value.characterInfo || value.characterLoadoutDict || value.characterLoadoutMap || value.characterItems || value.characterSkills || value.guildCharacterMap || value.guildSharableCharacterMap || value.guildTrialSignupLevelDict || value.guildWeeklyTrialSet || value.guildTrialDetailMap || value.combatMonsterDetailMap || value.guildBuildingLevelDict || value.guildBuildingLevelMap || value.guild) applyCharacterData(value);
+      if (value.character || value.characterInfo || value.characterLoadoutDict || value.characterLoadoutMap || value.characterItems || value.characterSkills || value.characterHouseRoomMap || value.characterHouseRoomDict || value.characterAchievements || value.characterAchievementMap || value.guildCharacterMap || value.guildSharableCharacterMap || value.guildTrialSignupLevelDict || value.guildWeeklyTrialSet || value.guildTrialDetailMap || value.combatMonsterDetailMap || value.guildBuildingLevelDict || value.guildBuildingLevelMap || value.guild) applyCharacterData(value);
       if (depth >= 5) continue;
       for (const key of Object.keys(value)) {
         if (/token|authorization|cookie|secret|password|credential|session/i.test(key)) continue;
@@ -789,6 +808,97 @@
   // The published .user.js is deliberately standalone. The same contract is
   // exercised in Node through member-snapshot-payload-builder.js; this small
   // browser copy avoids a remote @require or any network dependency.
+  const CAPTURE_HOUSE_ROOM_HRIDS = new Set([
+    "/house_rooms/archery_range", "/house_rooms/armory", "/house_rooms/brewery", "/house_rooms/dairy_barn",
+    "/house_rooms/dining_room", "/house_rooms/dojo", "/house_rooms/forge", "/house_rooms/garden",
+    "/house_rooms/gym", "/house_rooms/kitchen", "/house_rooms/laboratory", "/house_rooms/library",
+    "/house_rooms/log_shed", "/house_rooms/mystical_study", "/house_rooms/observatory",
+    "/house_rooms/sewing_parlor", "/house_rooms/workshop",
+  ]);
+  const CAPTURE_ACHIEVEMENT_HRIDS = new Set([
+    "/achievements/bestiary_points_100", "/achievements/bestiary_points_20", "/achievements/bestiary_points_200",
+    "/achievements/bestiary_points_40", "/achievements/bestiary_points_400", "/achievements/brew_gourmet_tea",
+    "/achievements/brew_ultra_magic_coffee", "/achievements/build_room_level_1", "/achievements/build_room_level_3",
+    "/achievements/build_room_level_6", "/achievements/build_room_level_8", "/achievements/buy_trainee_charm",
+    "/achievements/cheesesmith_azure_tool", "/achievements/clear_chimerical_den", "/achievements/clear_enchanted_fortress",
+    "/achievements/clear_pirate_cove", "/achievements/clear_sinister_circus", "/achievements/clear_t1_dungeon_10_times",
+    "/achievements/coinify_coins_1m", "/achievements/collect_branch_of_insight", "/achievements/collect_butter_of_proficiency",
+    "/achievements/collect_thread_of_expertise", "/achievements/collection_points_100", "/achievements/collection_points_1000",
+    "/achievements/collection_points_200", "/achievements/collection_points_2000", "/achievements/collection_points_500",
+    "/achievements/complete_tutorial", "/achievements/cook_apple_gummy", "/achievements/cook_peach_yogurt",
+    "/achievements/cook_spaceberry_cake", "/achievements/craft_celestial_tool_or_outfit", "/achievements/craft_dungeon_equipment",
+    "/achievements/craft_jewelry", "/achievements/craft_master_charm", "/achievements/craft_wooden_bow",
+    "/achievements/decompose_bamboo_gloves", "/achievements/defeat_chronofrost_sorcerer", "/achievements/defeat_crystal_colossus",
+    "/achievements/defeat_demonic_overlord_t1", "/achievements/defeat_dusk_revenant", "/achievements/defeat_gobo_chieftain",
+    "/achievements/defeat_jerry", "/achievements/defeat_jerry_t5", "/achievements/defeat_luna_empress",
+    "/achievements/defeat_marine_huntress", "/achievements/defeat_red_panda", "/achievements/defeat_shoebill",
+    "/achievements/defeat_stalactite_golem_t5", "/achievements/defeat_the_watcher", "/achievements/enhance_level_80_to_10",
+    "/achievements/enhance_level_90_to_10", "/achievements/enhance_to_10", "/achievements/enhance_to_3",
+    "/achievements/enhance_to_6", "/achievements/equip_expert_task_badge", "/achievements/equip_ginkgo_weapon",
+    "/achievements/gather_milk", "/achievements/labyrinth_floor_2", "/achievements/labyrinth_floor_4",
+    "/achievements/labyrinth_floor_6", "/achievements/labyrinth_floor_8", "/achievements/learn_ability",
+    "/achievements/learn_special_ability", "/achievements/refine_dungeon_equipment",
+    "/achievements/tailor_gluttonous_or_guzzling_pouch", "/achievements/tailor_medium_pouch",
+    "/achievements/tailor_umbral_tunic", "/achievements/task_tokens_10", "/achievements/total_level_100",
+    "/achievements/total_level_1000", "/achievements/total_level_1500", "/achievements/total_level_1800",
+    "/achievements/total_level_250", "/achievements/total_level_500", "/achievements/transmute_philosophers_stone",
+    "/achievements/woodcut_arcane_tree",
+  ]);
+  const CAPTURE_SHRINE_HRIDS = Object.freeze({
+    "/guild_shrines/force": "/shrines/force", "/guild_shrines/tempo": "/shrines/tempo",
+    "/guild_shrines/spirit": "/shrines/spirit", "/guild_shrines/scholar": "/shrines/scholar",
+    "/shrines/force": "/shrines/force", "/shrines/tempo": "/shrines/tempo",
+    "/shrines/spirit": "/shrines/spirit", "/shrines/scholar": "/shrines/scholar",
+  });
+  const captureText = (value) => typeof value === "string" ? value.trim() : (Number.isFinite(value) ? String(value) : "");
+  const captureObject = (value) => value && typeof value === "object" && !Array.isArray(value) ? value : {};
+  const captureEntries = (value) => Array.isArray(value)
+    ? value.map((entry, index) => [String(index), entry])
+    : value && typeof value === "object" && typeof value.entries === "function" && Number.isFinite(Number(value.size))
+      ? [...value.entries()]
+      : value && typeof value === "object" ? Object.entries(value) : [];
+  const captureBoundedInteger = (value, max) => {
+    if (value == null || (typeof value === "string" && value.trim() === "")) return null;
+    if (typeof value !== "number" && typeof value !== "string") return null;
+    const number = Number(value);
+    return Number.isInteger(number) && number >= 0 && number <= max ? number : null;
+  };
+  const captureHouseRooms = (value) => Object.fromEntries(captureEntries(value).flatMap(([mapKey, raw]) => {
+    const row = captureObject(raw);
+    const hrid = captureText(row.houseRoomHrid ?? mapKey);
+    const level = captureBoundedInteger(row.level ?? raw, 8);
+    return CAPTURE_HOUSE_ROOM_HRIDS.has(hrid) && level != null ? [[hrid, level]] : [];
+  }));
+  const captureAchievements = (value) => Object.fromEntries(captureEntries(value).flatMap(([mapKey, raw]) => {
+    const row = captureObject(raw);
+    const hrid = captureText(row.achievementHrid ?? mapKey);
+    const completed = raw && typeof raw === "object" && !Array.isArray(raw) && Object.hasOwn(raw, "isCompleted")
+      ? raw.isCompleted : raw;
+    if (!CAPTURE_ACHIEVEMENT_HRIDS.has(hrid) || (completed !== true && completed !== false && completed !== 0 && completed !== 1)) return [];
+    return [[hrid, completed === true || completed === 1]];
+  }));
+  const captureShrines = (value) => Object.fromEntries(captureEntries(value).flatMap(([mapKey, raw]) => {
+    const hrid = CAPTURE_SHRINE_HRIDS[captureText(mapKey)];
+    const row = captureObject(raw);
+    const level = captureBoundedInteger(row.level ?? raw, 20);
+    return hrid && level != null ? [[hrid, level]] : [];
+  }));
+  const permanentCaptureFields = (input) => {
+    const character = captureObject(input.character);
+    const houseSource = input.characterHouseRoomMap ?? input.characterHouseRoomDict
+      ?? character.characterHouseRoomMap ?? character.characterHouseRoomDict;
+    const achievementSource = input.characterAchievements ?? input.characterAchievementMap
+      ?? character.characterAchievements ?? character.characterAchievementMap;
+    const shrineSource = input.guildBuildingLevelCaptured ? input.guildBuildingLevelDict
+      : input.guildBuildingLevelDict ?? input.guildBuildingLevelMap
+        ?? character.guildBuildingLevelDict ?? character.guildBuildingLevelMap;
+    return {
+      ...(houseSource == null ? {} : { houseRooms: captureHouseRooms(houseSource) }),
+      ...(achievementSource == null ? {} : { achievements: captureAchievements(achievementSource) }),
+      ...(shrineSource == null ? {} : { shrines: captureShrines(shrineSource) }),
+      ...(houseSource != null && achievementSource != null && shrineSource != null ? { permanentBuffsCaptured: true } : {}),
+    };
+  };
   const localBuilder = {
     buildMemberSnapshot(input) {
       const safe = (value) => Array.isArray(value) ? value.map(safe) : value && typeof value === "object"
@@ -932,7 +1042,7 @@
         };
       });
       const memberId = string(input.memberId ?? character.memberId ?? character.characterId ?? character.id) || "unknown-member";
-      return safe({ schemaVersion: "2", memberId, displayName: string(input.displayName ?? character.displayName ?? character.name) || memberId, guildId: string(input.guildId ?? character.guildId), capturedAt, source: "manual", sourceSchemaVersion: "mwi-local-exporter-v1", freshness: "fresh", confidence: approvedBuilds.length ? "simulation-ready" : "capability-only", skills: levels(input.skills ?? character.skills), learnedAbilities: levels(input.learnedAbilities ?? character.learnedAbilities), auras: levels(input.auras ?? character.auras), loadoutCatalog, approvedBuilds, participation: { eligibleBossHrids: [], preferredBossHrids: [], maxBossAssignments: 1, allowRoleChange: true, allowSkillChange: true }, issues: approvedBuilds.length === requested.length ? [] : ["some-selected-loadouts-were-incomplete-or-not-owned"] });
+      return safe({ schemaVersion: "2", memberId, displayName: string(input.displayName ?? character.displayName ?? character.name) || memberId, guildId: string(input.guildId ?? character.guildId), capturedAt, source: "manual", sourceSchemaVersion: "mwi-local-exporter-v1", freshness: "fresh", confidence: approvedBuilds.length ? "simulation-ready" : "capability-only", skills: levels(input.skills ?? character.skills), learnedAbilities: levels(input.learnedAbilities ?? character.learnedAbilities), auras: levels(input.auras ?? character.auras), ...permanentCaptureFields(input), loadoutCatalog, approvedBuilds, participation: { eligibleBossHrids: [], preferredBossHrids: [], maxBossAssignments: 1, allowRoleChange: true, allowSkillChange: true }, issues: approvedBuilds.length === requested.length ? [] : ["some-selected-loadouts-were-incomplete-or-not-owned"] });
     },
   };
 
@@ -1143,6 +1253,10 @@
         guildTrialSignupLevelMap: dictionary(gameState?.guildTrialSignupLevelMap || gameState?.guildTrialSignupLevelDict),
         guildWeeklyTrialSet: gameState?.guildWeeklyTrialSet || gameState?.weeklyGuildTrialSet || {},
         guildTrialDetailMap: dictionary(gameState?.guildTrialDetailMap || gameState?.guildTrialDetailDict),
+        characterHouseRoomMap: gameState?.characterHouseRoomMap,
+        characterHouseRoomDict: gameState?.characterHouseRoomDict,
+        characterAchievements: gameState?.characterAchievements,
+        characterAchievementMap: dictionary(gameState?.characterAchievementMap),
         guildBuildingLevelDict: dictionary(
           gameState?.guildBuildingLevelDict
           || gameState?.guildBuildingLevelMap
@@ -1810,6 +1924,9 @@
       skills: state.skills,
       learnedAbilities: state.learnedAbilities,
       auras: state.auras,
+      characterHouseRoomMap: state.characterHouseRoomMap,
+      characterAchievements: state.characterAchievements,
+      guildBuildingLevelDict: state.guildBuildingLevelCaptured ? state.guildBuildingLevelDict : undefined,
       memberId: detectedMemberId() || undefined,
       displayName: detectedMemberId() || undefined,
       guildId: GUILD_IDENTITY.apiSlug,
