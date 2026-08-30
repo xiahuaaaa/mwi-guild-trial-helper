@@ -2,7 +2,7 @@
 // @name         WI-guild-trial-sync
 // @name:en      WI-guild-trial-sync
 // @namespace    https://github.com/xiahuaaaa/mwi-guild-trial-helper/wi
-// @version      0.6.24-wi.1
+// @version      0.6.25-wi.1
 // @description  Wandering ICarus 公会专用：自动同步成员名单、本周试炼、怪物面板、全部配装、技能与光环，并高亮最新战斗分工。
 // @description:en  Wandering ICarus guild sync: roster, weekly trials, monster panels, loadouts, abilities, auras, and the latest combat assignment.
 // @author       adudu
