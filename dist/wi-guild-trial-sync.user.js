@@ -670,17 +670,20 @@
     const guildTrialDetailMap = data.guildTrialDetailMap ?? data.guildTrialDetailDict;
     if (guildTrialDetailMap && typeof guildTrialDetailMap === "object") state.guildTrialDetailMap = guildTrialDetailMap;
     const characterHouseRoomMap = data.characterHouseRoomMap ?? data.characterHouseRoomDict
-      ?? characterInfo.characterHouseRoomMap ?? characterInfo.characterHouseRoomDict;
+      ?? characterInfo.characterHouseRoomMap ?? characterInfo.characterHouseRoomDict
+      ?? character?.characterHouseRoomMap ?? character?.characterHouseRoomDict;
     if (characterHouseRoomMap != null && typeof characterHouseRoomMap === "object") {
       state.characterHouseRoomMap = characterHouseRoomMap;
     }
     const characterAchievements = data.characterAchievements ?? data.characterAchievementMap
-      ?? characterInfo.characterAchievements ?? characterInfo.characterAchievementMap;
+      ?? characterInfo.characterAchievements ?? characterInfo.characterAchievementMap
+      ?? character?.characterAchievements ?? character?.characterAchievementMap;
     if (characterAchievements != null && typeof characterAchievements === "object") {
       state.characterAchievements = characterAchievements;
     }
     const guildBuildingLevelDict = data.guildBuildingLevelDict ?? data.guildBuildingLevelMap
-      ?? data.guild?.guildBuildingLevelMap ?? data.guild?.guildBuildingLevelDict;
+      ?? data.guild?.guildBuildingLevelMap ?? data.guild?.guildBuildingLevelDict
+      ?? character?.guildBuildingLevelMap ?? character?.guildBuildingLevelDict;
     if (guildBuildingLevelDict != null && typeof guildBuildingLevelDict === "object") {
       state.guildBuildingLevelDict = guildBuildingLevelDict;
       state.guildBuildingLevelCaptured = true;
@@ -1168,6 +1171,13 @@
     const dictionary = (value) => mapLike(value) ? Object.fromEntries(value) : value && typeof value === "object" ? value : {};
     const compact = (gameState) => {
       const character = gameState?.character || gameState?.currentCharacter || gameState?.playerCharacter || {};
+      const houseRoomSource = gameState?.characterHouseRoomMap ?? gameState?.characterHouseRoomDict
+        ?? character?.characterHouseRoomMap ?? character?.characterHouseRoomDict;
+      const achievementSource = gameState?.characterAchievements ?? gameState?.characterAchievementMap
+        ?? character?.characterAchievements ?? character?.characterAchievementMap;
+      const shrineSource = gameState?.guildBuildingLevelDict ?? gameState?.guildBuildingLevelMap
+        ?? character?.guildBuildingLevelDict ?? character?.guildBuildingLevelMap
+        ?? gameState?.guild?.guildBuildingLevelMap ?? gameState?.guild?.guildBuildingLevelDict;
       const id = character?.id ?? character?.characterId ?? gameState?.characterId;
       const name = character?.name ?? character?.characterName ?? gameState?.characterName;
       if (!id || !name) return null;
@@ -1253,15 +1263,10 @@
         guildTrialSignupLevelMap: dictionary(gameState?.guildTrialSignupLevelMap || gameState?.guildTrialSignupLevelDict),
         guildWeeklyTrialSet: gameState?.guildWeeklyTrialSet || gameState?.weeklyGuildTrialSet || {},
         guildTrialDetailMap: dictionary(gameState?.guildTrialDetailMap || gameState?.guildTrialDetailDict),
-        characterHouseRoomMap: gameState?.characterHouseRoomMap,
-        characterHouseRoomDict: gameState?.characterHouseRoomDict,
-        characterAchievements: gameState?.characterAchievements,
-        characterAchievementMap: dictionary(gameState?.characterAchievementMap),
-        guildBuildingLevelDict: dictionary(
-          gameState?.guildBuildingLevelDict
-          || gameState?.guildBuildingLevelMap
-          || gameState?.guild?.guildBuildingLevelMap,
-        ),
+        characterHouseRoomMap: houseRoomSource == null ? undefined : houseRoomSource,
+        characterAchievements: achievementSource == null ? undefined : achievementSource,
+        characterAchievementMap: achievementSource == null ? undefined : dictionary(achievementSource),
+        guildBuildingLevelDict: shrineSource == null ? undefined : dictionary(shrineSource),
         guildBuildingDetailMap: dictionary(gameState?.guildBuildingDetailMap || gameState?.guildBuildingDetailDict),
         combatMonsterDetailMap: dictionary(gameState?.combatMonsterDetailMap || gameState?.combatMonsterDetailDict),
         characterSkills: values(gameState?.characterSkills || gameState?.characterSkillMap || gameState?.characterSkillDict),
