@@ -2,7 +2,7 @@
 // @name         MWI 公会试炼资料同步助手
 // @name:en      TMD-guild-trial-sync
 // @namespace    https://greasyfork.org/users/1466859-adudu
-// @version      0.6.22
+// @version      0.6.23
 // @description  TMD 公会专用：自动同步成员名单、本周试炼、怪物面板、全部配装、技能与光环，并高亮最新战斗分工。
 // @description:en  TMD guild sync: roster, weekly trials, monster panels, loadouts, abilities, auras, and the latest combat assignment.
 // @author       adudu
@@ -578,6 +578,15 @@
     state.auras = [];
   }
 
+  const positiveGuildId = (value) => {
+    const id = Number(value);
+    return Number.isInteger(id) && id > 0 ? id : null;
+  };
+  const ownGuildName = (value) => String(value ?? "").trim() === GUILD_IDENTITY.gameGuildName;
+  const hasPinnedGuildId = (value) => positiveGuildId(value) === GUILD_IDENTITY.gameGuildId;
+  const ownsCurrentGuild = () =>
+    ownGuildName(state.guild.name) || hasPinnedGuildId(state.guild.id) || hasPinnedGuildId(state.guild.guildId);
+
   function applyCharacterData(candidate) {
     const data = object(candidate);
     const characterInfo = object(data.characterInfo);
@@ -591,28 +600,51 @@
     if (incomingId && currentId && incomingId !== currentId) resetOwnedCharacterState();
     if (character && typeof character === "object") state.character = character;
     const guild = data.guild ?? characterInfo.guild;
-    if (guild && typeof guild === "object") {
-      // Explicit fields: Edge/Chromium guild objects may expose id/name via
-      // getters that object-spread does not always copy into state.guild.
+    const incomingGuildName = String(
+      (guild && typeof guild === "object" ? guild.name ?? guild.guildName : "")
+      || data.guildName || character?.guildName || characterInfo.character?.guildName || ""
+    ).trim();
+    const incomingGuildId = [
+      guild && typeof guild === "object" ? guild.guildId : undefined,
+      guild && typeof guild === "object" ? guild.id : undefined,
+      data.guildId,
+      data.guildID,
+      character?.guildId,
+      character?.guildID,
+    ].map(positiveGuildId).filter((id) => id != null)
+      .sort((left, right) => Number(right === GUILD_IDENTITY.gameGuildId) - Number(left === GUILD_IDENTITY.gameGuildId))[0]
+      ?? null;
+    const incomingForeignName = incomingGuildName && !ownGuildName(incomingGuildName);
+    // TMD/WI leftover fibers and guild-list tiles can write a foreign id
+    // (Ameratto: 459) without replacing the TMD name. Keep the pinned id.
+    if (guild && typeof guild === "object" && !(ownsCurrentGuild() && incomingForeignName)) {
+      const pinnedId = hasPinnedGuildId(state.guild.id)
+        || hasPinnedGuildId(state.guild.guildId)
+        || hasPinnedGuildId(incomingGuildId)
+        ? GUILD_IDENTITY.gameGuildId
+        : null;
       state.guild = {
         ...state.guild,
         ...guild,
-        id: guild.id ?? guild.guildId ?? state.guild.id,
-        guildId: guild.guildId ?? guild.id ?? state.guild.guildId,
-        name: guild.name ?? guild.guildName ?? state.guild.name,
+        id: pinnedId ?? incomingGuildId ?? guild.id ?? guild.guildId ?? state.guild.id,
+        guildId: pinnedId ?? guild.guildId ?? guild.id ?? state.guild.guildId,
+        name: incomingGuildName || guild.name || guild.guildName || state.guild.name,
         guildName: guild.guildName ?? guild.name ?? state.guild.guildName,
       };
     }
-    const guildName = data.guildName ?? character?.guildName ?? characterInfo.character?.guildName
-      ?? guild?.name ?? guild?.guildName;
-    if (typeof guildName === "string" && guildName.trim()) state.guild.name = guildName.trim();
-    const guildId = data.guildId ?? data.guildID ?? character?.guildId ?? character?.guildID
-      ?? guild?.id ?? guild?.guildId;
-    if (guildId != null && guildId !== "" && Number(guildId) > 0) {
-      state.guild.id = Number(guildId);
+    if (incomingGuildName && !(ownsCurrentGuild() && incomingForeignName)) {
+      state.guild.name = incomingGuildName;
+    }
+    if (incomingGuildId && !(ownsCurrentGuild() && incomingForeignName)) {
+      const keepPinned = hasPinnedGuildId(state.guild.id) && !hasPinnedGuildId(incomingGuildId);
+      if (!keepPinned) state.guild.id = hasPinnedGuildId(incomingGuildId)
+        ? GUILD_IDENTITY.gameGuildId
+        : incomingGuildId;
       if (state.character && typeof state.character === "object") {
         if (state.character.guildId == null && state.character.guildID == null) {
-          state.character.guildId = Number(guildId);
+          state.character.guildId = hasPinnedGuildId(state.guild.id)
+            ? GUILD_IDENTITY.gameGuildId
+            : incomingGuildId;
         }
         if (!state.character.guildName && state.guild.name) {
           state.character.guildName = state.guild.name;
@@ -1260,9 +1292,18 @@
     return String(state.character.name ?? state.character.characterName ?? state.character.displayName ?? "").trim();
   }
   function detectedGameGuild() {
-    const id = Number(state.guild.id ?? state.guild.guildId ?? state.character.guildId ?? state.character.guildID);
+    const ids = [
+      state.guild.guildId,
+      state.guild.id,
+      state.character.guildId,
+      state.character.guildID,
+    ].map(positiveGuildId).filter((id) => id != null);
     const name = String(state.guild.name ?? state.guild.guildName ?? state.character.guildName ?? "").trim();
-    return { id: Number.isInteger(id) && id > 0 ? id : null, name };
+    const pinned = ids.find((id) => id === GUILD_IDENTITY.gameGuildId) ?? null;
+    if (ownGuildName(name)) {
+      return { id: pinned ?? GUILD_IDENTITY.gameGuildId, name };
+    }
+    return { id: pinned ?? ids[0] ?? null, name };
   }
   function tmdConfirmDetail() {
     const guild = detectedGameGuild();
@@ -1270,21 +1311,15 @@
     if (guild.name !== GUILD_IDENTITY.gameGuildName) {
       parts.push(guild.name ? `guild=${guild.name}` : "missing guild name");
     }
-    if (guild.id !== GUILD_IDENTITY.gameGuildId) {
+    if (!ownGuildName(guild.name) && guild.id !== GUILD_IDENTITY.gameGuildId) {
       parts.push(guild.id != null ? `guildId=${guild.id}≠${GUILD_IDENTITY.gameGuildId}` : "missing guild id");
-    }
-    const characterGuildId = Number(state.character.guildId ?? state.character.guildID);
-    if (Number.isInteger(characterGuildId) && guild.id != null && characterGuildId !== guild.id) {
-      parts.push(`character guildId=${characterGuildId}≠${guild.id}`);
     }
     return parts.join("; ") || "incomplete guild state";
   }
   function confirmedTmdGuild() {
     const guild = detectedGameGuild();
-    const characterGuildId = Number(state.character.guildId ?? state.character.guildID);
-    return guild.name === GUILD_IDENTITY.gameGuildName
-      && guild.id === GUILD_IDENTITY.gameGuildId
-      && (!Number.isInteger(characterGuildId) || characterGuildId === guild.id);
+    if (guild.name === GUILD_IDENTITY.gameGuildName) return true;
+    return guild.id === GUILD_IDENTITY.gameGuildId;
   }
   /** Ask the page bridge to re-read React/core state; Edge often needs this after opening Guild. */
   function requestPageBridgeState(timeoutMs = 900) {
