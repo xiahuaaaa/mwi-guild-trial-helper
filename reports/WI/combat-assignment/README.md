@@ -1,5 +1,5 @@
 # 本周分工 / Weekly Assignments
-- assignmentGeneratedAt：`2026-09-04T06:14:41.466Z`
+- assignmentGeneratedAt：`2026-09-04T08:30:13.010Z`
 - kind：`wi-available-roster-composition-lab`
 公网浏览（可选图片 / 中英切换）：https://xiahuaaaa.github.io/mwi-guild-trial-helper/reports/WI/combat-assignment/
 原图目录：https://raw.githubusercontent.com/xiahuaaaa/mwi-guild-trial-helper/main/reports/WI/combat-assignment/
