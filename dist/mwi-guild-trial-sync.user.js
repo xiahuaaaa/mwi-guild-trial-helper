@@ -2,7 +2,7 @@
 // @name         MWI 公会试炼资料同步助手
 // @name:en      TMD-guild-trial-sync
 // @namespace    https://greasyfork.org/users/1466859-adudu
-// @version      0.6.25
+// @version      0.6.26
 // @description  TMD 公会专用：自动同步成员名单、本周试炼、怪物面板、全部配装、技能与光环，并高亮最新战斗分工。
 // @description:en  TMD guild sync: roster, weekly trials, monster panels, loadouts, abilities, auras, and the latest combat assignment.
 // @author       adudu
@@ -22,6 +22,8 @@
 // @connect      localhost
 // @connect      adudu.tailab136f.ts.net
 // @connect      raw.githubusercontent.com
+// @connect      gitee.com
+// @connect      raw.giteeusercontent.com
 // @run-at       document-start
 // ==/UserScript==
 
@@ -48,8 +50,17 @@
   });
   const REPORTS_PREFIX = GUILD_IDENTITY.apiSlug === "WI" ? "WI/" : "";
   const DEFAULT_API_BASE = "https://adudu.tailab136f.ts.net";
-  const COMBAT_ASSIGNMENT_JSON_URL = `https://raw.githubusercontent.com/xiahuaaaa/mwi-guild-trial-helper/main/reports/${REPORTS_PREFIX}combat-assignment/latest.json`;
-  const LIFE_ASSIGNMENT_JSON_URL = `https://raw.githubusercontent.com/xiahuaaaa/mwi-guild-trial-helper/main/reports/${REPORTS_PREFIX}life-assignment/latest.json`;
+  const GITHUB_REPORTS_BASE = "https://raw.githubusercontent.com/xiahuaaaa/mwi-guild-trial-helper/main/reports";
+  const GITEE_REPORTS_REPO = GUILD_IDENTITY.apiSlug === "WI"
+    ? "lxxxhhyy/WI-guild-trial-sync"
+    : "lxxxhhyy/TMD-guild-trial-sync";
+  const GITEE_REPORTS_BASE = `https://gitee.com/${GITEE_REPORTS_REPO}/raw/master/reports`;
+  const COMBAT_ASSIGNMENT_JSON_URL = `${GITHUB_REPORTS_BASE}/${REPORTS_PREFIX}combat-assignment/latest.json`;
+  const COMBAT_ASSIGNMENT_GITEE_URL = `${GITEE_REPORTS_BASE}/${REPORTS_PREFIX}combat-assignment/latest.json`;
+  const COMBAT_ASSIGNMENT_JSON_URLS = Object.freeze([COMBAT_ASSIGNMENT_JSON_URL, COMBAT_ASSIGNMENT_GITEE_URL]);
+  const LIFE_ASSIGNMENT_JSON_URL = `${GITHUB_REPORTS_BASE}/${REPORTS_PREFIX}life-assignment/latest.json`;
+  const LIFE_ASSIGNMENT_GITEE_URL = `${GITEE_REPORTS_BASE}/${REPORTS_PREFIX}life-assignment/latest.json`;
+  const LIFE_ASSIGNMENT_JSON_URLS = Object.freeze([LIFE_ASSIGNMENT_JSON_URL, LIFE_ASSIGNMENT_GITEE_URL]);
   const COMBAT_ABILITY_ICON_BASE = "https://mwi-guild.43.167.210.211.sslip.io/dist/icons/abilities";
   const COMBAT_ASSIGNMENT_CACHE_MS = 5 * 60 * 1000;
   const COMBAT_ASSIGNMENT_POLL_MS = 2 * 60 * 1000;
@@ -2023,6 +2034,19 @@
       return requestJsonWithFetch({ method, url, headers, body });
     });
   }
+  async function requestAssignmentJson({ urls }) {
+    let lastError = null;
+    for (const url of urls) {
+      try {
+        const response = await requestJson({ method: "GET", url });
+        if (response.status === 200) return response;
+        lastError = new Error(`HTTP ${response.status}`);
+      } catch (error) {
+        lastError = error;
+      }
+    }
+    throw lastError || new Error(tr("syncUnreachable"));
+  }
 
   const COMBAT_ABILITY_NAMES_ZH = Object.freeze({
     "/abilities/insanity": "疯狂",
@@ -2571,8 +2595,7 @@
       setStatus(tr("lifeAssignmentLoading"));
     }
     try {
-      const response = await requestJson({ method: "GET", url: LIFE_ASSIGNMENT_JSON_URL });
-      if (response.status !== 200) throw new Error(`HTTP ${response.status}`);
+      const response = await requestAssignmentJson({ urls: LIFE_ASSIGNMENT_JSON_URLS });
       const source = JSON.parse(response.responseText || "{}");
       lifeAssignmentState.document = normalizeLifeAssignment(source);
       lifeAssignmentState.fetchedAt = Date.now();
@@ -2616,8 +2639,7 @@
       setStatus(tr("assignmentLoading"));
     }
     try {
-      const response = await requestJson({ method: "GET", url: COMBAT_ASSIGNMENT_JSON_URL });
-      if (response.status !== 200) throw new Error(`HTTP ${response.status}`);
+      const response = await requestAssignmentJson({ urls: COMBAT_ASSIGNMENT_JSON_URLS });
       const source = JSON.parse(response.responseText || "{}");
       combatAssignmentState.document = normalizeCombatAssignment(source);
       combatAssignmentState.fetchedAt = Date.now();
