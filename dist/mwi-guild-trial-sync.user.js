@@ -2,7 +2,7 @@
 // @name         MWI 公会试炼资料同步助手
 // @name:en      TMD-guild-trial-sync
 // @namespace    https://greasyfork.org/users/1466859-adudu
-// @version      0.6.26
+// @version      0.6.27
 // @description  TMD 公会专用：自动同步成员名单、本周试炼、怪物面板、全部配装、技能与光环，并高亮最新战斗分工。
 // @description:en  TMD guild sync: roster, weekly trials, monster panels, loadouts, abilities, auras, and the latest combat assignment.
 // @author       adudu
@@ -20,7 +20,7 @@
 // @grant        unsafeWindow
 // @connect      127.0.0.1
 // @connect      localhost
-// @connect      adudu.tailab136f.ts.net
+// @connect      api.adudu.lol
 // @connect      raw.githubusercontent.com
 // @connect      gitee.com
 // @connect      raw.giteeusercontent.com
@@ -49,7 +49,7 @@
     gameGuildId: 369,
   });
   const REPORTS_PREFIX = GUILD_IDENTITY.apiSlug === "WI" ? "WI/" : "";
-  const DEFAULT_API_BASE = "https://adudu.tailab136f.ts.net";
+  const DEFAULT_API_BASE = "https://api.adudu.lol";
   const GITHUB_REPORTS_BASE = "https://raw.githubusercontent.com/xiahuaaaa/mwi-guild-trial-helper/main/reports";
   const GITEE_REPORTS_REPO = GUILD_IDENTITY.apiSlug === "WI"
     ? "lxxxhhyy/WI-guild-trial-sync"
@@ -1995,11 +1995,14 @@
   function requestJsonWithGm(gmRequest, { method, url, headers, body }) {
     return new Promise((resolve, reject) => {
       let settled = false;
+      let timer = 0;
       const finish = (callback, value) => {
         if (settled) return;
         settled = true;
+        clearTimeout(timer);
         callback(value);
       };
+      timer = setTimeout(() => finish(reject, new Error(tr("syncTimeout"))), 30_000);
       try {
         const result = gmRequest({
           method,
