@@ -1,9 +1,9 @@
 {
   "kind": "combat-assignment-report",
   "schemaVersion": 1,
-  "assignmentGeneratedAt": "2026-09-11T01:47:07.494Z",
+  "assignmentGeneratedAt": "2026-09-18T03:04:44.725Z",
   "assignmentKind": "wi-available-roster-composition-lab",
-  "generatedAt": "2026-09-11T01:47:35.781Z",
+  "generatedAt": "2026-09-18T03:06:01.231Z",
   "publicBaseUrl": "https://raw.githubusercontent.com/xiahuaaaa/mwi-guild-trial-helper/main/reports/WI/combat-assignment",
   "publicIndexUrl": "https://xiahuaaaa.github.io/mwi-guild-trial-helper/reports/WI/combat-assignment/",
   "publicManifestUrl": "https://raw.githubusercontent.com/xiahuaaaa/mwi-guild-trial-helper/main/reports/WI/combat-assignment/manifest.json",
@@ -15,7 +15,7 @@
       "publicUrl": "https://raw.githubusercontent.com/xiahuaaaa/mwi-guild-trial-helper/main/reports/WI/combat-assignment/1-hedgehog-summary.png"
     },
     {
-      "title": "试炼刺猬 · 44 人贡献明细",
+      "title": "试炼刺猬 · 38 人贡献明细",
       "fileName": "1-hedgehog-members.png",
       "publicUrl": "https://raw.githubusercontent.com/xiahuaaaa/mwi-guild-trial-helper/main/reports/WI/combat-assignment/1-hedgehog-members.png"
     },
@@ -37,7 +37,7 @@
       "publicUrl": "https://raw.githubusercontent.com/xiahuaaaa/mwi-guild-trial-helper/main/reports/WI/combat-assignment/1-hedgehog-summary.en.png"
     },
     {
-      "title": "Trial Hedgehog · 44 Member Breakdown",
+      "title": "Trial Hedgehog · 38 Member Breakdown",
       "fileName": "1-hedgehog-members.en.png",
       "publicUrl": "https://raw.githubusercontent.com/xiahuaaaa/mwi-guild-trial-helper/main/reports/WI/combat-assignment/1-hedgehog-members.en.png"
     },
