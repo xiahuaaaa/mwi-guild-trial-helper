@@ -4,7 +4,7 @@
   "developmentOnly": true,
   "promotable": false,
   "guildId": "WI",
-  "generatedAt": "2026-10-02T02:44:54.200Z",
+  "generatedAt": "2026-10-02T03:20:19.936Z",
   "combatRulesVersion": "guild-trial-rules-2026-08-30.2",
   "permanentBuffsEnabled": false,
   "engine": "shykai-full-event-runtime",
@@ -30,8 +30,8 @@
     },
     "specialAndAuraAssignment": "aura-carriers-then-all-revive-rank-dps-and-debuffer-insanity",
     "insanityTopDps": {
-      "jellyfish": 0,
-      "swarm": 8
+      "jellyfish": 29,
+      "swarm": 29
     },
     "auraAssignment": "guardian-on-highest-shield-others-revive",
     "healerKit": "remaining-healers-rejuvenate-pollen-veil-entangle",
@@ -167,7 +167,7 @@
         "reason": "盾超额（防御126较低，每边只带2盾）"
       }
     ],
-    "note": "不使用报名名单。排除 无。弓/弩/枪主体去水母；剑/锤/火/水主体去虫群；自然全治疗扫描奶比，两边保留覆盖；两边各留至少2个必要覆盖；盾平均分配，每边最高守护光环等级者带守护、其余盾复活；自然全治疗；非光环默认复活、前x输出改疯狂；WI门槛：主属性≥125（弓弩远程/枪剑锤近战/火水自魔法/盾防御）；需T95或精炼★T95武器；每边2盾（去掉防御较低的盾）；攻击≥110。 全复活比较DPS后前x输出/减益改疯狂：jellyfish=16，swarm=8。 全复活比较DPS后前x输出/减益改疯狂：jellyfish=0，swarm=8。"
+    "note": "不使用报名名单。排除 无。弓/弩/枪主体去水母；剑/锤/火/水主体去虫群；自然全治疗扫描奶比，两边保留覆盖；两边各留至少2个必要覆盖；盾平均分配，每边最高守护光环等级者带守护、其余盾复活；自然全治疗；非光环默认复活、前x输出改疯狂；WI门槛：主属性≥125（弓弩远程/枪剑锤近战/火水自魔法/盾防御）；需T95或精炼★T95武器；每边2盾（去掉防御较低的盾）；攻击≥110。 全复活比较DPS后前x输出/减益改疯狂：jellyfish=16，swarm=8。 全复活比较DPS后前x输出/减益改疯狂：jellyfish=0，swarm=8。；技能已按发布明细排名手工调整，DPS/死亡/治疗/光环增益均为调整前统计，未重跑模拟。"
   },
   "partitionSearch": [
     {
@@ -253,27 +253,27 @@
           "duty": "dps",
           "cloneIndex": 1,
           "aura": null,
-          "special": "复活",
+          "special": "疯狂",
           "abilities": [
-            "复活Lv15",
+            "疯狂Lv16",
             "狂暴Lv53",
             "精确Lv48",
             "疫病射击Lv55",
             "狂速Lv42"
           ],
           "abilityHrids": [
-            "/abilities/revive",
+            "/abilities/insanity",
             "/abilities/berserk",
             "/abilities/precision",
             "/abilities/pestilent_shot",
             "/abilities/frenzy"
           ],
           "abilityLevels": {
-            "/abilities/revive": 15,
             "/abilities/berserk": 53,
             "/abilities/precision": 48,
             "/abilities/pestilent_shot": 55,
-            "/abilities/frenzy": 42
+            "/abilities/frenzy": 42,
+            "/abilities/insanity": 16
           },
           "auraHrid": null
         },
@@ -283,27 +283,27 @@
           "duty": "dps",
           "cloneIndex": 1,
           "aura": null,
-          "special": "复活",
+          "special": "疯狂",
           "abilities": [
-            "复活Lv18",
+            "疯狂Lv11",
             "狂暴Lv54",
             "精确Lv52",
             "疫病射击Lv51",
             "狂速Lv50"
           ],
           "abilityHrids": [
-            "/abilities/revive",
+            "/abilities/insanity",
             "/abilities/berserk",
             "/abilities/precision",
             "/abilities/pestilent_shot",
             "/abilities/frenzy"
           ],
           "abilityLevels": {
-            "/abilities/revive": 18,
             "/abilities/berserk": 54,
             "/abilities/precision": 52,
             "/abilities/pestilent_shot": 51,
-            "/abilities/frenzy": 50
+            "/abilities/frenzy": 50,
+            "/abilities/insanity": 11
           },
           "auraHrid": null
         },
@@ -313,27 +313,27 @@
           "duty": "debuffer",
           "cloneIndex": 1,
           "aura": null,
-          "special": "复活",
+          "special": "疯狂",
           "abilities": [
-            "复活Lv7",
+            "疯狂Lv11",
             "狂暴Lv53",
             "精确Lv49",
             "疫病射击Lv51",
             "狂速Lv47"
           ],
           "abilityHrids": [
-            "/abilities/revive",
+            "/abilities/insanity",
             "/abilities/berserk",
             "/abilities/precision",
             "/abilities/pestilent_shot",
             "/abilities/frenzy"
           ],
           "abilityLevels": {
-            "/abilities/revive": 7,
             "/abilities/berserk": 53,
             "/abilities/precision": 49,
             "/abilities/pestilent_shot": 51,
-            "/abilities/frenzy": 47
+            "/abilities/frenzy": 47,
+            "/abilities/insanity": 11
           },
           "auraHrid": null
         },
@@ -343,27 +343,27 @@
           "duty": "debuffer",
           "cloneIndex": 1,
           "aura": null,
-          "special": "复活",
+          "special": "疯狂",
           "abilities": [
-            "复活Lv1",
+            "疯狂Lv18",
             "狂暴Lv52",
             "精确Lv49",
             "疫病射击Lv49",
             "狂速Lv46"
           ],
           "abilityHrids": [
-            "/abilities/revive",
+            "/abilities/insanity",
             "/abilities/berserk",
             "/abilities/precision",
             "/abilities/pestilent_shot",
             "/abilities/frenzy"
           ],
           "abilityLevels": {
-            "/abilities/revive": 1,
             "/abilities/berserk": 52,
             "/abilities/precision": 49,
             "/abilities/pestilent_shot": 49,
-            "/abilities/frenzy": 46
+            "/abilities/frenzy": 46,
+            "/abilities/insanity": 18
           },
           "auraHrid": null
         },
@@ -373,27 +373,27 @@
           "duty": "dps",
           "cloneIndex": 1,
           "aura": null,
-          "special": "复活",
+          "special": "疯狂",
           "abilities": [
-            "复活Lv1",
+            "疯狂Lv13",
             "狂暴Lv54",
             "精确Lv51",
             "疫病射击Lv46",
             "狂速Lv48"
           ],
           "abilityHrids": [
-            "/abilities/revive",
+            "/abilities/insanity",
             "/abilities/berserk",
             "/abilities/precision",
             "/abilities/pestilent_shot",
             "/abilities/frenzy"
           ],
           "abilityLevels": {
-            "/abilities/revive": 1,
             "/abilities/berserk": 54,
             "/abilities/precision": 51,
             "/abilities/pestilent_shot": 46,
-            "/abilities/frenzy": 48
+            "/abilities/frenzy": 48,
+            "/abilities/insanity": 13
           },
           "auraHrid": null
         },
@@ -403,27 +403,27 @@
           "duty": "dps",
           "cloneIndex": 1,
           "aura": null,
-          "special": "复活",
+          "special": "疯狂",
           "abilities": [
-            "复活Lv1",
+            "疯狂Lv16",
             "狂暴Lv55",
             "精确Lv50",
             "疫病射击Lv52",
             "狂速Lv48"
           ],
           "abilityHrids": [
-            "/abilities/revive",
+            "/abilities/insanity",
             "/abilities/berserk",
             "/abilities/precision",
             "/abilities/pestilent_shot",
             "/abilities/frenzy"
           ],
           "abilityLevels": {
-            "/abilities/revive": 1,
             "/abilities/berserk": 55,
             "/abilities/precision": 50,
             "/abilities/pestilent_shot": 52,
-            "/abilities/frenzy": 48
+            "/abilities/frenzy": 48,
+            "/abilities/insanity": 16
           },
           "auraHrid": null
         },
@@ -433,27 +433,27 @@
           "duty": "dps",
           "cloneIndex": 1,
           "aura": null,
-          "special": "复活",
+          "special": "疯狂",
           "abilities": [
-            "复活Lv8",
+            "疯狂Lv13",
             "狂暴Lv54",
             "精确Lv51",
             "疫病射击Lv48",
             "狂速Lv48"
           ],
           "abilityHrids": [
-            "/abilities/revive",
+            "/abilities/insanity",
             "/abilities/berserk",
             "/abilities/precision",
             "/abilities/pestilent_shot",
             "/abilities/frenzy"
           ],
           "abilityLevels": {
-            "/abilities/revive": 8,
             "/abilities/berserk": 54,
             "/abilities/precision": 51,
             "/abilities/pestilent_shot": 48,
-            "/abilities/frenzy": 48
+            "/abilities/frenzy": 48,
+            "/abilities/insanity": 13
           },
           "auraHrid": null
         },
@@ -463,27 +463,27 @@
           "duty": "dps",
           "cloneIndex": 1,
           "aura": null,
-          "special": "复活",
+          "special": "疯狂",
           "abilities": [
-            "复活Lv13",
+            "疯狂Lv7",
             "狂暴Lv51",
             "精确Lv48",
             "疫病射击Lv46",
             "狂速Lv47"
           ],
           "abilityHrids": [
-            "/abilities/revive",
+            "/abilities/insanity",
             "/abilities/berserk",
             "/abilities/precision",
             "/abilities/pestilent_shot",
             "/abilities/frenzy"
           ],
           "abilityLevels": {
-            "/abilities/revive": 13,
             "/abilities/berserk": 51,
             "/abilities/precision": 48,
             "/abilities/pestilent_shot": 46,
-            "/abilities/frenzy": 47
+            "/abilities/frenzy": 47,
+            "/abilities/insanity": 7
           },
           "auraHrid": null
         },
@@ -493,27 +493,27 @@
           "duty": "dps",
           "cloneIndex": 1,
           "aura": null,
-          "special": "复活",
+          "special": "疯狂",
           "abilities": [
-            "复活Lv1",
+            "疯狂Lv1",
             "狂暴Lv55",
             "精确Lv52",
             "疫病射击Lv49",
             "狂速Lv47"
           ],
           "abilityHrids": [
-            "/abilities/revive",
+            "/abilities/insanity",
             "/abilities/berserk",
             "/abilities/precision",
             "/abilities/pestilent_shot",
             "/abilities/frenzy"
           ],
           "abilityLevels": {
-            "/abilities/revive": 1,
             "/abilities/berserk": 55,
             "/abilities/precision": 52,
             "/abilities/pestilent_shot": 49,
-            "/abilities/frenzy": 47
+            "/abilities/frenzy": 47,
+            "/abilities/insanity": 1
           },
           "auraHrid": null
         },
@@ -523,27 +523,27 @@
           "duty": "dps",
           "cloneIndex": 1,
           "aura": null,
-          "special": "复活",
+          "special": "疯狂",
           "abilities": [
-            "复活Lv1",
+            "疯狂Lv22",
             "狂暴Lv55",
             "精确Lv51",
             "疫病射击Lv55",
             "狂速Lv54"
           ],
           "abilityHrids": [
-            "/abilities/revive",
+            "/abilities/insanity",
             "/abilities/berserk",
             "/abilities/precision",
             "/abilities/pestilent_shot",
             "/abilities/frenzy"
           ],
           "abilityLevels": {
-            "/abilities/revive": 1,
             "/abilities/berserk": 55,
             "/abilities/precision": 51,
             "/abilities/pestilent_shot": 55,
-            "/abilities/frenzy": 54
+            "/abilities/frenzy": 54,
+            "/abilities/insanity": 22
           },
           "auraHrid": null
         },
@@ -553,27 +553,27 @@
           "duty": "dps",
           "cloneIndex": 1,
           "aura": null,
-          "special": "复活",
+          "special": "疯狂",
           "abilities": [
-            "复活Lv1",
+            "疯狂Lv18",
             "狂暴Lv51",
             "精确Lv50",
             "疫病射击Lv49",
             "狂速Lv48"
           ],
           "abilityHrids": [
-            "/abilities/revive",
+            "/abilities/insanity",
             "/abilities/berserk",
             "/abilities/precision",
             "/abilities/pestilent_shot",
             "/abilities/frenzy"
           ],
           "abilityLevels": {
-            "/abilities/revive": 1,
             "/abilities/berserk": 51,
             "/abilities/precision": 50,
             "/abilities/pestilent_shot": 49,
-            "/abilities/frenzy": 48
+            "/abilities/frenzy": 48,
+            "/abilities/insanity": 18
           },
           "auraHrid": null
         },
@@ -583,27 +583,27 @@
           "duty": "dps",
           "cloneIndex": 1,
           "aura": null,
-          "special": "复活",
+          "special": "疯狂",
           "abilities": [
-            "复活Lv1",
+            "疯狂Lv11",
             "狂暴Lv52",
             "精确Lv54",
             "疫病射击Lv47",
             "狂速Lv48"
           ],
           "abilityHrids": [
-            "/abilities/revive",
+            "/abilities/insanity",
             "/abilities/berserk",
             "/abilities/precision",
             "/abilities/pestilent_shot",
             "/abilities/frenzy"
           ],
           "abilityLevels": {
-            "/abilities/revive": 1,
             "/abilities/berserk": 52,
             "/abilities/precision": 54,
             "/abilities/pestilent_shot": 47,
-            "/abilities/frenzy": 48
+            "/abilities/frenzy": 48,
+            "/abilities/insanity": 11
           },
           "auraHrid": null
         },
@@ -613,27 +613,27 @@
           "duty": "dps",
           "cloneIndex": 1,
           "aura": null,
-          "special": "复活",
+          "special": "疯狂",
           "abilities": [
-            "复活Lv1",
+            "疯狂Lv15",
             "狂暴Lv55",
             "精确Lv43",
             "疫病射击Lv40",
             "狂速Lv50"
           ],
           "abilityHrids": [
-            "/abilities/revive",
+            "/abilities/insanity",
             "/abilities/berserk",
             "/abilities/precision",
             "/abilities/pestilent_shot",
             "/abilities/frenzy"
           ],
           "abilityLevels": {
-            "/abilities/revive": 1,
             "/abilities/berserk": 55,
             "/abilities/precision": 43,
             "/abilities/pestilent_shot": 40,
-            "/abilities/frenzy": 50
+            "/abilities/frenzy": 50,
+            "/abilities/insanity": 15
           },
           "auraHrid": null
         },
@@ -643,27 +643,27 @@
           "duty": "dps",
           "cloneIndex": 1,
           "aura": null,
-          "special": "复活",
+          "special": "疯狂",
           "abilities": [
-            "复活Lv11",
+            "疯狂Lv26",
             "狂暴Lv58",
             "精确Lv50",
             "疫病射击Lv53",
             "狂速Lv52"
           ],
           "abilityHrids": [
-            "/abilities/revive",
+            "/abilities/insanity",
             "/abilities/berserk",
             "/abilities/precision",
             "/abilities/pestilent_shot",
             "/abilities/frenzy"
           ],
           "abilityLevels": {
-            "/abilities/revive": 11,
             "/abilities/berserk": 58,
             "/abilities/precision": 50,
             "/abilities/pestilent_shot": 53,
-            "/abilities/frenzy": 52
+            "/abilities/frenzy": 52,
+            "/abilities/insanity": 26
           },
           "auraHrid": null
         },
@@ -673,27 +673,27 @@
           "duty": "dps",
           "cloneIndex": 1,
           "aura": null,
-          "special": "复活",
+          "special": "疯狂",
           "abilities": [
-            "复活Lv1",
+            "疯狂Lv25",
             "狂暴Lv61",
             "精确Lv60",
             "疫病射击Lv57",
             "狂速Lv57"
           ],
           "abilityHrids": [
-            "/abilities/revive",
+            "/abilities/insanity",
             "/abilities/berserk",
             "/abilities/precision",
             "/abilities/pestilent_shot",
             "/abilities/frenzy"
           ],
           "abilityLevels": {
-            "/abilities/revive": 1,
             "/abilities/berserk": 61,
             "/abilities/precision": 60,
             "/abilities/pestilent_shot": 57,
-            "/abilities/frenzy": 57
+            "/abilities/frenzy": 57,
+            "/abilities/insanity": 25
           },
           "auraHrid": null
         },
@@ -703,27 +703,27 @@
           "duty": "dps",
           "cloneIndex": 1,
           "aura": null,
-          "special": "复活",
+          "special": "疯狂",
           "abilities": [
-            "复活Lv1",
+            "疯狂Lv15",
             "狂暴Lv52",
             "精确Lv47",
             "疫病射击Lv50",
             "狂速Lv47"
           ],
           "abilityHrids": [
-            "/abilities/revive",
+            "/abilities/insanity",
             "/abilities/berserk",
             "/abilities/precision",
             "/abilities/pestilent_shot",
             "/abilities/frenzy"
           ],
           "abilityLevels": {
-            "/abilities/revive": 1,
             "/abilities/berserk": 52,
             "/abilities/precision": 47,
             "/abilities/pestilent_shot": 50,
-            "/abilities/frenzy": 47
+            "/abilities/frenzy": 47,
+            "/abilities/insanity": 15
           },
           "auraHrid": null
         },
@@ -763,27 +763,27 @@
           "duty": "dps",
           "cloneIndex": 1,
           "aura": null,
-          "special": "复活",
+          "special": "疯狂",
           "abilities": [
-            "复活Lv1",
+            "疯狂Lv22",
             "狂暴Lv54",
             "精确Lv49",
             "疫病射击Lv48",
             "狂速Lv49"
           ],
           "abilityHrids": [
-            "/abilities/revive",
+            "/abilities/insanity",
             "/abilities/berserk",
             "/abilities/precision",
             "/abilities/pestilent_shot",
             "/abilities/frenzy"
           ],
           "abilityLevels": {
-            "/abilities/revive": 1,
             "/abilities/berserk": 54,
             "/abilities/precision": 49,
             "/abilities/pestilent_shot": 48,
-            "/abilities/frenzy": 49
+            "/abilities/frenzy": 49,
+            "/abilities/insanity": 22
           },
           "auraHrid": null
         },
@@ -793,27 +793,27 @@
           "duty": "dps",
           "cloneIndex": 1,
           "aura": null,
-          "special": "复活",
+          "special": "疯狂",
           "abilities": [
-            "复活Lv15",
+            "疯狂Lv21",
             "狂暴Lv56",
             "精确Lv41",
             "疫病射击Lv50",
             "狂速Lv54"
           ],
           "abilityHrids": [
-            "/abilities/revive",
+            "/abilities/insanity",
             "/abilities/berserk",
             "/abilities/precision",
             "/abilities/pestilent_shot",
             "/abilities/frenzy"
           ],
           "abilityLevels": {
-            "/abilities/revive": 15,
             "/abilities/berserk": 56,
             "/abilities/precision": 41,
             "/abilities/pestilent_shot": 50,
-            "/abilities/frenzy": 54
+            "/abilities/frenzy": 54,
+            "/abilities/insanity": 21
           },
           "auraHrid": null
         },
@@ -823,27 +823,27 @@
           "duty": "dps",
           "cloneIndex": 1,
           "aura": null,
-          "special": "复活",
+          "special": "疯狂",
           "abilities": [
-            "复活Lv7",
+            "疯狂Lv13",
             "狂暴Lv56",
             "精确Lv53",
             "疫病射击Lv48",
             "狂速Lv46"
           ],
           "abilityHrids": [
-            "/abilities/revive",
+            "/abilities/insanity",
             "/abilities/berserk",
             "/abilities/precision",
             "/abilities/pestilent_shot",
             "/abilities/frenzy"
           ],
           "abilityLevels": {
-            "/abilities/revive": 7,
             "/abilities/berserk": 56,
             "/abilities/precision": 53,
             "/abilities/pestilent_shot": 48,
-            "/abilities/frenzy": 46
+            "/abilities/frenzy": 46,
+            "/abilities/insanity": 13
           },
           "auraHrid": null
         },
@@ -853,27 +853,27 @@
           "duty": "dps",
           "cloneIndex": 1,
           "aura": null,
-          "special": "复活",
+          "special": "疯狂",
           "abilities": [
-            "复活Lv1",
+            "疯狂Lv20",
             "狂暴Lv56",
             "精确Lv50",
             "疫病射击Lv49",
             "狂速Lv47"
           ],
           "abilityHrids": [
-            "/abilities/revive",
+            "/abilities/insanity",
             "/abilities/berserk",
             "/abilities/precision",
             "/abilities/pestilent_shot",
             "/abilities/frenzy"
           ],
           "abilityLevels": {
-            "/abilities/revive": 1,
             "/abilities/berserk": 56,
             "/abilities/precision": 50,
             "/abilities/pestilent_shot": 49,
-            "/abilities/frenzy": 47
+            "/abilities/frenzy": 47,
+            "/abilities/insanity": 20
           },
           "auraHrid": null
         },
@@ -883,27 +883,27 @@
           "duty": "dps",
           "cloneIndex": 1,
           "aura": null,
-          "special": "复活",
+          "special": "疯狂",
           "abilities": [
-            "复活Lv1",
+            "疯狂Lv19",
             "狂暴Lv54",
             "精确Lv50",
             "疫病射击Lv51",
             "狂速Lv41"
           ],
           "abilityHrids": [
-            "/abilities/revive",
+            "/abilities/insanity",
             "/abilities/berserk",
             "/abilities/precision",
             "/abilities/pestilent_shot",
             "/abilities/frenzy"
           ],
           "abilityLevels": {
-            "/abilities/revive": 1,
             "/abilities/berserk": 54,
             "/abilities/precision": 50,
             "/abilities/pestilent_shot": 51,
-            "/abilities/frenzy": 41
+            "/abilities/frenzy": 41,
+            "/abilities/insanity": 19
           },
           "auraHrid": null
         },
@@ -913,27 +913,27 @@
           "duty": "dps",
           "cloneIndex": 1,
           "aura": null,
-          "special": "复活",
+          "special": "疯狂",
           "abilities": [
-            "复活Lv1",
+            "疯狂Lv29",
             "狂暴Lv60",
             "精确Lv56",
             "疫病射击Lv51",
             "狂速Lv56"
           ],
           "abilityHrids": [
-            "/abilities/revive",
+            "/abilities/insanity",
             "/abilities/berserk",
             "/abilities/precision",
             "/abilities/pestilent_shot",
             "/abilities/frenzy"
           ],
           "abilityLevels": {
-            "/abilities/revive": 1,
             "/abilities/berserk": 60,
             "/abilities/precision": 56,
             "/abilities/pestilent_shot": 51,
-            "/abilities/frenzy": 56
+            "/abilities/frenzy": 56,
+            "/abilities/insanity": 29
           },
           "auraHrid": null
         },
@@ -943,27 +943,27 @@
           "duty": "dps",
           "cloneIndex": 1,
           "aura": null,
-          "special": "复活",
+          "special": "疯狂",
           "abilities": [
-            "复活Lv26",
+            "疯狂Lv1",
             "狂暴Lv54",
             "精确Lv53",
             "疫病射击Lv48",
             "狂速Lv50"
           ],
           "abilityHrids": [
-            "/abilities/revive",
+            "/abilities/insanity",
             "/abilities/berserk",
             "/abilities/precision",
             "/abilities/pestilent_shot",
             "/abilities/frenzy"
           ],
           "abilityLevels": {
-            "/abilities/revive": 26,
             "/abilities/berserk": 54,
             "/abilities/precision": 53,
             "/abilities/pestilent_shot": 48,
-            "/abilities/frenzy": 50
+            "/abilities/frenzy": 50,
+            "/abilities/insanity": 1
           },
           "auraHrid": null
         },
@@ -973,27 +973,27 @@
           "duty": "dps",
           "cloneIndex": 1,
           "aura": null,
-          "special": "复活",
+          "special": "疯狂",
           "abilities": [
-            "复活Lv27",
+            "疯狂Lv7",
             "狂暴Lv55",
             "精确Lv56",
             "疫病射击Lv48",
             "狂速Lv50"
           ],
           "abilityHrids": [
-            "/abilities/revive",
+            "/abilities/insanity",
             "/abilities/berserk",
             "/abilities/precision",
             "/abilities/pestilent_shot",
             "/abilities/frenzy"
           ],
           "abilityLevels": {
-            "/abilities/revive": 27,
             "/abilities/berserk": 55,
             "/abilities/precision": 56,
             "/abilities/pestilent_shot": 48,
-            "/abilities/frenzy": 50
+            "/abilities/frenzy": 50,
+            "/abilities/insanity": 7
           },
           "auraHrid": null
         },
@@ -1333,27 +1333,27 @@
           "duty": "healer",
           "cloneIndex": 1,
           "aura": null,
-          "special": "复活",
+          "special": "疯狂",
           "abilities": [
-            "复活Lv25",
+            "疯狂Lv26",
             "群体治疗术Lv40",
             "元素增幅Lv43",
             "生命吸取Lv50",
             "缠绕Lv74"
           ],
           "abilityHrids": [
-            "/abilities/revive",
+            "/abilities/insanity",
             "/abilities/rejuvenate",
             "/abilities/elemental_affinity",
             "/abilities/life_drain",
             "/abilities/entangle"
           ],
           "abilityLevels": {
-            "/abilities/revive": 25,
             "/abilities/rejuvenate": 40,
             "/abilities/elemental_affinity": 43,
             "/abilities/life_drain": 50,
-            "/abilities/entangle": 74
+            "/abilities/entangle": 74,
+            "/abilities/insanity": 26
           },
           "auraHrid": null
         },
@@ -1453,27 +1453,27 @@
           "duty": "debuffer",
           "cloneIndex": 1,
           "aura": null,
-          "special": "复活",
+          "special": "疯狂",
           "abilities": [
-            "复活Lv7",
+            "疯狂Lv20",
             "狂暴Lv55",
             "精确Lv50",
             "破甲之刺Lv49",
             "狂速Lv53"
           ],
           "abilityHrids": [
-            "/abilities/revive",
+            "/abilities/insanity",
             "/abilities/berserk",
             "/abilities/precision",
             "/abilities/puncture",
             "/abilities/frenzy"
           ],
           "abilityLevels": {
-            "/abilities/revive": 7,
             "/abilities/berserk": 55,
             "/abilities/precision": 50,
             "/abilities/puncture": 49,
-            "/abilities/frenzy": 53
+            "/abilities/frenzy": 53,
+            "/abilities/insanity": 20
           },
           "auraHrid": null
         },
@@ -1513,27 +1513,27 @@
           "duty": "debuffer",
           "cloneIndex": 1,
           "aura": null,
-          "special": "复活",
+          "special": "疯狂",
           "abilities": [
-            "复活Lv27",
+            "疯狂Lv26",
             "狂暴Lv57",
             "精确Lv52",
             "血刃斩Lv48",
             "致残斩Lv53"
           ],
           "abilityHrids": [
-            "/abilities/revive",
+            "/abilities/insanity",
             "/abilities/berserk",
             "/abilities/precision",
             "/abilities/maim",
             "/abilities/crippling_slash"
           ],
           "abilityLevels": {
-            "/abilities/revive": 27,
             "/abilities/berserk": 57,
             "/abilities/precision": 52,
             "/abilities/maim": 48,
-            "/abilities/crippling_slash": 53
+            "/abilities/crippling_slash": 53,
+            "/abilities/insanity": 26
           },
           "auraHrid": null
         },
@@ -1543,27 +1543,27 @@
           "duty": "debuffer",
           "cloneIndex": 1,
           "aura": null,
-          "special": "复活",
+          "special": "疯狂",
           "abilities": [
-            "复活Lv1",
+            "疯狂Lv23",
             "狂暴Lv49",
             "狂速Lv45",
             "精确Lv54",
             "碎裂冲击Lv48"
           ],
           "abilityHrids": [
-            "/abilities/revive",
+            "/abilities/insanity",
             "/abilities/berserk",
             "/abilities/frenzy",
             "/abilities/precision",
             "/abilities/fracturing_impact"
           ],
           "abilityLevels": {
-            "/abilities/revive": 1,
             "/abilities/berserk": 49,
             "/abilities/frenzy": 45,
             "/abilities/precision": 54,
-            "/abilities/fracturing_impact": 48
+            "/abilities/fracturing_impact": 48,
+            "/abilities/insanity": 23
           },
           "auraHrid": null
         },
@@ -1603,27 +1603,27 @@
           "duty": "dps",
           "cloneIndex": 1,
           "aura": null,
-          "special": "复活",
+          "special": "疯狂",
           "abilities": [
-            "复活Lv13",
+            "疯狂Lv21",
             "狂暴Lv54",
             "狂速Lv53",
             "精确Lv51",
             "碎裂冲击Lv51"
           ],
           "abilityHrids": [
-            "/abilities/revive",
+            "/abilities/insanity",
             "/abilities/berserk",
             "/abilities/frenzy",
             "/abilities/precision",
             "/abilities/fracturing_impact"
           ],
           "abilityLevels": {
-            "/abilities/revive": 13,
             "/abilities/berserk": 54,
             "/abilities/frenzy": 53,
             "/abilities/precision": 51,
-            "/abilities/fracturing_impact": 51
+            "/abilities/fracturing_impact": 51,
+            "/abilities/insanity": 21
           },
           "auraHrid": null
         }
@@ -3612,242 +3612,266 @@
           {
             "memberId": "jojotang",
             "combatType": "弓",
-            "specialHrid": "/abilities/revive",
-            "specialNameZh": "复活",
-            "level": 15,
+            "specialHrid": "/abilities/insanity",
+            "specialNameZh": "疯狂",
+            "level": 16,
             "averageHealingDone": 85.33,
             "averageDps": 82.87,
-            "deaths": 2
+            "deaths": 2,
+            "statisticsBasis": "before-manual-skill-change"
           },
           {
             "memberId": "ShrimpPaste",
             "combatType": "弓",
-            "specialHrid": "/abilities/revive",
-            "specialNameZh": "复活",
-            "level": 18,
+            "specialHrid": "/abilities/insanity",
+            "specialNameZh": "疯狂",
+            "level": 11,
             "averageHealingDone": 101.67,
             "averageDps": 92.42,
-            "deaths": 0
+            "deaths": 0,
+            "statisticsBasis": "before-manual-skill-change"
           },
           {
             "memberId": "BoltwardenC",
             "combatType": "弩",
-            "specialHrid": "/abilities/revive",
-            "specialNameZh": "复活",
-            "level": 7,
+            "specialHrid": "/abilities/insanity",
+            "specialNameZh": "疯狂",
+            "level": 11,
             "averageHealingDone": 0,
             "averageDps": 75.9,
-            "deaths": 0
+            "deaths": 0,
+            "statisticsBasis": "before-manual-skill-change"
           },
           {
             "memberId": "CO2co",
             "combatType": "弩",
-            "specialHrid": "/abilities/revive",
-            "specialNameZh": "复活",
-            "level": 1,
+            "specialHrid": "/abilities/insanity",
+            "specialNameZh": "疯狂",
+            "level": 18,
             "averageHealingDone": 0,
             "averageDps": 66.6,
-            "deaths": 0
+            "deaths": 0,
+            "statisticsBasis": "before-manual-skill-change"
           },
           {
             "memberId": "guigui000",
             "combatType": "弩",
-            "specialHrid": "/abilities/revive",
-            "specialNameZh": "复活",
-            "level": 1,
+            "specialHrid": "/abilities/insanity",
+            "specialNameZh": "疯狂",
+            "level": 13,
             "averageHealingDone": 80,
             "averageDps": 79.55,
-            "deaths": 0
+            "deaths": 0,
+            "statisticsBasis": "before-manual-skill-change"
           },
           {
             "memberId": "guigui888",
             "combatType": "弩",
-            "specialHrid": "/abilities/revive",
-            "specialNameZh": "复活",
-            "level": 1,
+            "specialHrid": "/abilities/insanity",
+            "specialNameZh": "疯狂",
+            "level": 16,
             "averageHealingDone": 70.33,
             "averageDps": 81.95,
-            "deaths": 0
+            "deaths": 0,
+            "statisticsBasis": "before-manual-skill-change"
           },
           {
             "memberId": "guigui999",
             "combatType": "弩",
-            "specialHrid": "/abilities/revive",
-            "specialNameZh": "复活",
-            "level": 8,
+            "specialHrid": "/abilities/insanity",
+            "specialNameZh": "疯狂",
+            "level": 13,
             "averageHealingDone": 0,
             "averageDps": 79.89,
-            "deaths": 0
+            "deaths": 0,
+            "statisticsBasis": "before-manual-skill-change"
           },
           {
             "memberId": "Hawzel",
             "combatType": "弩",
-            "specialHrid": "/abilities/revive",
-            "specialNameZh": "复活",
-            "level": 13,
+            "specialHrid": "/abilities/insanity",
+            "specialNameZh": "疯狂",
+            "level": 7,
             "averageHealingDone": 171,
             "averageDps": 80.33,
-            "deaths": 0
+            "deaths": 0,
+            "statisticsBasis": "before-manual-skill-change"
           },
           {
             "memberId": "himeal2",
             "combatType": "弩",
-            "specialHrid": "/abilities/revive",
-            "specialNameZh": "复活",
+            "specialHrid": "/abilities/insanity",
+            "specialNameZh": "疯狂",
             "level": 1,
             "averageHealingDone": 81.33,
             "averageDps": 100.58,
-            "deaths": 0
+            "deaths": 0,
+            "statisticsBasis": "before-manual-skill-change"
           },
           {
             "memberId": "ICQQ",
             "combatType": "弩",
-            "specialHrid": "/abilities/revive",
-            "specialNameZh": "复活",
-            "level": 1,
+            "specialHrid": "/abilities/insanity",
+            "specialNameZh": "疯狂",
+            "level": 22,
             "averageHealingDone": 0,
             "averageDps": 85.44,
-            "deaths": 0
+            "deaths": 0,
+            "statisticsBasis": "before-manual-skill-change"
           },
           {
             "memberId": "ir0nC0w",
             "combatType": "弩",
-            "specialHrid": "/abilities/revive",
-            "specialNameZh": "复活",
-            "level": 1,
+            "specialHrid": "/abilities/insanity",
+            "specialNameZh": "疯狂",
+            "level": 18,
             "averageHealingDone": 0,
             "averageDps": 62.65,
-            "deaths": 0
+            "deaths": 0,
+            "statisticsBasis": "before-manual-skill-change"
           },
           {
             "memberId": "ironCatt1e",
             "combatType": "弩",
-            "specialHrid": "/abilities/revive",
-            "specialNameZh": "复活",
-            "level": 1,
+            "specialHrid": "/abilities/insanity",
+            "specialNameZh": "疯狂",
+            "level": 11,
             "averageHealingDone": 71.33,
             "averageDps": 71.05,
-            "deaths": 0
+            "deaths": 0,
+            "statisticsBasis": "before-manual-skill-change"
           },
           {
             "memberId": "linyu3",
             "combatType": "弩",
-            "specialHrid": "/abilities/revive",
-            "specialNameZh": "复活",
-            "level": 1,
+            "specialHrid": "/abilities/insanity",
+            "specialNameZh": "疯狂",
+            "level": 15,
             "averageHealingDone": 0,
             "averageDps": 72.75,
-            "deaths": 0
+            "deaths": 0,
+            "statisticsBasis": "before-manual-skill-change"
           },
           {
             "memberId": "longago",
             "combatType": "弩",
-            "specialHrid": "/abilities/revive",
-            "specialNameZh": "复活",
-            "level": 11,
+            "specialHrid": "/abilities/insanity",
+            "specialNameZh": "疯狂",
+            "level": 26,
             "averageHealingDone": 56.67,
             "averageDps": 97.38,
-            "deaths": 0
+            "deaths": 0,
+            "statisticsBasis": "before-manual-skill-change"
           },
           {
             "memberId": "mingge",
             "combatType": "弩",
-            "specialHrid": "/abilities/revive",
-            "specialNameZh": "复活",
-            "level": 1,
+            "specialHrid": "/abilities/insanity",
+            "specialNameZh": "疯狂",
+            "level": 25,
             "averageHealingDone": 0,
             "averageDps": 98.77,
-            "deaths": 0
+            "deaths": 0,
+            "statisticsBasis": "before-manual-skill-change"
           },
           {
             "memberId": "NiuShenShi",
             "combatType": "弩",
-            "specialHrid": "/abilities/revive",
-            "specialNameZh": "复活",
-            "level": 1,
+            "specialHrid": "/abilities/insanity",
+            "specialNameZh": "疯狂",
+            "level": 15,
             "averageHealingDone": 0,
             "averageDps": 74.33,
-            "deaths": 0
+            "deaths": 0,
+            "statisticsBasis": "before-manual-skill-change"
           },
           {
             "memberId": "R23",
             "combatType": "弩",
-            "specialHrid": "/abilities/revive",
-            "specialNameZh": "复活",
-            "level": 1,
+            "specialHrid": "/abilities/insanity",
+            "specialNameZh": "疯狂",
+            "level": 22,
             "averageHealingDone": 0,
             "averageDps": 85.17,
-            "deaths": 1
+            "deaths": 1,
+            "statisticsBasis": "before-manual-skill-change"
           },
           {
             "memberId": "Rootini",
             "combatType": "弩",
-            "specialHrid": "/abilities/revive",
-            "specialNameZh": "复活",
-            "level": 15,
+            "specialHrid": "/abilities/insanity",
+            "specialNameZh": "疯狂",
+            "level": 21,
             "averageHealingDone": 50.67,
             "averageDps": 95.82,
-            "deaths": 0
+            "deaths": 0,
+            "statisticsBasis": "before-manual-skill-change"
           },
           {
             "memberId": "TieShenShi",
             "combatType": "弩",
-            "specialHrid": "/abilities/revive",
-            "specialNameZh": "复活",
-            "level": 7,
+            "specialHrid": "/abilities/insanity",
+            "specialNameZh": "疯狂",
+            "level": 13,
             "averageHealingDone": 0,
             "averageDps": 82.99,
-            "deaths": 0
+            "deaths": 0,
+            "statisticsBasis": "before-manual-skill-change"
           },
           {
             "memberId": "TieWatermelon",
             "combatType": "弩",
-            "specialHrid": "/abilities/revive",
-            "specialNameZh": "复活",
-            "level": 1,
+            "specialHrid": "/abilities/insanity",
+            "specialNameZh": "疯狂",
+            "level": 20,
             "averageHealingDone": 0,
             "averageDps": 83.75,
-            "deaths": 0
+            "deaths": 0,
+            "statisticsBasis": "before-manual-skill-change"
           },
           {
             "memberId": "ultrafast2",
             "combatType": "弩",
-            "specialHrid": "/abilities/revive",
-            "specialNameZh": "复活",
-            "level": 1,
+            "specialHrid": "/abilities/insanity",
+            "specialNameZh": "疯狂",
+            "level": 19,
             "averageHealingDone": 0,
             "averageDps": 75.62,
-            "deaths": 0
+            "deaths": 0,
+            "statisticsBasis": "before-manual-skill-change"
           },
           {
             "memberId": "ximilu1",
             "combatType": "弩",
-            "specialHrid": "/abilities/revive",
-            "specialNameZh": "复活",
-            "level": 1,
+            "specialHrid": "/abilities/insanity",
+            "specialNameZh": "疯狂",
+            "level": 29,
             "averageHealingDone": 0,
             "averageDps": 94.14,
-            "deaths": 0
+            "deaths": 0,
+            "statisticsBasis": "before-manual-skill-change"
           },
           {
             "memberId": "Yihi",
             "combatType": "弩",
-            "specialHrid": "/abilities/revive",
-            "specialNameZh": "复活",
-            "level": 26,
+            "specialHrid": "/abilities/insanity",
+            "specialNameZh": "疯狂",
+            "level": 1,
             "averageHealingDone": 107.67,
             "averageDps": 90.29,
-            "deaths": 0
+            "deaths": 0,
+            "statisticsBasis": "before-manual-skill-change"
           },
           {
             "memberId": "zzjx1",
             "combatType": "弩",
-            "specialHrid": "/abilities/revive",
-            "specialNameZh": "复活",
-            "level": 27,
+            "specialHrid": "/abilities/insanity",
+            "specialNameZh": "疯狂",
+            "level": 7,
             "averageHealingDone": 91.33,
             "averageDps": 99.62,
-            "deaths": 0
+            "deaths": 0,
+            "statisticsBasis": "before-manual-skill-change"
           },
           {
             "memberId": "ICrazytrain",
@@ -3952,12 +3976,13 @@
           {
             "memberId": "YouCan",
             "combatType": "自",
-            "specialHrid": "/abilities/revive",
-            "specialNameZh": "复活",
-            "level": 25,
+            "specialHrid": "/abilities/insanity",
+            "specialNameZh": "疯狂",
+            "level": 26,
             "averageHealingDone": 461689,
             "averageDps": 57.37,
-            "deaths": 0
+            "deaths": 0,
+            "statisticsBasis": "before-manual-skill-change"
           },
           {
             "memberId": "AkaWaka",
@@ -3972,32 +3997,35 @@
           {
             "memberId": "XiaoFeng01",
             "combatType": "枪",
-            "specialHrid": "/abilities/revive",
-            "specialNameZh": "复活",
-            "level": 7,
+            "specialHrid": "/abilities/insanity",
+            "specialNameZh": "疯狂",
+            "level": 20,
             "averageHealingDone": 0,
             "averageDps": 62.03,
-            "deaths": 5
+            "deaths": 5,
+            "statisticsBasis": "before-manual-skill-change"
           },
           {
             "memberId": "GoMGo",
             "combatType": "剑",
-            "specialHrid": "/abilities/revive",
-            "specialNameZh": "复活",
-            "level": 27,
+            "specialHrid": "/abilities/insanity",
+            "specialNameZh": "疯狂",
+            "level": 26,
             "averageHealingDone": 0,
             "averageDps": 61.02,
-            "deaths": 0
+            "deaths": 0,
+            "statisticsBasis": "before-manual-skill-change"
           },
           {
             "memberId": "111jjj",
             "combatType": "锤",
-            "specialHrid": "/abilities/revive",
-            "specialNameZh": "复活",
-            "level": 1,
+            "specialHrid": "/abilities/insanity",
+            "specialNameZh": "疯狂",
+            "level": 23,
             "averageHealingDone": 0,
             "averageDps": 55.98,
-            "deaths": 4
+            "deaths": 4,
+            "statisticsBasis": "before-manual-skill-change"
           },
           {
             "memberId": "BigBigGuaiNo01",
@@ -4012,16 +4040,17 @@
           {
             "memberId": "zzjxSumi",
             "combatType": "锤",
-            "specialHrid": "/abilities/revive",
-            "specialNameZh": "复活",
-            "level": 13,
+            "specialHrid": "/abilities/insanity",
+            "specialNameZh": "疯狂",
+            "level": 21,
             "averageHealingDone": 0,
             "averageDps": 61,
-            "deaths": 1
+            "deaths": 1,
+            "statisticsBasis": "before-manual-skill-change"
           }
         ]
       },
-      "insanityTopDpsCount": 0,
+      "insanityTopDpsCount": 29,
       "averageScore": 8991000.49970671,
       "averageDeaths": 9,
       "insanityRankedFromAllRevive": [
@@ -4057,7 +4086,76 @@
         "ICrazytrain"
       ],
       "natureHealersConvertedToDps": 0,
-      "natureHealersConvertedNames": []
+      "natureHealersConvertedNames": [],
+      "manualInsanityOverride": {
+        "sourceGeneratedAt": "2026-10-02T02:44:54.200Z",
+        "publishedRankCutoff": 31,
+        "originalTopMemberIds": [
+          "himeal2",
+          "zzjx1",
+          "mingge",
+          "longago",
+          "Rootini",
+          "ximilu1",
+          "ShrimpPaste",
+          "Yihi",
+          "NOCan",
+          "ICQQ",
+          "R23",
+          "TieWatermelon",
+          "TieShenShi",
+          "jojotang",
+          "guigui888",
+          "Hawzel",
+          "guigui999",
+          "guigui000",
+          "BoltwardenC",
+          "ultrafast2",
+          "NiuShenShi",
+          "linyu3",
+          "ironCatt1e",
+          "CO2co",
+          "DayDayUp",
+          "ir0nC0w",
+          "XiaoFeng01",
+          "GoMGo",
+          "zzjxSumi",
+          "YouCan",
+          "111jjj"
+        ],
+        "convertedMemberIds": [
+          "jojotang",
+          "ShrimpPaste",
+          "BoltwardenC",
+          "CO2co",
+          "guigui000",
+          "guigui888",
+          "guigui999",
+          "Hawzel",
+          "himeal2",
+          "ICQQ",
+          "ir0nC0w",
+          "ironCatt1e",
+          "linyu3",
+          "longago",
+          "mingge",
+          "NiuShenShi",
+          "R23",
+          "Rootini",
+          "TieShenShi",
+          "TieWatermelon",
+          "ultrafast2",
+          "ximilu1",
+          "Yihi",
+          "zzjx1",
+          "YouCan",
+          "XiaoFeng01",
+          "GoMGo",
+          "111jjj",
+          "zzjxSumi"
+        ],
+        "finalInsanityCount": 29
+      }
     },
     {
       "bossId": "/guild_combat/swarm",
@@ -4103,27 +4201,27 @@
           "duty": "dps",
           "cloneIndex": 1,
           "aura": null,
-          "special": "复活",
+          "special": "疯狂",
           "abilities": [
-            "复活Lv1",
+            "疯狂Lv22",
             "狂暴Lv54",
             "精确Lv53",
             "贯穿射击Lv47",
             "箭雨Lv51"
           ],
           "abilityHrids": [
-            "/abilities/revive",
+            "/abilities/insanity",
             "/abilities/berserk",
             "/abilities/precision",
             "/abilities/penetrating_shot",
             "/abilities/rain_of_arrows"
           ],
           "abilityLevels": {
-            "/abilities/revive": 1,
             "/abilities/berserk": 54,
             "/abilities/precision": 53,
             "/abilities/penetrating_shot": 47,
-            "/abilities/rain_of_arrows": 51
+            "/abilities/rain_of_arrows": 51,
+            "/abilities/insanity": 22
           },
           "auraHrid": null
         },
@@ -4253,27 +4351,27 @@
           "duty": "dps",
           "cloneIndex": 1,
           "aura": null,
-          "special": "复活",
+          "special": "疯狂",
           "abilities": [
-            "复活Lv23",
+            "疯狂Lv17",
             "元素增幅Lv45",
             "法力喷泉Lv51",
             "冰霜爆裂Lv48",
             "流水冲击Lv61"
           ],
           "abilityHrids": [
-            "/abilities/revive",
+            "/abilities/insanity",
             "/abilities/elemental_affinity",
             "/abilities/mana_spring",
             "/abilities/frost_surge",
             "/abilities/water_strike"
           ],
           "abilityLevels": {
-            "/abilities/revive": 23,
             "/abilities/elemental_affinity": 45,
             "/abilities/mana_spring": 51,
             "/abilities/frost_surge": 48,
-            "/abilities/water_strike": 61
+            "/abilities/water_strike": 61,
+            "/abilities/insanity": 17
           },
           "auraHrid": null
         },
@@ -4313,27 +4411,27 @@
           "duty": "healer",
           "cloneIndex": 1,
           "aura": null,
-          "special": "复活",
+          "special": "疯狂",
           "abilities": [
-            "复活Lv15",
+            "疯狂Lv24",
             "群体治疗术Lv40",
             "剧毒粉尘Lv55",
             "自然菌幕Lv52",
             "缠绕Lv70"
           ],
           "abilityHrids": [
-            "/abilities/revive",
+            "/abilities/insanity",
             "/abilities/rejuvenate",
             "/abilities/toxic_pollen",
             "/abilities/natures_veil",
             "/abilities/entangle"
           ],
           "abilityLevels": {
-            "/abilities/revive": 15,
             "/abilities/rejuvenate": 40,
             "/abilities/toxic_pollen": 55,
             "/abilities/natures_veil": 52,
-            "/abilities/entangle": 70
+            "/abilities/entangle": 70,
+            "/abilities/insanity": 24
           },
           "auraHrid": null
         },
@@ -4493,27 +4591,27 @@
           "duty": "healer",
           "cloneIndex": 1,
           "aura": null,
-          "special": "复活",
+          "special": "疯狂",
           "abilities": [
-            "复活Lv31",
+            "疯狂Lv25",
             "群体治疗术Lv41",
             "剧毒粉尘Lv57",
             "自然菌幕Lv54",
             "缠绕Lv71"
           ],
           "abilityHrids": [
-            "/abilities/revive",
+            "/abilities/insanity",
             "/abilities/rejuvenate",
             "/abilities/toxic_pollen",
             "/abilities/natures_veil",
             "/abilities/entangle"
           ],
           "abilityLevels": {
-            "/abilities/revive": 31,
             "/abilities/rejuvenate": 41,
             "/abilities/toxic_pollen": 57,
             "/abilities/natures_veil": 54,
-            "/abilities/entangle": 71
+            "/abilities/entangle": 71,
+            "/abilities/insanity": 25
           },
           "auraHrid": null
         },
@@ -4553,27 +4651,27 @@
           "duty": "healer",
           "cloneIndex": 1,
           "aura": null,
-          "special": "复活",
+          "special": "疯狂",
           "abilities": [
-            "复活Lv15",
+            "疯狂Lv13",
             "群体治疗术Lv41",
             "剧毒粉尘Lv56",
             "自然菌幕Lv52",
             "缠绕Lv69"
           ],
           "abilityHrids": [
-            "/abilities/revive",
+            "/abilities/insanity",
             "/abilities/rejuvenate",
             "/abilities/toxic_pollen",
             "/abilities/natures_veil",
             "/abilities/entangle"
           ],
           "abilityLevels": {
-            "/abilities/revive": 15,
             "/abilities/rejuvenate": 41,
             "/abilities/toxic_pollen": 56,
             "/abilities/natures_veil": 52,
-            "/abilities/entangle": 69
+            "/abilities/entangle": 69,
+            "/abilities/insanity": 13
           },
           "auraHrid": null
         },
@@ -4763,27 +4861,27 @@
           "duty": "debuffer",
           "cloneIndex": 1,
           "aura": null,
-          "special": "复活",
+          "special": "疯狂",
           "abilities": [
-            "复活Lv7",
+            "疯狂Lv19",
             "狂暴Lv52",
             "精确Lv56",
             "血刃斩Lv45",
             "致残斩Lv51"
           ],
           "abilityHrids": [
-            "/abilities/revive",
+            "/abilities/insanity",
             "/abilities/berserk",
             "/abilities/precision",
             "/abilities/maim",
             "/abilities/crippling_slash"
           ],
           "abilityLevels": {
-            "/abilities/revive": 7,
             "/abilities/berserk": 52,
             "/abilities/precision": 56,
             "/abilities/maim": 45,
-            "/abilities/crippling_slash": 51
+            "/abilities/crippling_slash": 51,
+            "/abilities/insanity": 19
           },
           "auraHrid": null
         },
@@ -4793,27 +4891,27 @@
           "duty": "debuffer",
           "cloneIndex": 1,
           "aura": null,
-          "special": "复活",
+          "special": "疯狂",
           "abilities": [
-            "复活Lv1",
+            "疯狂Lv1",
             "狂暴Lv49",
             "精确Lv47",
             "血刃斩Lv50",
             "致残斩Lv56"
           ],
           "abilityHrids": [
-            "/abilities/revive",
+            "/abilities/insanity",
             "/abilities/berserk",
             "/abilities/precision",
             "/abilities/maim",
             "/abilities/crippling_slash"
           ],
           "abilityLevels": {
-            "/abilities/revive": 1,
             "/abilities/berserk": 49,
             "/abilities/precision": 47,
             "/abilities/maim": 50,
-            "/abilities/crippling_slash": 56
+            "/abilities/crippling_slash": 56,
+            "/abilities/insanity": 1
           },
           "auraHrid": null
         },
@@ -4853,27 +4951,27 @@
           "duty": "debuffer",
           "cloneIndex": 1,
           "aura": null,
-          "special": "复活",
+          "special": "疯狂",
           "abilities": [
-            "复活Lv1",
+            "疯狂Lv26",
             "狂暴Lv55",
             "精确Lv50",
             "血刃斩Lv47",
             "致残斩Lv52"
           ],
           "abilityHrids": [
-            "/abilities/revive",
+            "/abilities/insanity",
             "/abilities/berserk",
             "/abilities/precision",
             "/abilities/maim",
             "/abilities/crippling_slash"
           ],
           "abilityLevels": {
-            "/abilities/revive": 1,
             "/abilities/berserk": 55,
             "/abilities/precision": 50,
             "/abilities/maim": 47,
-            "/abilities/crippling_slash": 52
+            "/abilities/crippling_slash": 52,
+            "/abilities/insanity": 26
           },
           "auraHrid": null
         },
@@ -4883,27 +4981,27 @@
           "duty": "debuffer",
           "cloneIndex": 1,
           "aura": null,
-          "special": "复活",
+          "special": "疯狂",
           "abilities": [
-            "复活Lv7",
+            "疯狂Lv1",
             "狂暴Lv54",
             "狂速Lv53",
             "精确Lv53",
             "碎裂冲击Lv47"
           ],
           "abilityHrids": [
-            "/abilities/revive",
+            "/abilities/insanity",
             "/abilities/berserk",
             "/abilities/frenzy",
             "/abilities/precision",
             "/abilities/fracturing_impact"
           ],
           "abilityLevels": {
-            "/abilities/revive": 7,
             "/abilities/berserk": 54,
             "/abilities/frenzy": 53,
             "/abilities/precision": 53,
-            "/abilities/fracturing_impact": 47
+            "/abilities/fracturing_impact": 47,
+            "/abilities/insanity": 1
           },
           "auraHrid": null
         },
@@ -4913,27 +5011,27 @@
           "duty": "debuffer",
           "cloneIndex": 1,
           "aura": null,
-          "special": "复活",
+          "special": "疯狂",
           "abilities": [
-            "复活Lv1",
+            "疯狂Lv23",
             "狂暴Lv57",
             "狂速Lv54",
             "精确Lv51",
             "碎裂冲击Lv48"
           ],
           "abilityHrids": [
-            "/abilities/revive",
+            "/abilities/insanity",
             "/abilities/berserk",
             "/abilities/frenzy",
             "/abilities/precision",
             "/abilities/fracturing_impact"
           ],
           "abilityLevels": {
-            "/abilities/revive": 1,
             "/abilities/berserk": 57,
             "/abilities/frenzy": 54,
             "/abilities/precision": 51,
-            "/abilities/fracturing_impact": 48
+            "/abilities/fracturing_impact": 48,
+            "/abilities/insanity": 23
           },
           "auraHrid": null
         },
@@ -4943,27 +5041,27 @@
           "duty": "dps",
           "cloneIndex": 1,
           "aura": null,
-          "special": "复活",
+          "special": "疯狂",
           "abilities": [
-            "复活Lv1",
+            "疯狂Lv13",
             "狂暴Lv54",
             "狂速Lv52",
             "精确Lv53",
             "碎裂冲击Lv49"
           ],
           "abilityHrids": [
-            "/abilities/revive",
+            "/abilities/insanity",
             "/abilities/berserk",
             "/abilities/frenzy",
             "/abilities/precision",
             "/abilities/fracturing_impact"
           ],
           "abilityLevels": {
-            "/abilities/revive": 1,
             "/abilities/berserk": 54,
             "/abilities/frenzy": 52,
             "/abilities/precision": 53,
-            "/abilities/fracturing_impact": 49
+            "/abilities/fracturing_impact": 49,
+            "/abilities/insanity": 13
           },
           "auraHrid": null
         },
@@ -5003,27 +5101,27 @@
           "duty": "dps",
           "cloneIndex": 1,
           "aura": null,
-          "special": "复活",
+          "special": "疯狂",
           "abilities": [
-            "复活Lv1",
+            "疯狂Lv1",
             "狂暴Lv54",
             "狂速Lv53",
             "精确Lv52",
             "碎裂冲击Lv48"
           ],
           "abilityHrids": [
-            "/abilities/revive",
+            "/abilities/insanity",
             "/abilities/berserk",
             "/abilities/frenzy",
             "/abilities/precision",
             "/abilities/fracturing_impact"
           ],
           "abilityLevels": {
-            "/abilities/revive": 1,
             "/abilities/berserk": 54,
             "/abilities/frenzy": 53,
             "/abilities/precision": 52,
-            "/abilities/fracturing_impact": 48
+            "/abilities/fracturing_impact": 48,
+            "/abilities/insanity": 1
           },
           "auraHrid": null
         },
@@ -5033,27 +5131,27 @@
           "duty": "dps",
           "cloneIndex": 1,
           "aura": null,
-          "special": "复活",
+          "special": "疯狂",
           "abilities": [
-            "复活Lv7",
+            "疯狂Lv7",
             "狂暴Lv53",
             "狂速Lv50",
             "精确Lv53",
             "碎裂冲击Lv48"
           ],
           "abilityHrids": [
-            "/abilities/revive",
+            "/abilities/insanity",
             "/abilities/berserk",
             "/abilities/frenzy",
             "/abilities/precision",
             "/abilities/fracturing_impact"
           ],
           "abilityLevels": {
-            "/abilities/revive": 7,
             "/abilities/berserk": 53,
             "/abilities/frenzy": 50,
             "/abilities/precision": 53,
-            "/abilities/fracturing_impact": 48
+            "/abilities/fracturing_impact": 48,
+            "/abilities/insanity": 7
           },
           "auraHrid": null
         },
@@ -5063,27 +5161,27 @@
           "duty": "dps",
           "cloneIndex": 1,
           "aura": null,
-          "special": "复活",
+          "special": "疯狂",
           "abilities": [
-            "复活Lv21",
+            "疯狂Lv23",
             "狂暴Lv53",
             "狂速Lv46",
             "精确Lv50",
             "碎裂冲击Lv46"
           ],
           "abilityHrids": [
-            "/abilities/revive",
+            "/abilities/insanity",
             "/abilities/berserk",
             "/abilities/frenzy",
             "/abilities/precision",
             "/abilities/fracturing_impact"
           ],
           "abilityLevels": {
-            "/abilities/revive": 21,
             "/abilities/berserk": 53,
             "/abilities/frenzy": 46,
             "/abilities/precision": 50,
-            "/abilities/fracturing_impact": 46
+            "/abilities/fracturing_impact": 46,
+            "/abilities/insanity": 23
           },
           "auraHrid": null
         },
@@ -5153,27 +5251,27 @@
           "duty": "dps",
           "cloneIndex": 1,
           "aura": null,
-          "special": "复活",
+          "special": "疯狂",
           "abilities": [
-            "复活Lv7",
+            "疯狂Lv20",
             "狂暴Lv50",
             "狂速Lv49",
             "精确Lv57",
             "碎裂冲击Lv47"
           ],
           "abilityHrids": [
-            "/abilities/revive",
+            "/abilities/insanity",
             "/abilities/berserk",
             "/abilities/frenzy",
             "/abilities/precision",
             "/abilities/fracturing_impact"
           ],
           "abilityLevels": {
-            "/abilities/revive": 7,
             "/abilities/berserk": 50,
             "/abilities/frenzy": 49,
             "/abilities/precision": 57,
-            "/abilities/fracturing_impact": 47
+            "/abilities/fracturing_impact": 47,
+            "/abilities/insanity": 20
           },
           "auraHrid": null
         },
@@ -5183,27 +5281,27 @@
           "duty": "dps",
           "cloneIndex": 1,
           "aura": null,
-          "special": "复活",
+          "special": "疯狂",
           "abilities": [
-            "复活Lv1",
+            "疯狂Lv21",
             "狂暴Lv56",
             "狂速Lv52",
             "精确Lv55",
             "碎裂冲击Lv49"
           ],
           "abilityHrids": [
-            "/abilities/revive",
+            "/abilities/insanity",
             "/abilities/berserk",
             "/abilities/frenzy",
             "/abilities/precision",
             "/abilities/fracturing_impact"
           ],
           "abilityLevels": {
-            "/abilities/revive": 1,
             "/abilities/berserk": 56,
             "/abilities/frenzy": 52,
             "/abilities/precision": 55,
-            "/abilities/fracturing_impact": 49
+            "/abilities/fracturing_impact": 49,
+            "/abilities/insanity": 21
           },
           "auraHrid": null
         },
@@ -5213,27 +5311,27 @@
           "duty": "dps",
           "cloneIndex": 1,
           "aura": null,
-          "special": "复活",
+          "special": "疯狂",
           "abilities": [
-            "复活Lv7",
+            "疯狂Lv21",
             "狂暴Lv53",
             "狂速Lv52",
             "精确Lv51",
             "碎裂冲击Lv45"
           ],
           "abilityHrids": [
-            "/abilities/revive",
+            "/abilities/insanity",
             "/abilities/berserk",
             "/abilities/frenzy",
             "/abilities/precision",
             "/abilities/fracturing_impact"
           ],
           "abilityLevels": {
-            "/abilities/revive": 7,
             "/abilities/berserk": 53,
             "/abilities/frenzy": 52,
             "/abilities/precision": 51,
-            "/abilities/fracturing_impact": 45
+            "/abilities/fracturing_impact": 45,
+            "/abilities/insanity": 21
           },
           "auraHrid": null
         },
@@ -5243,27 +5341,27 @@
           "duty": "dps",
           "cloneIndex": 1,
           "aura": null,
-          "special": "复活",
+          "special": "疯狂",
           "abilities": [
-            "复活Lv13",
+            "疯狂Lv13",
             "狂暴Lv54",
             "狂速Lv52",
             "精确Lv51",
             "碎裂冲击Lv50"
           ],
           "abilityHrids": [
-            "/abilities/revive",
+            "/abilities/insanity",
             "/abilities/berserk",
             "/abilities/frenzy",
             "/abilities/precision",
             "/abilities/fracturing_impact"
           ],
           "abilityLevels": {
-            "/abilities/revive": 13,
             "/abilities/berserk": 54,
             "/abilities/frenzy": 52,
             "/abilities/precision": 51,
-            "/abilities/fracturing_impact": 50
+            "/abilities/fracturing_impact": 50,
+            "/abilities/insanity": 13
           },
           "auraHrid": null
         },
@@ -5273,27 +5371,27 @@
           "duty": "dps",
           "cloneIndex": 1,
           "aura": null,
-          "special": "复活",
+          "special": "疯狂",
           "abilities": [
-            "复活Lv19",
+            "疯狂Lv13",
             "狂暴Lv54",
             "狂速Lv49",
             "精确Lv54",
             "碎裂冲击Lv48"
           ],
           "abilityHrids": [
-            "/abilities/revive",
+            "/abilities/insanity",
             "/abilities/berserk",
             "/abilities/frenzy",
             "/abilities/precision",
             "/abilities/fracturing_impact"
           ],
           "abilityLevels": {
-            "/abilities/revive": 19,
             "/abilities/berserk": 54,
             "/abilities/frenzy": 49,
             "/abilities/precision": 54,
-            "/abilities/fracturing_impact": 48
+            "/abilities/fracturing_impact": 48,
+            "/abilities/insanity": 13
           },
           "auraHrid": null
         },
@@ -5423,27 +5521,27 @@
           "duty": "dps",
           "cloneIndex": 1,
           "aura": null,
-          "special": "复活",
+          "special": "疯狂",
           "abilities": [
-            "复活Lv23",
+            "疯狂Lv13",
             "狂暴Lv52",
             "狂速Lv51",
             "精确Lv51",
             "碎裂冲击Lv51"
           ],
           "abilityHrids": [
-            "/abilities/revive",
+            "/abilities/insanity",
             "/abilities/berserk",
             "/abilities/frenzy",
             "/abilities/precision",
             "/abilities/fracturing_impact"
           ],
           "abilityLevels": {
-            "/abilities/revive": 23,
             "/abilities/berserk": 52,
             "/abilities/frenzy": 51,
             "/abilities/precision": 51,
-            "/abilities/fracturing_impact": 51
+            "/abilities/fracturing_impact": 51,
+            "/abilities/insanity": 13
           },
           "auraHrid": null
         },
@@ -5453,27 +5551,27 @@
           "duty": "dps",
           "cloneIndex": 1,
           "aura": null,
-          "special": "复活",
+          "special": "疯狂",
           "abilities": [
-            "复活Lv1",
+            "疯狂Lv23",
             "狂暴Lv54",
             "狂速Lv52",
             "精确Lv52",
             "碎裂冲击Lv49"
           ],
           "abilityHrids": [
-            "/abilities/revive",
+            "/abilities/insanity",
             "/abilities/berserk",
             "/abilities/frenzy",
             "/abilities/precision",
             "/abilities/fracturing_impact"
           ],
           "abilityLevels": {
-            "/abilities/revive": 1,
             "/abilities/berserk": 54,
             "/abilities/frenzy": 52,
             "/abilities/precision": 52,
-            "/abilities/fracturing_impact": 49
+            "/abilities/fracturing_impact": 49,
+            "/abilities/insanity": 23
           },
           "auraHrid": null
         },
@@ -7658,12 +7756,13 @@
           {
             "memberId": "333jjj",
             "combatType": "弓",
-            "specialHrid": "/abilities/revive",
-            "specialNameZh": "复活",
-            "level": 1,
+            "specialHrid": "/abilities/insanity",
+            "specialNameZh": "疯狂",
+            "level": 22,
             "averageHealingDone": 0,
             "averageDps": 76.67,
-            "deaths": 0
+            "deaths": 0,
+            "statisticsBasis": "before-manual-skill-change"
           },
           {
             "memberId": "BoltwardenA",
@@ -7688,12 +7787,13 @@
           {
             "memberId": "Miyu22",
             "combatType": "水",
-            "specialHrid": "/abilities/revive",
-            "specialNameZh": "复活",
-            "level": 23,
+            "specialHrid": "/abilities/insanity",
+            "specialNameZh": "疯狂",
+            "level": 17,
             "averageHealingDone": 0,
             "averageDps": 97.51,
-            "deaths": 0
+            "deaths": 0,
+            "statisticsBasis": "before-manual-skill-change"
           },
           {
             "memberId": "1Crazytrain",
@@ -7708,12 +7808,13 @@
           {
             "memberId": "222jjj",
             "combatType": "自",
-            "specialHrid": "/abilities/revive",
-            "specialNameZh": "复活",
-            "level": 15,
+            "specialHrid": "/abilities/insanity",
+            "specialNameZh": "疯狂",
+            "level": 24,
             "averageHealingDone": 332327,
             "averageDps": 79.66,
-            "deaths": 0
+            "deaths": 0,
+            "statisticsBasis": "before-manual-skill-change"
           },
           {
             "memberId": "breakdream",
@@ -7768,12 +7869,13 @@
           {
             "memberId": "Hayashi",
             "combatType": "自",
-            "specialHrid": "/abilities/revive",
-            "specialNameZh": "复活",
-            "level": 31,
+            "specialHrid": "/abilities/insanity",
+            "specialNameZh": "疯狂",
+            "level": 25,
             "averageHealingDone": 488269,
             "averageDps": 84.74,
-            "deaths": 0
+            "deaths": 0,
+            "statisticsBasis": "before-manual-skill-change"
           },
           {
             "memberId": "Hcan",
@@ -7788,12 +7890,13 @@
           {
             "memberId": "himeal4",
             "combatType": "自",
-            "specialHrid": "/abilities/revive",
-            "specialNameZh": "复活",
-            "level": 15,
+            "specialHrid": "/abilities/insanity",
+            "specialNameZh": "疯狂",
+            "level": 13,
             "averageHealingDone": 617773,
             "averageDps": 77.86,
-            "deaths": 0
+            "deaths": 0,
+            "statisticsBasis": "before-manual-skill-change"
           },
           {
             "memberId": "ICisMelvor",
@@ -7838,22 +7941,24 @@
           {
             "memberId": "huahua2025",
             "combatType": "剑",
-            "specialHrid": "/abilities/revive",
-            "specialNameZh": "复活",
-            "level": 7,
+            "specialHrid": "/abilities/insanity",
+            "specialNameZh": "疯狂",
+            "level": 19,
             "averageHealingDone": 0,
             "averageDps": 76.4,
-            "deaths": 0
+            "deaths": 0,
+            "statisticsBasis": "before-manual-skill-change"
           },
           {
             "memberId": "laoyue1",
             "combatType": "剑",
-            "specialHrid": "/abilities/revive",
-            "specialNameZh": "复活",
+            "specialHrid": "/abilities/insanity",
+            "specialNameZh": "疯狂",
             "level": 1,
             "averageHealingDone": 0,
             "averageDps": 80.98,
-            "deaths": 0
+            "deaths": 0,
+            "statisticsBasis": "before-manual-skill-change"
           },
           {
             "memberId": "SumiEnderman",
@@ -7868,42 +7973,46 @@
           {
             "memberId": "ximilu3",
             "combatType": "剑",
-            "specialHrid": "/abilities/revive",
-            "specialNameZh": "复活",
-            "level": 1,
+            "specialHrid": "/abilities/insanity",
+            "specialNameZh": "疯狂",
+            "level": 26,
             "averageHealingDone": 0,
             "averageDps": 80.61,
-            "deaths": 0
+            "deaths": 0,
+            "statisticsBasis": "before-manual-skill-change"
           },
           {
             "memberId": "BigBigGuaiNO02",
             "combatType": "锤",
-            "specialHrid": "/abilities/revive",
-            "specialNameZh": "复活",
-            "level": 7,
+            "specialHrid": "/abilities/insanity",
+            "specialNameZh": "疯狂",
+            "level": 1,
             "averageHealingDone": 0,
             "averageDps": 83.13,
-            "deaths": 0
+            "deaths": 0,
+            "statisticsBasis": "before-manual-skill-change"
           },
           {
             "memberId": "bluer",
             "combatType": "锤",
-            "specialHrid": "/abilities/revive",
-            "specialNameZh": "复活",
-            "level": 1,
+            "specialHrid": "/abilities/insanity",
+            "specialNameZh": "疯狂",
+            "level": 23,
             "averageHealingDone": 0,
             "averageDps": 110.4,
-            "deaths": 0
+            "deaths": 0,
+            "statisticsBasis": "before-manual-skill-change"
           },
           {
             "memberId": "DuanYu03",
             "combatType": "锤",
-            "specialHrid": "/abilities/revive",
-            "specialNameZh": "复活",
-            "level": 1,
+            "specialHrid": "/abilities/insanity",
+            "specialNameZh": "疯狂",
+            "level": 13,
             "averageHealingDone": 0,
             "averageDps": 100.65,
-            "deaths": 0
+            "deaths": 0,
+            "statisticsBasis": "before-manual-skill-change"
           },
           {
             "memberId": "Feca",
@@ -7918,32 +8027,35 @@
           {
             "memberId": "GIGBigGuaiNO03",
             "combatType": "锤",
-            "specialHrid": "/abilities/revive",
-            "specialNameZh": "复活",
+            "specialHrid": "/abilities/insanity",
+            "specialNameZh": "疯狂",
             "level": 1,
             "averageHealingDone": 0,
             "averageDps": 83,
-            "deaths": 0
+            "deaths": 0,
+            "statisticsBasis": "before-manual-skill-change"
           },
           {
             "memberId": "GuCheng1",
             "combatType": "锤",
-            "specialHrid": "/abilities/revive",
-            "specialNameZh": "复活",
+            "specialHrid": "/abilities/insanity",
+            "specialNameZh": "疯狂",
             "level": 7,
             "averageHealingDone": 0,
             "averageDps": 79.29,
-            "deaths": 0
+            "deaths": 0,
+            "statisticsBasis": "before-manual-skill-change"
           },
           {
             "memberId": "HIok",
             "combatType": "锤",
-            "specialHrid": "/abilities/revive",
-            "specialNameZh": "复活",
-            "level": 21,
+            "specialHrid": "/abilities/insanity",
+            "specialNameZh": "疯狂",
+            "level": 23,
             "averageHealingDone": 0,
             "averageDps": 82.35,
-            "deaths": 0
+            "deaths": 0,
+            "statisticsBasis": "before-manual-skill-change"
           },
           {
             "memberId": "huahua2024",
@@ -7968,52 +8080,57 @@
           {
             "memberId": "huuhi",
             "combatType": "锤",
-            "specialHrid": "/abilities/revive",
-            "specialNameZh": "复活",
-            "level": 7,
+            "specialHrid": "/abilities/insanity",
+            "specialNameZh": "疯狂",
+            "level": 20,
             "averageHealingDone": 0,
             "averageDps": 93.51,
-            "deaths": 0
+            "deaths": 0,
+            "statisticsBasis": "before-manual-skill-change"
           },
           {
             "memberId": "ironmingge",
             "combatType": "锤",
-            "specialHrid": "/abilities/revive",
-            "specialNameZh": "复活",
-            "level": 1,
+            "specialHrid": "/abilities/insanity",
+            "specialNameZh": "疯狂",
+            "level": 21,
             "averageHealingDone": 0,
             "averageDps": 99.78,
-            "deaths": 0
+            "deaths": 0,
+            "statisticsBasis": "before-manual-skill-change"
           },
           {
             "memberId": "JasonIC1",
             "combatType": "锤",
-            "specialHrid": "/abilities/revive",
-            "specialNameZh": "复活",
-            "level": 7,
+            "specialHrid": "/abilities/insanity",
+            "specialNameZh": "疯狂",
+            "level": 21,
             "averageHealingDone": 0,
             "averageDps": 100.31,
-            "deaths": 0
+            "deaths": 0,
+            "statisticsBasis": "before-manual-skill-change"
           },
           {
             "memberId": "JasonIC3",
             "combatType": "锤",
-            "specialHrid": "/abilities/revive",
-            "specialNameZh": "复活",
+            "specialHrid": "/abilities/insanity",
+            "specialNameZh": "疯狂",
             "level": 13,
             "averageHealingDone": 0,
             "averageDps": 101.98,
-            "deaths": 0
+            "deaths": 0,
+            "statisticsBasis": "before-manual-skill-change"
           },
           {
             "memberId": "jejetang",
             "combatType": "锤",
-            "specialHrid": "/abilities/revive",
-            "specialNameZh": "复活",
-            "level": 19,
+            "specialHrid": "/abilities/insanity",
+            "specialNameZh": "疯狂",
+            "level": 13,
             "averageHealingDone": 0,
             "averageDps": 98.55,
-            "deaths": 0
+            "deaths": 0,
+            "statisticsBasis": "before-manual-skill-change"
           },
           {
             "memberId": "nozuonodie",
@@ -8048,22 +8165,24 @@
           {
             "memberId": "ultrafast",
             "combatType": "锤",
-            "specialHrid": "/abilities/revive",
-            "specialNameZh": "复活",
-            "level": 23,
+            "specialHrid": "/abilities/insanity",
+            "specialNameZh": "疯狂",
+            "level": 13,
             "averageHealingDone": 0,
             "averageDps": 85.78,
-            "deaths": 0
+            "deaths": 0,
+            "statisticsBasis": "before-manual-skill-change"
           },
           {
             "memberId": "updown",
             "combatType": "锤",
-            "specialHrid": "/abilities/revive",
-            "specialNameZh": "复活",
-            "level": 1,
+            "specialHrid": "/abilities/insanity",
+            "specialNameZh": "疯狂",
+            "level": 23,
             "averageHealingDone": 0,
             "averageDps": 111.46,
-            "deaths": 0
+            "deaths": 0,
+            "statisticsBasis": "before-manual-skill-change"
           },
           {
             "memberId": "yitian",
@@ -8087,7 +8206,7 @@
           }
         ]
       },
-      "insanityTopDpsCount": 8,
+      "insanityTopDpsCount": 29,
       "averageScore": 8000000.667075382,
       "averageDeaths": 0,
       "insanityRankedFromAllRevive": [
@@ -8123,8 +8242,95 @@
         "Bettini"
       ],
       "natureHealersConvertedToDps": 0,
-      "natureHealersConvertedNames": []
+      "natureHealersConvertedNames": [],
+      "manualInsanityOverride": {
+        "sourceGeneratedAt": "2026-10-02T02:44:54.200Z",
+        "publishedRankCutoff": 32,
+        "originalTopMemberIds": [
+          "Feca",
+          "huahua2024",
+          "Rhonin",
+          "huahua2026",
+          "zzjxPeter",
+          "nozuonodie",
+          "ironMingming",
+          "SumiEnderman",
+          "lvan02",
+          "SakuraNanami",
+          "updown",
+          "bluer",
+          "JasonIC3",
+          "DuanYu03",
+          "JasonIC1",
+          "ironmingge",
+          "jejetang",
+          "Miyu22",
+          "huuhi",
+          "CO1co",
+          "ultrafast",
+          "Hayashi",
+          "BigBigGuaiNO02",
+          "GIGBigGuaiNO03",
+          "HIok",
+          "laoyue1",
+          "ximilu3",
+          "222jjj",
+          "GuCheng1",
+          "himeal4",
+          "333jjj",
+          "huahua2025"
+        ],
+        "convertedMemberIds": [
+          "333jjj",
+          "Miyu22",
+          "222jjj",
+          "Hayashi",
+          "himeal4",
+          "huahua2025",
+          "laoyue1",
+          "ximilu3",
+          "BigBigGuaiNO02",
+          "bluer",
+          "DuanYu03",
+          "GIGBigGuaiNO03",
+          "GuCheng1",
+          "HIok",
+          "huuhi",
+          "ironmingge",
+          "JasonIC1",
+          "JasonIC3",
+          "jejetang",
+          "ultrafast",
+          "updown"
+        ],
+        "finalInsanityCount": 29
+      }
     }
   ],
-  "summaryText": "WI 可用人员重排组合搜索（不按报名，开发实验不可转正）\n可用 94 人；不可用 18 人；最优分区：ranged-spear-jellyfish-aoe-swarm-heal50\n成员数据：服务器最新存档；个人装备/技能快照不保证今日刷新。\n规则：弓/弩/枪主体去水母；剑/锤/火/水主体去虫群；自然全治疗扫描奶比，两边保留覆盖；两边保留必要覆盖（烟爆/法力喷泉/冰霜爆裂/粉尘/疫病/破甲/碎裂/致残/血刃）；自然奶按武器强化/魔法改输出 x（jellyfish=0，swarm=0），输出技能元素增幅/粉尘/菌幕/缠绕，剩余自然仍群疗；非光环默认复活、前x输出改疯狂（jellyfish=0，swarm=8）；攻击≥110、主属性≥125、武器等级≥95；双 Boss 人员互斥；无复制人。\n【试炼水母】46人；3次 9–9 层；DPS≈3058；末层平均50.0%；死亡 1–13；终验团灭 0/3\n技能包：st-ranged-pestilent-flameblast\n职业：弓2 弩23 水1 自11 盾2 枪2 剑2 锤3\n职责：坦克2 奶11 减8 输出25\n名单：jojotang(弓)、ShrimpPaste(弓)、BoltwardenC(弩)、CO2co(弩)、guigui000(弩)、guigui888(弩)、guigui999(弩)、Hawzel(弩)、himeal2(弩)、ICQQ(弩)、ir0nC0w(弩)、ironCatt1e(弩)、linyu3(弩)、longago(弩)、mingge(弩)、NiuShenShi(弩)、NOCan(弩)、R23(弩)、Rootini(弩)、TieShenShi(弩)、TieWatermelon(弩)、ultrafast2(弩)、ximilu1(弩)、Yihi(弩)、zzjx1(弩)、ICrazytrain(水)、Sheila(自)、We1Jia(自)、LiverMore(自)、Parisseal(自)、Yiliya(自)、liuliangmao(自)、linyu2(自)、sdkkaka(自)、LiNanGe1(自)、ximilu2(自)、YouCan(自)、AkaWaka(盾)、himeal3(盾)、DayDayUp(枪)、XiaoFeng01(枪)、adiudiu(剑)、GoMGo(剑)、111jjj(锤)、BigBigGuaiNo01(锤)、zzjxSumi(锤)\n【试炼虫群】48人（每层4只）；3次 8–8 层；DPS≈4251；末层平均66.7%；死亡 0–0；终验团灭 0/3；前8输出疯狂\n技能包：aoe-precision-rain-smoke2\n职业：弓2 弩2 水2 自12 盾2 枪2 剑4 锤22\n职责：坦克2 奶12 减10 输出24\n名单：333jjj(弓)、ggggy(弓)、BoltwardenA(弩)、BoltwardenB(弩)、ironMingming(水)、Miyu22(水)、1Crazytrain(自)、222jjj(自)、breakdream(自)、breakheart(自)、Destini(自)、erdols(自)、ggggggy(自)、Hayashi(自)、Hcan(自)、himeal4(自)、ICisMelvor(自)、jujutang(自)、gggggggy(盾)、ultrafast1(盾)、Bettini(枪)、CO1co(枪)、huahua2025(剑)、laoyue1(剑)、SumiEnderman(剑)、ximilu3(剑)、BigBigGuaiNO02(锤)、bluer(锤)、DuanYu03(锤)、Feca(锤)、GIGBigGuaiNO03(锤)、GuCheng1(锤)、HIok(锤)、huahua2024(锤)、huahua2026(锤)、huuhi(锤)、ironmingge(锤)、JasonIC1(锤)、JasonIC3(锤)、jejetang(锤)、lvan02(锤)、nozuonodie(锤)、Rhonin(锤)、SakuraNanami(锤)、ultrafast(锤)、updown(锤)、yitian(锤)、zzjxPeter(锤)\n全库不可用：Feng689/自(魔法等级不足（122<125）)、Feng690/弩(缺少T95或精炼★T95武器)、dollar/剑(缺少T95或精炼★T95武器)、Costa/火(缺少T95或精炼★T95武器)、Twinings/火(缺少T95或精炼★T95武器)、python/火(缺少T95或精炼★T95武器)、A130/自(缺少T95或精炼★T95武器)、A201/弩(远程等级不足（123<125）)、DSK01/弩(攻击等级不足（98<110）)、JanyaY/弩(远程等级不足（118<125）)、MyaY/弩(缺少T95或精炼★T95武器)、ZyaY/弩(缺少T95或精炼★T95武器)、irontaoist/锤(缺少T95或精炼★T95武器)、Magicmimi/自(魔法等级不足（123<125）)、Shizuka1/盾(盾超额（防御130较低，每边只带2盾）)、XuZhu02/盾(盾超额（防御130较低，每边只带2盾）)、Chloe33/盾(盾超额（防御128较低，每边只带2盾）)、Feng888/盾(盾超额（防御126较低，每边只带2盾）)"
+  "summaryText": "WI 可用人员重排组合搜索（不按报名，开发实验不可转正）\n可用 94 人；不可用 18 人；最优分区：ranged-spear-jellyfish-aoe-swarm-heal50\n成员数据：服务器最新存档；个人装备/技能快照不保证今日刷新。\n规则：弓/弩/枪主体去水母；剑/锤/火/水主体去虫群；自然全治疗扫描奶比，两边保留覆盖；两边保留必要覆盖（烟爆/法力喷泉/冰霜爆裂/粉尘/疫病/破甲/碎裂/致残/血刃）；自然奶按武器强化/魔法改输出 x（jellyfish=0，swarm=0），输出技能元素增幅/粉尘/菌幕/缠绕，剩余自然仍群疗；特殊技能按原发布成员明细排名手工调整；攻击≥110、主属性≥125、武器等级≥95；双 Boss 人员互斥；无复制人。\n【试炼水母】46人；3次 9–9 层；DPS≈3058；末层平均50.0%；死亡 1–13；终验团灭 0/3\n技能包：st-ranged-pestilent-flameblast\n职业：弓2 弩23 水1 自11 盾2 枪2 剑2 锤3\n职责：坦克2 奶11 减8 输出25\n名单：jojotang(弓)、ShrimpPaste(弓)、BoltwardenC(弩)、CO2co(弩)、guigui000(弩)、guigui888(弩)、guigui999(弩)、Hawzel(弩)、himeal2(弩)、ICQQ(弩)、ir0nC0w(弩)、ironCatt1e(弩)、linyu3(弩)、longago(弩)、mingge(弩)、NiuShenShi(弩)、NOCan(弩)、R23(弩)、Rootini(弩)、TieShenShi(弩)、TieWatermelon(弩)、ultrafast2(弩)、ximilu1(弩)、Yihi(弩)、zzjx1(弩)、ICrazytrain(水)、Sheila(自)、We1Jia(自)、LiverMore(自)、Parisseal(自)、Yiliya(自)、liuliangmao(自)、linyu2(自)、sdkkaka(自)、LiNanGe1(自)、ximilu2(自)、YouCan(自)、AkaWaka(盾)、himeal3(盾)、DayDayUp(枪)、XiaoFeng01(枪)、adiudiu(剑)、GoMGo(剑)、111jjj(锤)、BigBigGuaiNo01(锤)、zzjxSumi(锤)\n【试炼虫群】48人（每层4只）；3次 8–8 层；DPS≈4251；末层平均66.7%；死亡 0–0；终验团灭 0/3\n技能包：aoe-precision-rain-smoke2\n职业：弓2 弩2 水2 自12 盾2 枪2 剑4 锤22\n职责：坦克2 奶12 减10 输出24\n名单：333jjj(弓)、ggggy(弓)、BoltwardenA(弩)、BoltwardenB(弩)、ironMingming(水)、Miyu22(水)、1Crazytrain(自)、222jjj(自)、breakdream(自)、breakheart(自)、Destini(自)、erdols(自)、ggggggy(自)、Hayashi(自)、Hcan(自)、himeal4(自)、ICisMelvor(自)、jujutang(自)、gggggggy(盾)、ultrafast1(盾)、Bettini(枪)、CO1co(枪)、huahua2025(剑)、laoyue1(剑)、SumiEnderman(剑)、ximilu3(剑)、BigBigGuaiNO02(锤)、bluer(锤)、DuanYu03(锤)、Feca(锤)、GIGBigGuaiNO03(锤)、GuCheng1(锤)、HIok(锤)、huahua2024(锤)、huahua2026(锤)、huuhi(锤)、ironmingge(锤)、JasonIC1(锤)、JasonIC3(锤)、jejetang(锤)、lvan02(锤)、nozuonodie(锤)、Rhonin(锤)、SakuraNanami(锤)、ultrafast(锤)、updown(锤)、yitian(锤)、zzjxPeter(锤)\n全库不可用：Feng689/自(魔法等级不足（122<125）)、Feng690/弩(缺少T95或精炼★T95武器)、dollar/剑(缺少T95或精炼★T95武器)、Costa/火(缺少T95或精炼★T95武器)、Twinings/火(缺少T95或精炼★T95武器)、python/火(缺少T95或精炼★T95武器)、A130/自(缺少T95或精炼★T95武器)、A201/弩(远程等级不足（123<125）)、DSK01/弩(攻击等级不足（98<110）)、JanyaY/弩(远程等级不足（118<125）)、MyaY/弩(缺少T95或精炼★T95武器)、ZyaY/弩(缺少T95或精炼★T95武器)、irontaoist/锤(缺少T95或精炼★T95武器)、Magicmimi/自(魔法等级不足（123<125）)、Shizuka1/盾(盾超额（防御130较低，每边只带2盾）)、XuZhu02/盾(盾超额（防御130较低，每边只带2盾）)、Chloe33/盾(盾超额（防御128较低，每边只带2盾）)、Feng888/盾(盾超额（防御126较低，每边只带2盾）)\n手工调整：水母原明细前31名中复活→疯狂 29人，最终疯狂29人；虫群原明细前32名中复活→疯狂 21人，最终疯狂29人。\n未重跑模拟：DPS、层数、死亡、治疗等统计为技能调整前结果。",
+  "simulationGeneratedAt": "2026-10-02T02:44:54.200Z",
+  "manualSkillOverride": {
+    "requestedAt": "2026-10-02T03:20:19.936Z",
+    "rankingSource": "previous-published-member-breakdown",
+    "simulationRerun": false,
+    "simulationStatisticsBasis": "before-manual-skill-change",
+    "cutoffs": {
+      "jellyfish": 31,
+      "swarm": 32
+    },
+    "changes": [
+      {
+        "boss": "jellyfish",
+        "cutoff": 31,
+        "newlyChanged": 29,
+        "finalInsanity": 29
+      },
+      {
+        "boss": "swarm",
+        "cutoff": 32,
+        "newlyChanged": 21,
+        "finalInsanity": 29
+      }
+    ]
+  }
 }

@@ -1,17 +1,7 @@
 # 本周分工 / Weekly Assignments
-- assignmentGeneratedAt：`2026-10-02T02:44:54.200Z`
-- kind：`wi-available-roster-composition-lab`
-公网浏览（可选图片 / 中英切换）：https://xiahuaaaa.github.io/mwi-guild-trial-helper/reports/WI/combat-assignment/
-原图目录：https://raw.githubusercontent.com/xiahuaaaa/mwi-guild-trial-helper/main/reports/WI/combat-assignment/
-manifest：https://raw.githubusercontent.com/xiahuaaaa/mwi-guild-trial-helper/main/reports/WI/combat-assignment/manifest.json
-JSON：https://raw.githubusercontent.com/xiahuaaaa/mwi-guild-trial-helper/main/reports/WI/combat-assignment/latest.json
-## 图片 / Images
-- [生活分工 / Life](../life-assignment/latest.png)
-- [试炼水母 · 阵容与技能](https://raw.githubusercontent.com/xiahuaaaa/mwi-guild-trial-helper/main/reports/WI/combat-assignment/1-jellyfish-summary.png)
-- [试炼水母 · 46 人贡献明细](https://raw.githubusercontent.com/xiahuaaaa/mwi-guild-trial-helper/main/reports/WI/combat-assignment/1-jellyfish-members.png)
-- [试炼虫群 · 阵容与技能](https://raw.githubusercontent.com/xiahuaaaa/mwi-guild-trial-helper/main/reports/WI/combat-assignment/2-swarm-summary.png)
-- [试炼虫群 · 48 人贡献明细](https://raw.githubusercontent.com/xiahuaaaa/mwi-guild-trial-helper/main/reports/WI/combat-assignment/2-swarm-members.png)
-- [Trial Jellyfish · Roster & Skills (EN)](https://raw.githubusercontent.com/xiahuaaaa/mwi-guild-trial-helper/main/reports/WI/combat-assignment/1-jellyfish-summary.en.png)
-- [Trial Jellyfish · 46 Member Breakdown (EN)](https://raw.githubusercontent.com/xiahuaaaa/mwi-guild-trial-helper/main/reports/WI/combat-assignment/1-jellyfish-members.en.png)
-- [Trial Swarm · Roster & Skills (EN)](https://raw.githubusercontent.com/xiahuaaaa/mwi-guild-trial-helper/main/reports/WI/combat-assignment/2-swarm-summary.en.png)
-- [Trial Swarm · 48 Member Breakdown (EN)](https://raw.githubusercontent.com/xiahuaaaa/mwi-guild-trial-helper/main/reports/WI/combat-assignment/2-swarm-members.en.png)
+
+生成时间：2026-10-02T03:20:19.936Z
+
+公网报告：https://xiahuaaaa.github.io/mwi-guild-trial-helper/reports/WI/combat-assignment/
+
+手工调整特殊技能；DPS/死亡等沿用调整前统计，未重跑模拟。开发校准结果，不可转正。
