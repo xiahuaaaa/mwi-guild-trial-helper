@@ -1,9 +1,9 @@
 {
   "kind": "combat-assignment-report",
   "schemaVersion": 1,
-  "assignmentGeneratedAt": "2026-10-09T00:56:34.940Z",
+  "assignmentGeneratedAt": "2026-10-09T06:03:08.420Z",
   "assignmentKind": "wi-available-roster-composition-lab",
-  "generatedAt": "2026-10-09T03:33:10.654Z",
+  "generatedAt": "2026-10-09T06:10:25.065Z",
   "publicBaseUrl": "https://raw.githubusercontent.com/xiahuaaaa/mwi-guild-trial-helper/main/reports/WI/combat-assignment",
   "publicIndexUrl": "https://xiahuaaaa.github.io/mwi-guild-trial-helper/reports/WI/combat-assignment/",
   "publicManifestUrl": "https://raw.githubusercontent.com/xiahuaaaa/mwi-guild-trial-helper/main/reports/WI/combat-assignment/manifest.json",
@@ -25,7 +25,7 @@
       "publicUrl": "https://raw.githubusercontent.com/xiahuaaaa/mwi-guild-trial-helper/main/reports/WI/combat-assignment/2-badger-summary.png"
     },
     {
-      "title": "试炼獾 · 45 人贡献明细",
+      "title": "试炼獾 · 46 人贡献明细",
       "fileName": "2-badger-members.png",
       "publicUrl": "https://raw.githubusercontent.com/xiahuaaaa/mwi-guild-trial-helper/main/reports/WI/combat-assignment/2-badger-members.png"
     }
@@ -47,7 +47,7 @@
       "publicUrl": "https://raw.githubusercontent.com/xiahuaaaa/mwi-guild-trial-helper/main/reports/WI/combat-assignment/2-badger-summary.en.png"
     },
     {
-      "title": "Trial Badger · 45 Member Breakdown",
+      "title": "Trial Badger · 46 Member Breakdown",
       "fileName": "2-badger-members.en.png",
       "publicUrl": "https://raw.githubusercontent.com/xiahuaaaa/mwi-guild-trial-helper/main/reports/WI/combat-assignment/2-badger-members.en.png"
     }
