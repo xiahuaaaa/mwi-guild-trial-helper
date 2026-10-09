@@ -1,14 +1,14 @@
 {
   "kind": "life-assignment-report",
-  "weekStartAt": "2026-10-02T00:00:00.000Z",
-  "generatedAt": "2026-10-02T02:25:32.524Z",
-  "totalBasePoints": 4400,
+  "weekStartAt": "2026-10-09T00:00:00.000Z",
+  "generatedAt": "2026-10-09T05:34:24.183Z",
+  "totalBasePoints": 4200,
   "publicPngUrl": "https://raw.githubusercontent.com/xiahuaaaa/mwi-guild-trial-helper/main/reports/WI/life-assignment/latest.png",
   "publicJsonUrl": "https://raw.githubusercontent.com/xiahuaaaa/mwi-guild-trial-helper/main/reports/WI/life-assignment/latest.json",
   "files": [
     {
       "fileName": "latest.png",
-      "title": "本周生活分工"
+      "title": "本周生活分工 / Weekly Life Trial Assignments"
     },
     {
       "fileName": "latest.json",
