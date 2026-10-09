@@ -1,7 +1,7 @@
-# 本周分工 / Weekly Assignments
+# TMD 本周战斗模拟
 
-生成时间：2026-10-02T03:20:19.936Z
+生成时间：2026-10-09T03:27:28.040Z
 
-公网报告：https://xiahuaaaa.github.io/mwi-guild-trial-helper/reports/combat-assignment/
+[公网报告](https://xiahuaaaa.github.io/mwi-guild-trial-helper/reports/combat-assignment/)
 
-手工调整特殊技能；DPS/死亡等沿用调整前统计，未重跑模拟。开发校准结果，不可转正。
+选择口径：三 seed 平均层数优先，允许团灭。
