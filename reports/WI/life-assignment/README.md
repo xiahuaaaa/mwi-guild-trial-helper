@@ -1,7 +1,7 @@
 # 本周生活分工
 
-- 公会周：`2026-10-16T00:00:00.000Z`
-- 生成时间：`2026-10-16T01:59:45.908Z`
+- 公会周：`2026-10-23T00:00:00.000Z`
+- 生成时间：`2026-10-23T02:41:01.501Z`
 - 基础点数合计：`4300`
 
 图片：https://raw.githubusercontent.com/xiahuaaaa/mwi-guild-trial-helper/main/reports/WI/life-assignment/latest.png
