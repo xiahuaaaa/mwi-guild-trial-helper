@@ -2,9 +2,9 @@
 // @name         MWI 公会试炼资料同步助手
 // @name:en      TMD-guild-trial-sync
 // @namespace    https://greasyfork.org/users/1466859-adudu
-// @version      0.6.27
-// @description  TMD 公会专用：自动同步成员名单、本周试炼、怪物面板、全部配装、技能与光环，并高亮最新战斗分工。
-// @description:en  TMD guild sync: roster, weekly trials, monster panels, loadouts, abilities, auras, and the latest combat assignment.
+// @version      0.6.29
+// @description  MWI 公会通用（TMD / Wandering ICarus）：自动同步成员名单、本周试炼、怪物面板、全部配装、技能与光环，并高亮最新战斗分工。
+// @description:en  MWI guild sync for TMD and Wandering ICarus: roster, weekly trials, monster panels, loadouts, abilities, auras, and the latest combat assignment.
 // @author       adudu
 // @license      MIT
 // @homepageURL  https://github.com/xiahuaaaa/mwi-guild-trial-helper
@@ -15,15 +15,14 @@
 // @match        https://www.milkywayidlecn.com/*
 // @grant        GM_getValue
 // @grant        GM_setValue
+// @grant        GM_deleteValue
 // @grant        GM_xmlhttpRequest
 // @grant        GM.xmlHttpRequest
 // @grant        unsafeWindow
 // @connect      127.0.0.1
 // @connect      localhost
+// @connect      mwi.adudu.lol
 // @connect      api.adudu.lol
-// @connect      raw.githubusercontent.com
-// @connect      gitee.com
-// @connect      raw.giteeusercontent.com
 // @run-at       document-start
 // ==/UserScript==
 
@@ -32,9 +31,10 @@
  *
  * Data boundary:
  * - reads only the character, guild roster, equipment, loadout, ability and
- *   permanent house/achievement/shrine records
- *   records required by the TMD guild tools;
- * - checks the detected character against the TMD roster before automatic sync;
+ *   permanent house/achievement/shrine records required by the guild tools;
+ * - one script serves every registered guild; the live game guild name or id
+ *   selects the API slug (369 -> TMD, 667 -> WI) with no build-time pinning;
+ * - checks the detected character against the guild roster before automatic sync;
  * - never includes cookies, login/session credentials or authorization data in
  *   the snapshot.
  */
@@ -43,24 +43,15 @@
   const pageContext = typeof unsafeWindow === "object" ? unsafeWindow : window;
   if (pageContext.__ADUDU_GUILD_TRIAL_BRIDGE__) return;
   const MAX_COMBAT_CANDIDATES = 4;
-  const GUILD_IDENTITY = Object.freeze({
-    apiSlug: "TMD",
-    gameGuildName: "TMD",
-    gameGuildId: 369,
-  });
-  const REPORTS_PREFIX = GUILD_IDENTITY.apiSlug === "WI" ? "WI/" : "";
-  const DEFAULT_API_BASE = "https://api.adudu.lol";
-  const GITHUB_REPORTS_BASE = "https://raw.githubusercontent.com/xiahuaaaa/mwi-guild-trial-helper/main/reports";
-  const GITEE_REPORTS_REPO = GUILD_IDENTITY.apiSlug === "WI"
-    ? "lxxxhhyy/WI-guild-trial-sync"
-    : "lxxxhhyy/TMD-guild-trial-sync";
-  const GITEE_REPORTS_BASE = `https://gitee.com/${GITEE_REPORTS_REPO}/raw/master/reports`;
-  const COMBAT_ASSIGNMENT_JSON_URL = `${GITHUB_REPORTS_BASE}/${REPORTS_PREFIX}combat-assignment/latest.json`;
-  const COMBAT_ASSIGNMENT_GITEE_URL = `${GITEE_REPORTS_BASE}/${REPORTS_PREFIX}combat-assignment/latest.json`;
-  const COMBAT_ASSIGNMENT_JSON_URLS = Object.freeze([COMBAT_ASSIGNMENT_JSON_URL, COMBAT_ASSIGNMENT_GITEE_URL]);
-  const LIFE_ASSIGNMENT_JSON_URL = `${GITHUB_REPORTS_BASE}/${REPORTS_PREFIX}life-assignment/latest.json`;
-  const LIFE_ASSIGNMENT_GITEE_URL = `${GITEE_REPORTS_BASE}/${REPORTS_PREFIX}life-assignment/latest.json`;
-  const LIFE_ASSIGNMENT_JSON_URLS = Object.freeze([LIFE_ASSIGNMENT_JSON_URL, LIFE_ASSIGNMENT_GITEE_URL]);
+  // One script serves every registered guild. The live game guild decides the
+  // API slug, so no build-time identity is baked in.
+  const GUILD_REGISTRY = Object.freeze([
+    Object.freeze({ apiSlug: "TMD", gameGuildName: "TMD", gameGuildId: 369 }),
+    Object.freeze({ apiSlug: "WI", gameGuildName: "Wandering ICarus", gameGuildId: 667 }),
+  ]);
+  const GUILD_REGISTRY_BY_ID = new Map(GUILD_REGISTRY.map((guild) => [guild.gameGuildId, guild]));
+  const GUILD_REGISTRY_BY_NAME = new Map(GUILD_REGISTRY.map((guild) => [guild.gameGuildName.toLocaleLowerCase(), guild]));
+  const DEFAULT_API_BASE = "https://mwi.adudu.lol";
   const COMBAT_ABILITY_ICON_BASE = "https://mwi-guild.43.167.210.211.sslip.io/dist/icons/abilities";
   const COMBAT_ASSIGNMENT_CACHE_MS = 5 * 60 * 1000;
   const COMBAT_ASSIGNMENT_POLL_MS = 2 * 60 * 1000;
@@ -68,21 +59,53 @@
   const PAGE_BRIDGE_CHANNEL = "adudu-mwi-guild-snapshot-v1";
   const UI_COLLAPSED_KEY = "uiCollapsed";
   const UI_POSITION_KEY = "uiCollapsedPosition";
+  // A reporter's secret remains necessary for roster, weekly-trial and batch
+  // uploads. Ordinary individual snapshot uploads no longer require a secret.
+  const MEMBER_TOKEN_PREFIX = "mwiGuildMemberToken:";
+  function memberTokenKey() {
+    const slug = apiSlug();
+    return slug ? `${MEMBER_TOKEN_PREFIX}${slug}` : "";
+  }
   const UI = Object.freeze({
     root: "adudu-guild-sync",
     list: "adudu-guild-sync-loadouts",
     status: "adudu-guild-sync-status",
     bridge: "adudu-guild-sync-bridge",
+    collect: "adudu-guild-collect-bridge",
+    collectButton: "adudu-guild-collect",
+    collectPause: "adudu-guild-collect-pause",
+    collectProgress: "adudu-guild-collect-progress",
+    tokenRow: "adudu-guild-sync-token-row",
+    token: "adudu-guild-sync-token",
   });
   const HYDRATION_RETRY_DELAYS_MS = [250, 500, 1000, 2000, 4000, 8000, 12000];
   // Follow game language (i18nextLng). Do not use the browser UI language.
   const zh = Object.freeze({
-    ariaLabel: "TMD-guild-trial-sync",
+    ariaLabel: "adudu-guild-trial-sync",
     heading: "adudu · 公会试炼资料",
-    intro: "TMD 专用；登录后自动同步本周试炼类型、怪物面板、当前名单、双 Boss 报名及全部配装，职业通过 QQ 机器人绑定。",
+    intro: "TMD / Wandering ICarus 通用；登录后自动同步本周试炼类型、怪物面板、当前名单、双 Boss 报名及全部配装，职业与请假在 Web 控制台（mwi.adudu.lol）维护。",
     waitingCharacter: "等待读取角色资料",
     syncNow: "立即同步",
     exportBackup: "导出备份",
+    guildLabel: (slug) => `公会：${slug || "未识别"}`,
+    collectAll: "采集全会资料与报名配装",
+    collectPause: "暂停",
+    collectResume: "继续",
+    collectCancel: "取消",
+    collectNotReporter: "只有可信上报者才能采集全会资料。",
+    collectProgress: (current, total, memberId) => `正在采集 ${current}/${total}：${memberId}…`,
+    collectProgressPaused: (current, total) => `已暂停（${current}/${total}），点「继续」恢复。`,
+    collectPausedNow: (current, total) => `已暂停（${current}/${total}）。`,
+    collectDone: (uploaded, failed, total) => `全会采集完成：成功 ${uploaded}、失败 ${failed}、共 ${total} 人。`,
+    collectCancelled: (done, total) => `已取消采集（${done}/${total}）。`,
+    collectNoMembers: "未读取到公会成员名单；请先打开「公会」界面。",
+    collectProfileTimeout: (memberId) => `${memberId} 的资料未在超时前返回`,
+    collectLoadoutTimeout: (memberId, kind) => `${memberId} 的${kind === "combat" ? "战斗" : "生活"}报名配装未在超时前返回`,
+    collectUploadFailed: (memberId, detail) => `${memberId} 上传失败（${detail}）`,
+    collectPausedEnd: "采集已暂停，已停止发送请求。",
+    collectCombatLoadoutName: "公会试炼报名配装（战斗）",
+    collectSkillingLoadoutName: "公会试炼报名配装（生活）",
+    collectWornLoadoutName: "当前穿戴",
     expand: "展开公会资料同步助手",
     collapse: "缩小公会资料同步助手",
     categoryCombat: "战斗",
@@ -94,13 +117,13 @@
     syncTimeout: "同步超时",
     syncUnreachable: "无法连接公会资料服务",
     waitingName: "等待读取游戏角色名。",
-    notTmdYet: "尚未从游戏确认当前角色属于 TMD；请打开公会界面后重试。",
-    notTmdDetail: (detail) => `尚未从游戏确认当前角色属于 TMD（${detail}）。请打开「公会」界面后点「立即同步」。`,
+    notRegisteredGuildYet: "尚未从游戏确认当前角色属于 TMD 或 Wandering ICarus；请打开公会界面后重试。",
+    notRegisteredGuildDetail: (detail) => `尚未从游戏确认当前角色所属公会（${detail}）。请打开「公会」界面后点「立即同步」。`,
     waitingEquipmentAuto: "尚未读取到可用配装装备，正在等待游戏数据…",
     waitingEquipmentManual: "尚未从游戏读取到可用配装装备；请等待游戏加载完成后重试",
-    checkingEligibility: (memberId) => `正在检查 ${memberId} 的 TMD 成员资格…`,
-    notEligible: (memberId) => `当前角色 ${memberId} 不在 TMD 成员名单中，不会上传资料。`,
-    syncingRoster: (count) => `正在同步 TMD 当前名单（${count} 人）…`,
+    checkingEligibility: (memberId) => `正在检查 ${memberId} 的公会成员资格…`,
+    notEligible: (memberId) => `当前角色 ${memberId} 不在本会成员名单中，不会上传资料。`,
+    syncingRoster: (count) => `正在同步当前名单（${count} 人）…`,
     rosterOk: (count) => `名单 ${count} 人、`,
     rosterFailed: (detail) => `名单未更新（${detail}）、`,
     syncingWeeklyTrials: "正在同步本周生活/战斗试炼与怪物面板…",
@@ -129,14 +152,39 @@
     syncingLoadouts: "正在自动同步全部配装…",
     synced: (prefix, count, memberId) => `已同步${prefix}${count} 套配装（${memberId}）。`,
     syncFailed: (message) => `同步失败：${message}`,
+    tokenLabel: "上报者口令（全会采集、名单和本周试炼使用）",
+    tokenPlaceholder: "仅授权上报者需要",
+    tokenSave: "保存口令",
+    tokenSaved: "口令已保存，将随同步一起发送。",
+    tokenMissing: "缺少成员同步口令，无法上传快照。",
+    tokenRejected: "成员同步口令无效或已过期，请向管理员重新领取。",
   });
   const en = Object.freeze({
-    ariaLabel: "TMD-guild-trial-sync",
+    ariaLabel: "adudu-guild-trial-sync",
     heading: "adudu · Guild Trial Sync",
-    intro: "TMD only. After login, auto-syncs this week's trials, monster panels, roster, dual-boss signups, and all loadouts. Bind combat roles via the QQ bot.",
+    intro: "TMD and Wandering ICarus. After login, auto-syncs this week's trials, monster panels, roster, dual-boss signups, and all loadouts. Manage combat roles and leave on the Web console (mwi.adudu.lol).",
     waitingCharacter: "Waiting for character data",
     syncNow: "Sync now",
     exportBackup: "Export backup",
+    guildLabel: (slug) => `Guild: ${slug || "unrecognized"}`,
+    collectAll: "Collect every member's profile and signup loadouts",
+    collectPause: "Pause",
+    collectResume: "Resume",
+    collectCancel: "Cancel",
+    collectNotReporter: "Only trusted reporters can collect the whole guild.",
+    collectProgress: (current, total, memberId) => `Collecting ${current}/${total}: ${memberId}…`,
+    collectProgressPaused: (current, total) => `Paused (${current}/${total}). Press Resume to continue.`,
+    collectPausedNow: (current, total) => `Paused (${current}/${total}).`,
+    collectDone: (uploaded, failed, total) => `Collection finished: ${uploaded} uploaded, ${failed} failed, ${total} members.`,
+    collectCancelled: (done, total) => `Collection cancelled (${done}/${total}).`,
+    collectNoMembers: "No guild roster yet; open the Guild panel first.",
+    collectProfileTimeout: (memberId) => `No profile reply for ${memberId} before the timeout`,
+    collectLoadoutTimeout: (memberId, kind) => `No ${kind} signup loadout reply for ${memberId} before the timeout`,
+    collectUploadFailed: (memberId, detail) => `${memberId} upload failed (${detail})`,
+    collectPausedEnd: "Collection paused; no further requests were sent.",
+    collectCombatLoadoutName: "Guild trial signup loadout (combat)",
+    collectSkillingLoadoutName: "Guild trial signup loadout (skilling)",
+    collectWornLoadoutName: "Currently worn",
     expand: "Expand guild trial sync",
     collapse: "Minimize guild trial sync",
     categoryCombat: "Combat",
@@ -148,13 +196,13 @@
     syncTimeout: "Sync timed out",
     syncUnreachable: "Cannot reach the guild data service",
     waitingName: "Waiting for character name.",
-    notTmdYet: "Could not confirm this character is in TMD. Open the guild panel and try again.",
-    notTmdDetail: (detail) => `Could not confirm TMD membership (${detail}). Open the Guild panel, then Sync Now.`,
+    notRegisteredGuildYet: "Could not confirm this character is in TMD or Wandering ICarus. Open the guild panel and try again.",
+    notRegisteredGuildDetail: (detail) => `Could not confirm the guild membership (${detail}). Open the Guild panel, then Sync Now.`,
     waitingEquipmentAuto: "No usable loadout equipment yet; waiting for game data…",
     waitingEquipmentManual: "No usable loadout equipment was captured. Wait for the game to finish loading and try again.",
-    checkingEligibility: (memberId) => `Checking TMD membership for ${memberId}…`,
-    notEligible: (memberId) => `Character ${memberId} is not on the TMD roster; nothing will be uploaded.`,
-    syncingRoster: (count) => `Syncing TMD roster (${count} members)…`,
+    checkingEligibility: (memberId) => `Checking guild membership for ${memberId}…`,
+    notEligible: (memberId) => `Character ${memberId} is not on the guild roster; nothing will be uploaded.`,
+    syncingRoster: (count) => `Syncing roster (${count} members)…`,
     rosterOk: (count) => `roster ${count}, `,
     rosterFailed: (detail) => `roster not updated (${detail}), `,
     syncingWeeklyTrials: "Syncing this week's skilling/combat trials and monster panels…",
@@ -183,6 +231,12 @@
     syncingLoadouts: "Auto-syncing all loadouts…",
     synced: (prefix, count, memberId) => `Synced ${prefix}${count} loadouts (${memberId}).`,
     syncFailed: (message) => `Sync failed: ${message}`,
+    tokenLabel: "Reporter secret (guild-wide collection and roster sync)",
+    tokenPlaceholder: "Only needed by authorized reporters",
+    tokenSave: "Save secret",
+    tokenSaved: "Secret saved; it will be sent with every sync.",
+    tokenMissing: "No member sync secret yet, so the snapshot cannot be uploaded.",
+    tokenRejected: "The member sync secret is missing or no longer valid. Ask an admin for a new one.",
   });
   function lang() {
     const stored = [
@@ -601,10 +655,44 @@
     const id = Number(value);
     return Number.isInteger(id) && id > 0 ? id : null;
   };
-  const ownGuildName = (value) => String(value ?? "").trim() === GUILD_IDENTITY.gameGuildName;
-  const hasPinnedGuildId = (value) => positiveGuildId(value) === GUILD_IDENTITY.gameGuildId;
+  const registeredGuildById = (value) => GUILD_REGISTRY_BY_ID.get(positiveGuildId(value)) ?? null;
+  const registeredGuildByName = (value) =>
+    GUILD_REGISTRY_BY_NAME.get(String(value ?? "").trim().toLocaleLowerCase()) ?? null;
+  const registeredGuild = (value) => registeredGuildById(value) ?? registeredGuildByName(value);
+  const ownGuildName = (value) => Boolean(registeredGuildByName(value));
+  const hasPinnedGuildId = (value) => Boolean(registeredGuildById(value));
   const ownsCurrentGuild = () =>
     ownGuildName(state.guild.name) || hasPinnedGuildId(state.guild.id) || hasPinnedGuildId(state.guild.guildId);
+  /**
+   * Which registered guild this page belongs to. The name wins because React
+   * leftovers can leave a foreign guild id next to the correct name; the id is
+   * the fallback when the name has not hydrated yet.
+   */
+  function activeGuildIdentity() {
+    const fromName = registeredGuildByName(state.guild.name)
+      ?? registeredGuildByName(state.guild.guildName)
+      ?? registeredGuildByName(state.character.guildName);
+    if (fromName) return fromName;
+    return registeredGuildById(state.guild.id)
+      ?? registeredGuildById(state.guild.guildId)
+      ?? registeredGuildById(state.character.guildId)
+      ?? registeredGuildById(state.character.guildID)
+      ?? null;
+  }
+  function apiSlug() {
+    return activeGuildIdentity()?.apiSlug ?? "";
+  }
+  /** The registered guild id already confirmed by the current state, if any. */
+  function pinnedGuildId() {
+    const byName = registeredGuildByName(state.guild.name) ?? registeredGuildByName(state.guild.guildName);
+    if (byName) return byName.gameGuildId;
+    const byId = registeredGuildById(state.guild.id) ?? registeredGuildById(state.guild.guildId);
+    return byId ? byId.gameGuildId : null;
+  }
+  function guildApiUrl(path) {
+    const slug = apiSlug();
+    return slug ? `${DEFAULT_API_BASE}/api/public/guilds/${slug}${path}` : "";
+  }
 
   function applyCharacterData(candidate) {
     const data = object(candidate);
@@ -631,17 +719,14 @@
       character?.guildId,
       character?.guildID,
     ].map(positiveGuildId).filter((id) => id != null)
-      .sort((left, right) => Number(right === GUILD_IDENTITY.gameGuildId) - Number(left === GUILD_IDENTITY.gameGuildId))[0]
+      .sort((left, right) => Number(Boolean(registeredGuildById(right))) - Number(Boolean(registeredGuildById(left))))[0]
       ?? null;
     const incomingForeignName = incomingGuildName && !ownGuildName(incomingGuildName);
-    // TMD/WI leftover fibers and guild-list tiles can write a foreign id
-    // (Ameratto: 459) without replacing the TMD name. Keep the pinned id.
+    const incomingRegistered = registeredGuildById(incomingGuildId) ?? registeredGuildByName(incomingGuildName);
+    // Leftover fibers and guild-list tiles can write a foreign id (Ameratto:
+    // 459) without replacing the real guild name. Keep the registered id.
     if (guild && typeof guild === "object" && !(ownsCurrentGuild() && incomingForeignName)) {
-      const pinnedId = hasPinnedGuildId(state.guild.id)
-        || hasPinnedGuildId(state.guild.guildId)
-        || hasPinnedGuildId(incomingGuildId)
-        ? GUILD_IDENTITY.gameGuildId
-        : null;
+      const pinnedId = incomingRegistered?.gameGuildId ?? pinnedGuildId();
       state.guild = {
         ...state.guild,
         ...guild,
@@ -656,13 +741,11 @@
     }
     if (incomingGuildId && !(ownsCurrentGuild() && incomingForeignName)) {
       const keepPinned = hasPinnedGuildId(state.guild.id) && !hasPinnedGuildId(incomingGuildId);
-      if (!keepPinned) state.guild.id = hasPinnedGuildId(incomingGuildId)
-        ? GUILD_IDENTITY.gameGuildId
-        : incomingGuildId;
+      if (!keepPinned) state.guild.id = incomingRegistered?.gameGuildId ?? incomingGuildId;
       if (state.character && typeof state.character === "object") {
         if (state.character.guildId == null && state.character.guildID == null) {
           state.character.guildId = hasPinnedGuildId(state.guild.id)
-            ? GUILD_IDENTITY.gameGuildId
+            ? state.guild.id
             : incomingGuildId;
         }
         if (!state.character.guildName && state.guild.name) {
@@ -861,8 +944,10 @@
   const CAPTURE_SHRINE_HRIDS = Object.freeze({
     "/guild_shrines/force": "/shrines/force", "/guild_shrines/tempo": "/shrines/tempo",
     "/guild_shrines/spirit": "/shrines/spirit", "/guild_shrines/scholar": "/shrines/scholar",
+    "/guild_shrines/rarity": "/shrines/rarity",
     "/shrines/force": "/shrines/force", "/shrines/tempo": "/shrines/tempo",
     "/shrines/spirit": "/shrines/spirit", "/shrines/scholar": "/shrines/scholar",
+    "/shrines/rarity": "/shrines/rarity",
   });
   const captureText = (value) => typeof value === "string" ? value.trim() : (Number.isFinite(value) ? String(value) : "");
   const captureObject = (value) => value && typeof value === "object" && !Array.isArray(value) ? value : {};
@@ -1429,27 +1514,22 @@
       state.character.guildID,
     ].map(positiveGuildId).filter((id) => id != null);
     const name = String(state.guild.name ?? state.guild.guildName ?? state.character.guildName ?? "").trim();
-    const pinned = ids.find((id) => id === GUILD_IDENTITY.gameGuildId) ?? null;
-    if (ownGuildName(name)) {
-      return { id: pinned ?? GUILD_IDENTITY.gameGuildId, name };
-    }
-    return { id: pinned ?? ids[0] ?? null, name };
+    const registered = activeGuildIdentity();
+    return { id: registered?.gameGuildId ?? ids[0] ?? null, name };
   }
-  function tmdConfirmDetail() {
+  function guildConfirmDetail() {
     const guild = detectedGameGuild();
     const parts = [];
-    if (guild.name !== GUILD_IDENTITY.gameGuildName) {
+    if (!registeredGuildByName(guild.name)) {
       parts.push(guild.name ? `guild=${guild.name}` : "missing guild name");
     }
-    if (!ownGuildName(guild.name) && guild.id !== GUILD_IDENTITY.gameGuildId) {
-      parts.push(guild.id != null ? `guildId=${guild.id}≠${GUILD_IDENTITY.gameGuildId}` : "missing guild id");
+    if (!registeredGuildById(guild.id)) {
+      parts.push(guild.id != null ? `guildId=${guild.id}∉{369,667}` : "missing guild id");
     }
     return parts.join("; ") || "incomplete guild state";
   }
-  function confirmedTmdGuild() {
-    const guild = detectedGameGuild();
-    if (guild.name === GUILD_IDENTITY.gameGuildName) return true;
-    return guild.id === GUILD_IDENTITY.gameGuildId;
+  function confirmedGuild() {
+    return Boolean(activeGuildIdentity());
   }
   /** Ask the page bridge to re-read React/core state; Edge often needs this after opening Guild. */
   function requestPageBridgeState(timeoutMs = 900) {
@@ -1460,7 +1540,7 @@
         settled = true;
         window.removeEventListener("message", onMessage);
         clearTimeout(timer);
-        resolve(confirmedTmdGuild());
+        resolve(confirmedGuild());
       };
       const onMessage = (event) => {
         if (event.origin !== location.origin || event.data?.source !== PAGE_BRIDGE_CHANNEL) return;
@@ -1482,14 +1562,14 @@
       window.postMessage({ source: PAGE_BRIDGE_CHANNEL, type: "request" }, location.origin);
     });
   }
-  async function ensureTmdGuildConfirmed() {
+  async function ensureGuildConfirmed() {
     hydrateFromGameCache();
     hydrateFromLiveGame();
-    if (confirmedTmdGuild()) return true;
+    if (confirmedGuild()) return true;
     return requestPageBridgeState();
   }
   function guildRosterPayload() {
-    if (!confirmedTmdGuild()) return null;
+    if (!confirmedGuild()) return null;
     const guild = detectedGameGuild();
     const sharable = state.guildSharableCharacterMap;
     const members = entries(state.guildCharacterMap).flatMap(([mapKey, guildCharacter]) => {
@@ -1763,7 +1843,7 @@
     return count > 0 ? count : null;
   }
   function weeklyTrialCatalogPayload() {
-    if (!confirmedTmdGuild()) return null;
+    if (!confirmedGuild()) return null;
     const guild = detectedGameGuild();
     const reporterPlayerId = Number(state.character.id ?? state.character.characterId);
     const reporterMemberId = detectedMemberId();
@@ -1839,7 +1919,7 @@
       && Math.abs(timestamp - currentGuildWeekStart().getTime()) < 12 * 60 * 60 * 1000;
   }
   function guildTrialRegistrationPayload() {
-    if (!confirmedTmdGuild()) return null;
+    if (!confirmedGuild()) return null;
     const guild = detectedGameGuild();
     const sharable = state.guildSharableCharacterMap;
     const signupLevels = state.guildTrialSignupLevelMap;
@@ -1945,7 +2025,7 @@
       guildBuildingLevelDict: state.guildBuildingLevelCaptured ? state.guildBuildingLevelDict : undefined,
       memberId: detectedMemberId() || undefined,
       displayName: detectedMemberId() || undefined,
-      guildId: GUILD_IDENTITY.apiSlug,
+      guildId: apiSlug() || undefined,
       selectedLoadoutIds: [],
       capturedAt: new Date().toISOString(),
     });
@@ -1970,8 +2050,32 @@
     if (gm && typeof gm.xmlHttpRequest === "function") return gm.xmlHttpRequest;
     return null;
   }
-  function jsonRequestHeaders(data) {
-    return data == null ? {} : { "content-type": "application/json" };
+  function memberToken() {
+    try {
+      const key = memberTokenKey();
+      return key ? String(GM_getValue(key, "") ?? "").trim() : "";
+    } catch {
+      return "";
+    }
+  }
+  /**
+   * The member sync secret is ours, and only ours: it identifies this character
+   * to the guild API. Report JSON falls back to GitHub raw and Gitee raw when the
+   * API is unreachable, so the secret must never ride along to a third-party host.
+   */
+  function isGuildApiUrl(url) {
+    try {
+      const origin = new URL(String(url)).origin;
+      return origin === new URL(DEFAULT_API_BASE).origin || origin === "https://api.adudu.lol" || origin === "https://mwi.adudu.lol";
+    } catch {
+      return false;
+    }
+  }
+  function jsonRequestHeaders(data, url) {
+    const headers = data == null ? {} : { "content-type": "application/json" };
+    const token = memberToken();
+    if (token && isGuildApiUrl(url)) headers.authorization = `Bearer ${token}`;
+    return headers;
   }
   function requestJsonWithFetch({ method, url, headers, body }) {
     const controller = new AbortController();
@@ -2028,7 +2132,7 @@
     });
   }
   function requestJson({ method, url, data }) {
-    const headers = jsonRequestHeaders(data);
+    const headers = jsonRequestHeaders(data, url);
     const body = data == null ? undefined : JSON.stringify(data);
     const gmRequest = gmXmlHttpRequestFn();
     if (!gmRequest) return requestJsonWithFetch({ method, url, headers, body });
@@ -2037,18 +2141,12 @@
       return requestJsonWithFetch({ method, url, headers, body });
     });
   }
-  async function requestAssignmentJson({ urls }) {
-    let lastError = null;
-    for (const url of urls) {
-      try {
-        const response = await requestJson({ method: "GET", url });
-        if (response.status === 200) return response;
-        lastError = new Error(`HTTP ${response.status}`);
-      } catch (error) {
-        lastError = error;
-      }
-    }
-    throw lastError || new Error(tr("syncUnreachable"));
+  async function requestAssignmentJson({ path }) {
+    const url = guildApiUrl(path);
+    if (!url) throw new Error(tr("notRegisteredGuildYet"));
+    const response = await requestJson({ method: "GET", url });
+    if (response.status !== 200) throw new Error(`HTTP ${response.status}`);
+    return response;
   }
 
   const COMBAT_ABILITY_NAMES_ZH = Object.freeze({
@@ -2586,7 +2684,7 @@
 
   async function refreshLifeAssignment({ force = false } = {}) {
     const memberId = detectedMemberId();
-    if (!memberId || !confirmedTmdGuild() || lifeAssignmentState.inFlight) return;
+    if (!memberId || !confirmedGuild() || lifeAssignmentState.inFlight) return;
     const cards = [...document.querySelectorAll(COMBAT_TRIAL_CARD_SELECTOR)];
     if (!force && assignmentAttemptFresh(lifeAssignmentState, memberId)) {
       if (cards.length && lifeAssignmentState.document) renderLifeAssignmentUi();
@@ -2598,7 +2696,7 @@
       setStatus(tr("lifeAssignmentLoading"));
     }
     try {
-      const response = await requestAssignmentJson({ urls: LIFE_ASSIGNMENT_JSON_URLS });
+      const response = await requestAssignmentJson({ path: "/life-assignments/current" });
       const source = JSON.parse(response.responseText || "{}");
       lifeAssignmentState.document = normalizeLifeAssignment(source);
       lifeAssignmentState.fetchedAt = Date.now();
@@ -2609,7 +2707,7 @@
       lifeAssignmentState.mismatch = null;
       clearLifeAssignmentUi();
       setStatus(tr("lifeAssignmentUnavailable"), true);
-      console.warn("[TMD-guild-trial-sync] latest life assignment unavailable", error?.message || error);
+      console.warn("[adudu-guild-trial-sync] latest life assignment unavailable", error?.message || error);
     } finally {
       lifeAssignmentState.inFlight = false;
     }
@@ -2630,7 +2728,7 @@
 
   async function refreshCombatAssignment({ force = false } = {}) {
     const memberId = detectedMemberId();
-    if (!memberId || !confirmedTmdGuild() || combatAssignmentState.inFlight) return;
+    if (!memberId || !confirmedGuild() || combatAssignmentState.inFlight) return;
     const cards = [...document.querySelectorAll(COMBAT_TRIAL_CARD_SELECTOR)];
     if (!force && assignmentAttemptFresh(combatAssignmentState, memberId)) {
       if (cards.length && combatAssignmentState.document) renderCombatAssignmentUi();
@@ -2642,7 +2740,7 @@
       setStatus(tr("assignmentLoading"));
     }
     try {
-      const response = await requestAssignmentJson({ urls: COMBAT_ASSIGNMENT_JSON_URLS });
+      const response = await requestAssignmentJson({ path: "/assignments/current" });
       const source = JSON.parse(response.responseText || "{}");
       combatAssignmentState.document = normalizeCombatAssignment(source);
       combatAssignmentState.fetchedAt = Date.now();
@@ -2652,7 +2750,7 @@
       combatAssignmentState.fetchedAt = Date.now();
       clearCombatAssignmentOnly();
       setStatus(tr("assignmentUnavailable"), true);
-      console.warn("[TMD-guild-trial-sync] latest combat assignment unavailable", error?.message || error);
+      console.warn("[adudu-guild-trial-sync] latest combat assignment unavailable", error?.message || error);
     } finally {
       combatAssignmentState.inFlight = false;
     }
@@ -2689,6 +2787,906 @@
       || catalog.every((loadout) => !Array.isArray(loadout?.equipment) || loadout.equipment.length === 0);
   }
 
+  /* ------------------------------------------------------------------ *
+   * Whole-guild collection
+   *
+   * The game answers handleViewProfile(name) and handleViewLoadout(id, ...)
+   * with profile_shared / loadout_shared packets, which its own handlers turn
+   * into `sharableProfile` / `sharableLoadout` state plus a modal. A reporter
+   * collecting ~115 members cannot have that modal open 115 times, so the
+   * collection runs in page context where it temporarily wraps the two
+   * handlers, records the payloads, and suppresses the UI state write.
+   * ------------------------------------------------------------------ */
+  const COLLECT_CHANNEL = "adudu-mwi-guild-collect-v1";
+  const COLLECT_PAGE_FLAG = "__ADUDU_GUILD_COLLECT__";
+  const COLLECT_MIN_INTERVAL_MS = 300;
+  const COLLECT_MAX_INTERVAL_MS = 400;
+  const COLLECT_PROFILE_TIMEOUT_MS = 2500;
+  const COLLECT_LOADOUT_TIMEOUT_MS = 2000;
+  const COLLECT_ELIGIBILITY_CACHE_MS = 10 * 60 * 1000;
+  const COLLECT_PROFILE_HANDLER = "handleMessageProfileShared";
+  const COLLECT_LOADOUT_HANDLER = "handleMessageLoadoutShared";
+
+  /**
+   * Runs inside the game page. Every function below is self-contained: it is
+   * serialized with `toString()`, so it must not close over userscript scope.
+   */
+  function collectPageMain(channel) {
+    if (window.__ADUDU_GUILD_COLLECT__) return;
+    window.__ADUDU_GUILD_COLLECT__ = true;
+
+    const CORE_KEYS = [
+      "guildWeeklyTrialSet", "character", "guildCharacterMap", "guildCharacterDict",
+      "guildSharableCharacterMap", "guildSharableCharacterDict", "guildTrialSignupLevelDict",
+    ];
+    // Client releases rename the two reply handlers; match by intent, not by
+    // one hardcoded spelling.
+    const PROFILE_HANDLER = /^handle(Message)?ProfileShared$/;
+    const LOADOUT_HANDLER = /^handle(Message)?(Loadout|GuildTrialLoadout)Shared$/;
+    const values = (value) => Array.isArray(value) ? value
+      : value && typeof value === "object" && typeof value.values === "function"
+        ? [...value.values()]
+        : value && typeof value === "object" ? Object.values(value) : [];
+
+    const looksLikeCore = (state) => Boolean(state)
+      && typeof state === "object"
+      && (state.guildWeeklyTrialSet || state.guildCharacterMap || state.guildCharacterDict)
+      && state.character;
+    const scoreCore = (state) => CORE_KEYS.filter((key) => state[key] != null).length;
+
+    function findCore() {
+      const candidates = [];
+      const roots = [document.querySelector('[class^="GamePage_gamePage"]'), document.getElementById("root"), document.body].filter(Boolean);
+      const queue = roots.flatMap((root) => Reflect.ownKeys(root)
+        .filter((key) => String(key).startsWith("__reactFiber$") || String(key).startsWith("__reactContainer$"))
+        .map((key) => root[key]));
+      const seen = new Set();
+      for (let index = 0; index < queue.length && index < 8000; index += 1) {
+        const fiber = queue[index];
+        if (!fiber || seen.has(fiber)) continue;
+        seen.add(fiber);
+        const node = fiber.stateNode;
+        if (node && typeof node === "object" && typeof node.state === "object" && looksLikeCore(node.state)) candidates.push(node);
+        if (fiber.return) queue.push(fiber.return);
+        if (fiber.child) queue.push(fiber.child);
+        if (fiber.sibling) queue.push(fiber.sibling);
+      }
+      candidates.sort((left, right) => scoreCore(right.state) - scoreCore(left.state));
+      return candidates[0] ?? null;
+    }
+
+    function findHandler(core, pattern) {
+      const found = Object.getOwnPropertyNames(core).find((name) => pattern.test(name) && typeof core[name] === "function");
+      return found ?? Object.getOwnPropertyNames(Object.getPrototypeOf(core) ?? {})
+        .find((name) => pattern.test(name) && typeof core[name] === "function") ?? "";
+    }
+
+    function abilityLevelsFromState(state) {
+      const result = {};
+      const character = state?.character ?? {};
+      const scalarFields = {
+        "/abilities/revive": "reviveLevel",
+        "/abilities/insanity": "insanityLevel",
+        "/abilities/guardian_aura": "guardianAuraLevel",
+        "/abilities/speed_aura": "speedAuraLevel",
+        "/abilities/fierce_aura": "fierceAuraLevel",
+        "/abilities/critical_aura": "criticalAuraLevel",
+        "/abilities/mystic_aura": "mysticAuraLevel",
+        "/abilities/elemental_affinity": "elementalAffinityLevel",
+        "/abilities/berserk": "berserkLevel",
+        "/abilities/frenzy": "frenzyLevel",
+      };
+      for (const [abilityHrid, field] of Object.entries(scalarFields)) {
+        const level = Number(character[field]);
+        if (Number.isFinite(level) && level > 0) result[abilityHrid] = Math.trunc(level);
+      }
+      for (const row of values(state?.characterAbilityMap ?? state?.characterAbilities ?? state?.characterAbilityDict)) {
+        const hrid = String(row?.abilityHrid ?? row?.hrid ?? "");
+        const level = Number(row?.level);
+        if (hrid.startsWith("/abilities/") && Number.isFinite(level) && level > 0) {
+          result[hrid] = Math.max(result[hrid] ?? 0, Math.trunc(level));
+        }
+      }
+      return result;
+    }
+
+    function emit(kind, payload) {
+      try {
+        window.postMessage({ source: channel, type: kind, payload }, window.location.origin);
+      } catch { /* capture must never break the game */ }
+    }
+
+    let session = null;
+
+    // Wire types the client uses for the two replies.
+    const PROFILE_PACKET = "profile_shared";
+    const LOADOUT_PACKET = "loadout_shared";
+
+    /**
+     * Wrap the two reply handlers so replies are captured without opening a modal.
+     *
+     * The client dispatches through `this.messageHandlers[type]`, a table built
+     * once in the constructor that holds the *original* function references.
+     * Replacing `core.handleMessageProfileShared` alone therefore never runs and
+     * the modal still opens, so patch the table first and only fall back to the
+     * named method when a release has no table.
+     */
+    function beginCapture() {
+      const core = findCore();
+      if (!core) return { core: null, restore: [], wrapped: false, via: "" };
+      const restore = [];
+      const wrap = (holder, key, kind) => {
+        const original = holder[key];
+        if (typeof original !== "function" || original.__aduduWrapped) return false;
+        const wrapped = function aduduSilentSharedHandler(...args) {
+          const event = args[0] ?? {};
+          emit(kind, kind === "profile" ? event.profile : event.loadout);
+          // Intentionally do not call the original: the game would open a modal.
+        };
+        wrapped.__aduduWrapped = true;
+        wrapped.__aduduOriginal = original;
+        holder[key] = wrapped;
+        restore.push(() => {
+          if (holder[key] === wrapped) holder[key] = original;
+        });
+        return true;
+      };
+      const table = core.messageHandlers && typeof core.messageHandlers === "object"
+        ? core.messageHandlers : null;
+      const named = (pattern) => findHandler(core, pattern);
+
+      const wrapPacket = (packet, pattern, kind) => {
+        if (table && wrap(table, packet, kind)) return `messageHandlers.${packet}`;
+        const name = named(pattern);
+        return name && wrap(core, name, kind) ? name : "";
+      };
+
+      const profileVia = wrapPacket(PROFILE_PACKET, PROFILE_HANDLER, "profile");
+      const loadoutVia = wrapPacket(LOADOUT_PACKET, LOADOUT_HANDLER, "loadout");
+      return {
+        core,
+        restore,
+        wrapped: Boolean(profileVia || loadoutVia),
+        via: profileVia || loadoutVia,
+        profileName: profileVia,
+        loadoutName: loadoutVia,
+      };
+    }
+
+    /**
+     * Fallback capture: if this client has no reply handler to wrap, read the
+     * same replies straight off the game socket. The getter is read-only and
+     * always returns the original payload.
+     */
+    function installSocketObserver() {
+      if (window.__ADUDU_GUILD_COLLECT_WS__) return;
+      try {
+        const prototype = window.MessageEvent?.prototype;
+        const descriptor = prototype && Object.getOwnPropertyDescriptor(prototype, "data");
+        if (!descriptor?.get || descriptor.configurable === false) return;
+        const originalGet = descriptor.get;
+        const seen = new WeakSet();
+        Object.defineProperty(prototype, "data", {
+          ...descriptor,
+          get() {
+            const message = originalGet.call(this);
+            if (typeof message === "string" && !seen.has(this)
+              && (message.includes('"profile_shared"') || message.includes('"loadout_shared"'))) {
+              seen.add(this);
+              queueMicrotask(() => {
+                try {
+                  const packet = JSON.parse(message);
+                  if (packet?.type === "profile_shared") emit("profile", packet.profile);
+                  else if (packet?.type === "loadout_shared") emit("loadout", packet.loadout);
+                } catch { /* unrelated frame */ }
+              });
+            }
+            return message;
+          },
+        });
+        window.__ADUDU_GUILD_COLLECT_WS__ = true;
+      } catch { /* socket hook unavailable; handler wrap is enough */ }
+    }
+
+    window.addEventListener("message", (event) => {
+      if (event.origin !== window.location.origin || event.data?.source !== channel) return;
+      const type = event.data?.type;
+      if (type === "begin") {
+        installSocketObserver();
+        session = beginCapture();
+        window.postMessage({
+          source: channel,
+          type: "ready",
+          wrapped: session.wrapped,
+          profileHandler: session.profileName ?? "",
+          loadoutHandler: session.loadoutName ?? "",
+          abilityLevels: session.core ? abilityLevelsFromState(session.core.state) : {},
+        }, window.location.origin);
+        return;
+      }
+      if (type === "end") {
+        for (const undo of session?.restore ?? []) {
+          try { undo(); } catch { /* already replaced */ }
+        }
+        session = null;
+        window.postMessage({ source: channel, type: "ended" }, window.location.origin);
+        return;
+      }
+      if (type === "request-profile") {
+        const core = session?.core ?? findCore();
+        const memberId = String(event.data.memberId ?? "");
+        if (!core || !memberId) return;
+        if (typeof core.handleViewProfile === "function") {
+          try { core.handleViewProfile(memberId); return; } catch { /* try the socket */ }
+        }
+        const conn = core.state?.gameConn ?? core.gameConn;
+        if (typeof conn?.sendViewProfile === "function") {
+          try { conn.sendViewProfile(memberId); } catch { /* reported as timeout */ }
+        }
+        return;
+      }
+      if (type === "request-loadout") {
+        const core = session?.core ?? findCore();
+        const characterId = Number(event.data.characterId);
+        const actionType = String(event.data.actionType ?? "guild_trial");
+        const category = String(event.data.category ?? "combat");
+        if (!core || !Number.isFinite(characterId)) return;
+        if (typeof core.handleViewLoadout === "function") {
+          try { core.handleViewLoadout(characterId, actionType, category); return; } catch { /* try the socket */ }
+        }
+        const conn = core.state?.gameConn ?? core.gameConn;
+        if (typeof conn?.sendViewLoadout === "function") {
+          try { conn.sendViewLoadout(characterId, actionType, category); } catch { /* reported as timeout */ }
+        }
+      }
+    });
+
+    window.postMessage({ source: channel, type: "ready", wrapped: false, abilityLevels: {} }, window.location.origin);
+  }
+  /* ------------------------- collection driver ------------------------- */
+
+  const collectState = {
+    running: false,
+    paused: false,
+    cancelled: false,
+    // Every pending wait registers its timer and a wake callback so cancel can
+    // resolve them instead of leaving promises hanging.
+    timers: new Set(),
+    wakers: new Set(),
+    total: 0,
+    index: 0,
+    uploaded: 0,
+    failed: 0,
+    memberId: "",
+    members: [],
+    core: null,
+    abilityLevels: {},
+    profile: null,
+    loadouts: {},
+    installed: false,
+    uploader: "",
+    eligibilityInFlight: false,
+    eligibilityMemberId: "",
+    eligibilityCheckedAt: 0,
+  };
+
+  function installCollectBridge() {
+    if (collectState.installed) return;
+    collectState.installed = true;
+    window.addEventListener("message", (event) => {
+      if (event.origin !== location.origin || event.data?.source !== COLLECT_CHANNEL) return;
+      const type = event.data?.type;
+      if (type === "ready") {
+        collectState.core = { ready: true };
+        collectState.abilityLevels = collectCaptureAbilities(event.data.abilityLevels);
+        return;
+      }
+      if (type === "profile") {
+        // Only the member we are currently asking for may satisfy the wait.
+        // A late reply for a previous member would otherwise be uploaded under
+        // the current member's name, carrying that member's skills.
+        const profile = collectNormalizeProfile(event.data.payload);
+        if (!profile || !collectIsCurrentMember(profile.memberId)) return;
+        collectState.profile = profile;
+        return;
+      }
+      if (type === "loadout") {
+        const payload = event.data.payload;
+        if (!collectIsCurrentMember(collectLoadoutMemberId(payload))) return;
+        const actionTypeHrid = String(payload?.actionTypeHrid ?? "");
+        const key = actionTypeHrid.includes("combat") ? "combat"
+          : actionTypeHrid.includes("skilling") ? "skilling" : "other";
+        collectState.loadouts[key] = payload;
+      }
+    });
+    const script = document.createElement("script");
+    script.id = UI.collect;
+    script.textContent = `;(${collectPageMain.toString()})(${JSON.stringify(COLLECT_CHANNEL)});`;
+    document.documentElement.append(script);
+    script.remove();
+  }
+
+  const collectCaptureAbilities = (value) => Object.fromEntries(Object.entries(value && typeof value === "object" ? value : {})
+    .flatMap(([hrid, level]) => {
+      const number = Number(level);
+      return String(hrid).startsWith("/abilities/") && Number.isFinite(number) && number > 0
+        ? [[hrid, Math.trunc(number)]]
+        : [];
+    }));
+
+  const collectMapEntries = (value) => value && typeof value === "object" && typeof value.entries === "function"
+    ? [...value.entries()]
+    : value && typeof value === "object" ? Object.entries(value) : [];
+
+  /** `wearableItemMap` values are `charId::location::itemHrid::enhancement` or an item row. */
+  function collectEquipmentFrom(value) {
+    return collectMapEntries(value).flatMap(([locationHrid, raw]) => {
+      if (!raw) return [];
+      const row = raw && typeof raw === "object" ? raw : null;
+      const parts = row ? [] : String(raw).split("::");
+      const itemHrid = String(
+        row?.itemHrid ?? row?.hrid
+        ?? (parts.length >= 4 && String(parts[2]).startsWith("/items/") ? parts[2] : "")
+        ?? (parts.find((part) => String(part).startsWith("/items/")) ?? "")
+      );
+      if (!itemHrid.startsWith("/items/")) return [];
+      const enhancementLevel = Number(
+        row?.enhancementLevel ?? row?.enhancement_level
+        ?? (parts.length >= 4 ? parts[3] : undefined)
+        ?? 0
+      );
+      return [{
+        locationHrid: String(locationHrid),
+        itemHrid,
+        enhancementLevel: Number.isFinite(enhancementLevel) ? Math.max(0, Math.trunc(enhancementLevel)) : 0,
+      }];
+    });
+  }
+
+  /** Shared profiles use `wearableItemMap`; loadouts use `wearableMap`. */
+  const collectText = (value) => typeof value === "string" ? value.trim()
+    : (Number.isFinite(value) ? String(value) : "");
+
+  /**
+   * Shared replies carry the subject under `sharableCharacter`; the flat name
+   * fields only appear in older releases.
+   */
+  function collectProfileMemberId(profile) {
+    return collectText(
+      profile?.sharableCharacter?.name
+      ?? profile?.name ?? profile?.displayName ?? profile?.characterName,
+    );
+  }
+
+  /** Loadouts identify their subject the same way as profiles. */
+  function collectLoadoutMemberId(loadout) {
+    return collectText(
+      loadout?.sharableCharacter?.name
+      ?? loadout?.characterName ?? loadout?.name ?? loadout?.memberId,
+    );
+  }
+
+  /**
+   * Gate replies on the member currently being collected. Unknown identity is
+   * not trusted: an unlabelled reply could belong to anyone.
+   */
+  function collectIsCurrentMember(memberId) {
+    const wanted = collectText(collectState.memberId);
+    return Boolean(wanted) && collectText(memberId) === wanted;
+  }
+
+  function collectNormalizeProfile(profile) {
+    if (!profile || typeof profile !== "object") return null;
+    return {
+      memberId: collectProfileMemberId(profile),
+      skills: Object.fromEntries(values(profile.characterSkills).flatMap((row) => {
+        const hrid = String(row?.skillHrid ?? row?.hrid ?? "");
+        const level = Number(row?.level);
+        return hrid.startsWith("/skills/") && Number.isFinite(level) ? [[hrid, Math.max(0, Math.trunc(level))]] : [];
+      })),
+      equipment: collectEquipmentFrom(profile.wearableItemMap ?? profile.equipment),
+      abilities: values(profile.equippedAbilities ?? profile.abilityMap).flatMap((row, index) => {
+        const abilityHrid = String(row?.abilityHrid ?? row?.hrid ?? row ?? "");
+        if (!abilityHrid.startsWith("/abilities/")) return [];
+        const slot = Number(row?.slotNumber ?? row?.slot);
+        return [{
+          slot: Number.isFinite(slot) ? Math.max(0, Math.trunc(slot) - 1) : index,
+          abilityHrid,
+          level: Math.max(1, Math.trunc(Number(row?.level) || 1)),
+          triggers: values(
+            profile.abilityCombatTriggersMap instanceof Map
+              ? profile.abilityCombatTriggersMap.get(abilityHrid)
+              : profile.abilityCombatTriggersMap?.[abilityHrid]
+          ),
+        }];
+      }).slice(0, 5),
+      characterHouseRoomMap: profile.characterHouseRoomMap,
+      characterAchievements: profile.characterAchievements,
+    };
+  }
+
+  /** Signup trials map onto the profession action type the life optimizer reads. */
+  const COLLECT_SKILL_ACTION_TYPES = Object.freeze({
+    "/guild_skilling/alchemy": "/action_types/alchemy",
+    "/guild_skilling/brewing": "/action_types/brewing",
+    "/guild_skilling/cheesesmithing": "/action_types/cheesesmithing",
+    "/guild_skilling/cooking": "/action_types/cooking",
+    "/guild_skilling/crafting": "/action_types/crafting",
+    "/guild_skilling/enhancing": "/action_types/enhancing",
+    "/guild_skilling/foraging": "/action_types/foraging",
+    "/guild_skilling/milking": "/action_types/milking",
+    "/guild_skilling/tailoring": "/action_types/tailoring",
+    "/guild_skilling/woodcutting": "/action_types/woodcutting",
+  });
+
+  /** `wearableMap` values carry refinement as an `_refined` item suffix. */
+  function collectLoadoutRecord(loadout, kind, trialHrid = "") {
+    const equipment = collectEquipmentFrom(loadout?.wearableItemMap ?? loadout?.wearableMap ?? loadout?.equipment);
+    const triggerMap = loadout?.abilityCombatTriggersMap ?? {};
+    const abilities = values(loadout?.equippedAbilities ?? loadout?.abilityMap ?? loadout?.abilities).flatMap((row, index) => {
+      const abilityHrid = String(
+        typeof row === "object" ? row?.abilityHrid ?? row?.hrid ?? "" : row ?? ""
+      );
+      if (!abilityHrid.startsWith("/abilities/")) return [];
+      const slot = Number(typeof row === "object" ? row?.slotNumber ?? row?.slot : undefined);
+      return [{
+        slot: Number.isFinite(slot) ? Math.max(0, Math.trunc(slot) - 1) : index,
+        abilityHrid,
+        level: Math.max(1, Math.trunc(Number(typeof row === "object" ? row?.level : 1) || 1)),
+        triggers: values(triggerMap instanceof Map ? triggerMap.get(abilityHrid) : triggerMap[abilityHrid]),
+      }];
+    }).slice(0, 5);
+    const skillActionType = COLLECT_SKILL_ACTION_TYPES[trialHrid] ?? "";
+    return {
+      loadoutId: `guild_trial:${kind}`,
+      name: kind === "combat" ? tr("collectCombatLoadoutName") : tr("collectSkillingLoadoutName"),
+      actionTypeHrid: kind === "combat"
+        ? "/action_types/combat"
+        : skillActionType || "/action_types/all",
+      equipment,
+      abilities: kind === "combat" ? abilities : [],
+    };
+  }
+
+  function collectRosterMembers() {
+    const sharable = state.guildSharableCharacterMap;
+    const signupLevels = state.guildTrialSignupLevelMap;
+    return entries(state.guildCharacterMap).flatMap(([mapKey, guildCharacter]) => {
+      const playerId = Number(guildCharacter?.characterID ?? guildCharacter?.characterId ?? mapKey);
+      if (!Number.isInteger(playerId) || playerId <= 0) return [];
+      const shared = dictionaryValue(sharable, mapKey)
+        ?? dictionaryValue(sharable, playerId)
+        ?? dictionaryValue(sharable, String(playerId))
+        ?? {};
+      const memberId = String(shared?.name ?? guildCharacter?.name ?? guildCharacter?.characterName ?? "").trim();
+      if (!memberId) return [];
+      if (String(guildCharacter?.status ?? "joined").trim() !== "joined") return [];
+      const levelRow = dictionaryValue(signupLevels, mapKey)
+        ?? dictionaryValue(signupLevels, playerId)
+        ?? dictionaryValue(signupLevels, String(playerId))
+        ?? {};
+      return [{
+        playerId,
+        memberId,
+        combatTrialHrid: String(guildCharacter?.signedUpCombatTrialHrid ?? "").trim(),
+        skillingTrialHrid: String(guildCharacter?.signedUpSkillingTrialHrid ?? "").trim(),
+        combatLevel: Math.max(0, Math.trunc(Number(levelRow?.combatLevel) || 0)),
+        skillingLevel: Math.max(0, Math.trunc(Number(levelRow?.skillingTrialLevel) || 0)),
+      }];
+    }).sort((left, right) => left.memberId.localeCompare(right.memberId));
+  }
+
+  function collectWait(ms) {
+    return new Promise((resolve) => {
+      let waited = 0;
+      let timer = 0;
+      const tick = 50;
+      const finish = () => {
+        clearTimeout(timer);
+        collectState.timers.delete(timer);
+        collectState.wakers.delete(finish);
+        resolve();
+      };
+      const step = () => {
+        collectState.timers.delete(timer);
+        if (collectState.cancelled) return finish();
+        waited += tick;
+        if (waited >= ms) return finish();
+        timer = setTimeout(step, tick);
+        collectState.timers.add(timer);
+      };
+      if (collectState.cancelled) return resolve();
+      collectState.wakers.add(finish);
+      timer = setTimeout(step, tick);
+      collectState.timers.add(timer);
+    });
+  }
+
+  function collectWaitFor(read, timeoutMs) {
+    return new Promise((resolve) => {
+      const startedAt = Date.now();
+      let timer = 0;
+      const settle = (value) => {
+        clearTimeout(timer);
+        collectState.timers.delete(timer);
+        collectState.wakers.delete(wake);
+        resolve(value);
+      };
+      const wake = () => settle(null);
+      const poll = () => {
+        collectState.timers.delete(timer);
+        if (collectState.cancelled) return settle(null);
+        const value = read();
+        if (value) return settle(value);
+        if (Date.now() - startedAt >= timeoutMs) return settle(null);
+        timer = setTimeout(poll, 60);
+        collectState.timers.add(timer);
+      };
+      if (collectState.cancelled) return resolve(null);
+      collectState.wakers.add(wake);
+      poll();
+    });
+  }
+
+  function collectPace() {
+    const span = COLLECT_MAX_INTERVAL_MS - COLLECT_MIN_INTERVAL_MS;
+    return COLLECT_MIN_INTERVAL_MS + Math.round(Math.random() * span);
+  }
+
+  async function collectAwaitResume() {
+    while (collectState.paused && !collectState.cancelled) {
+      await collectWait(150);
+    }
+  }
+
+  /**
+   * Pause gate for every request we are about to send. Pausing mid-member must
+   * stop the rest of that member's requests, not just the next member's.
+   * Returns false when the run was cancelled while paused.
+   */
+  async function collectAwaitResumeOrCancel() {
+    await collectAwaitResume();
+    return !collectState.cancelled;
+  }
+
+  function collectPost(type, payload) {
+    window.postMessage({ source: COLLECT_CHANNEL, type, ...payload }, location.origin);
+  }
+
+  /**
+   * A reply only counts when the member actually has a loadout in it.
+   * `hasLoadout === false` arrives as a perfectly good object, so truthiness
+   * alone would let an empty signup through.
+   */
+  function collectUsableLoadoutPayload(payload) {
+    if (!payload) return null;
+    if (payload.hasLoadout === false) return null;
+    const equipment = collectEquipmentFrom(payload.wearableItemMap ?? payload.wearableMap ?? payload.equipment);
+    return equipment.length ? payload : null;
+  }
+
+  /** Wait predicate: the newest live reply for this kind, if it is usable. */
+  function collectLiveLoadout(kind) {
+    return collectUsableLoadoutPayload(collectState.loadouts[kind]);
+  }
+
+  /** Snapshot reader: only the reply frozen when its wait passed. */
+  function collectUsableLoadout(captured, kind) {
+    return collectUsableLoadoutPayload(captured?.loadouts?.[kind]);
+  }
+
+  function collectMemberSnapshot(member, captured) {
+    // Read from the frozen capture, never from mutable collectState: a late
+    // reply must not change what gets uploaded.
+    const profile = captured?.profile ?? null;
+    const combatPayload = collectUsableLoadout(captured, "combat");
+    const skillingPayload = collectUsableLoadout(captured, "skilling");
+    const combat = combatPayload ? collectLoadoutRecord(combatPayload, "combat") : null;
+    const skilling = skillingPayload
+      ? collectLoadoutRecord(skillingPayload, "skilling", member.skillingTrialHrid)
+      : null;
+    const worn = profile?.equipment?.length
+      ? [{
+        loadoutId: "guild_trial:worn",
+        name: tr("collectWornLoadoutName"),
+        actionTypeHrid: "/action_types/all",
+        equipment: profile.equipment,
+        abilities: profile.abilities,
+      }]
+      : [];
+    const loadouts = [combat, skilling, ...worn].filter((loadout) => loadout && loadout.equipment.length);
+    const authorizedEquipment = loadouts.flatMap((loadout) => loadout.equipment);
+    // Only the target member's own replies may seed their abilities. The
+    // collector's own levels live in collectState.abilityLevels and would
+    // otherwise be written into every other member's snapshot.
+    //
+    // The profile only reports the five abilities worn right now, so a member
+    // who signs up with a different set would lose every ability that appears
+    // solely in their signup loadout — typically the aura they are expected to
+    // bring. Seed from the signup loadouts too, but only for abilities the
+    // member themselves put in a loadout, and never below what a reply says.
+    const abilityLevels = new Map();
+    const learnAbility = (abilityHrid, level) => {
+      const hrid = String(abilityHrid ?? "");
+      if (!hrid.startsWith("/abilities/")) return;
+      const value = Math.max(1, Math.trunc(Number(level) || 1));
+      abilityLevels.set(hrid, Math.max(abilityLevels.get(hrid) ?? 0, value));
+    };
+    for (const ability of profile?.abilities ?? []) learnAbility(ability.abilityHrid, ability.level);
+    for (const loadout of loadouts) {
+      for (const ability of loadout.abilities ?? []) learnAbility(ability.abilityHrid, ability.level);
+    }
+    const learnedAbilities = Object.fromEntries(abilityLevels);
+    const api = builder();
+    return api.buildMemberSnapshot({
+      memberId: member.memberId,
+      displayName: member.memberId,
+      guildId: apiSlug() || undefined,
+      character: { id: member.playerId, name: member.memberId },
+      loadouts,
+      authorizedEquipment,
+      skills: profile?.skills ?? {},
+      learnedAbilities,
+      auras: Object.fromEntries(Object.entries(learnedAbilities).filter(([hrid]) => hrid.endsWith("_aura"))),
+      characterHouseRoomMap: profile?.characterHouseRoomMap,
+      characterAchievements: profile?.characterAchievements,
+      guildBuildingLevelDict: state.guildBuildingLevelCaptured ? state.guildBuildingLevelDict : undefined,
+      selectedLoadoutIds: [],
+      source: "guild-roster-collect",
+      sourceSchemaVersion: "mwi-guild-collect-v1",
+      capturedAt: new Date().toISOString(),
+    });
+  }
+
+  /** Retry a rate-limited upload instead of failing the member outright. */
+  const COLLECT_RATE_LIMIT_RETRIES = 4;
+  const COLLECT_RATE_LIMIT_BACKOFF_MS = 1000;
+
+  async function collectPostSnapshot(member, snapshot) {
+    // One collector uploads many members' snapshots, but the per-member route
+    // only accepts that member's own secret. The batch route authorises with the
+    // reporter's own token instead, which is exactly this situation.
+    const send = () => requestJson({
+      method: "POST",
+      url: guildApiUrl("/batch-snapshots"),
+      data: {
+        reporter: { memberId: collectState.uploader },
+        capturedAt: new Date().toISOString(),
+        snapshots: [{ memberId: member.memberId, snapshot }],
+      },
+    });
+    // Every batch upload sits behind the same pause gate as the requests that
+    // feed it: a pause clicked before this call must hold the upload, and a
+    // cancel must not send it at all.
+    if (!await collectAwaitResumeOrCancel()) return null;
+    let response = await send();
+    for (let attempt = 0; attempt < COLLECT_RATE_LIMIT_RETRIES && response.status === 429; attempt += 1) {
+      // Back off further each time, and stay responsive to pause and cancel
+      // while waiting. Checking only `cancelled` here still fired the retry
+      // mid-pause, so a paused collector kept hitting the rate-limited route.
+      await collectWait(COLLECT_RATE_LIMIT_BACKOFF_MS * (attempt + 1));
+      if (!await collectAwaitResumeOrCancel()) return null;
+      response = await send();
+    }
+    return response;
+  }
+
+  async function collectUpload(member, captured) {
+    const snapshot = collectMemberSnapshot(member, captured);
+    if (catalogMissingUsableEquipment(snapshot)) {
+      throw new Error(tr("waitingEquipmentManual"));
+    }
+    const response = await collectPostSnapshot(member, snapshot);
+    if (!response) return null;
+    if (response.status < 200 || response.status >= 300) {
+      let detail = `HTTP ${response.status}`;
+      try {
+        const body = JSON.parse(response.responseText);
+        detail = body?.error?.code === "snapshot_auth_required"
+          ? tr("tokenRejected")
+          : body?.error?.message ?? detail;
+      } catch { /* keep status */ }
+      throw new Error(detail);
+    }
+    // A 200 can still reject this member individually.
+    let rejected = null;
+    try {
+      const body = JSON.parse(response.responseText);
+      rejected = (body?.failures ?? []).find((failure) => failure?.memberId === member.memberId) ?? null;
+    } catch { /* accepted unless a failure says otherwise */ }
+    if (rejected) throw new Error(rejected.message || rejected.code || `HTTP ${response.status}`);
+    return snapshot;
+  }
+
+  async function collectMember(member) {
+    collectState.profile = null;
+    collectState.loadouts = {};
+    collectPost("request-profile", { memberId: member.memberId });
+    const profile = await collectWaitFor(() => collectState.profile, COLLECT_PROFILE_TIMEOUT_MS);
+    if (!profile) throw new Error(tr("collectProfileTimeout", member.memberId));
+    // Freeze what we accepted at the moment each wait passed. A later reply for
+    // the same member (for example an empty `hasLoadout: false` arriving during
+    // the pacing gap) must not overwrite it and quietly drop the signup loadout.
+    const captured = { profile, loadouts: {} };
+    // A member who signed up must ship that signup loadout. Uploading a
+    // snapshot without it would silently overwrite a good capture with the
+    // worn set only, so a missing or empty reply is a failure, not a partial
+    // success. `hasLoadout === false` means the member has no such loadout.
+    // Each request sits behind its own pause gate: a pause clicked while this
+    // member's profile was in flight must not fire their loadout requests.
+    if (member.combatTrialHrid) {
+      await collectWait(collectPace());
+      if (!await collectAwaitResumeOrCancel()) return null;
+      collectPost("request-loadout", { characterId: member.playerId, memberId: member.memberId, actionType: "guild_trial", category: "combat" });
+      const combat = await collectWaitFor(() => collectLiveLoadout("combat"), COLLECT_LOADOUT_TIMEOUT_MS);
+      if (!combat) throw new Error(tr("collectLoadoutTimeout", member.memberId, "combat"));
+      captured.loadouts.combat = combat;
+    }
+    if (member.skillingTrialHrid) {
+      await collectWait(collectPace());
+      if (!await collectAwaitResumeOrCancel()) return null;
+      collectPost("request-loadout", { characterId: member.playerId, memberId: member.memberId, actionType: "guild_trial", category: "skilling" });
+      const skilling = await collectWaitFor(() => collectLiveLoadout("skilling"), COLLECT_LOADOUT_TIMEOUT_MS);
+      if (!skilling) throw new Error(tr("collectLoadoutTimeout", member.memberId, "skilling"));
+      captured.loadouts.skilling = skilling;
+    }
+    await collectWait(collectPace());
+    if (!await collectAwaitResumeOrCancel()) return null;
+    return collectUpload(member, captured);
+  }
+
+  function setCollectProgress(message) {
+    const node = document.getElementById(UI.collectProgress);
+    if (!node) return;
+    node.style.display = collectState.running || collectState.total ? "block" : "none";
+    const label = node.querySelector("span");
+    if (label) label.textContent = message;
+    const bar = node.querySelector("[data-collect-bar]");
+    if (bar) {
+      const ratio = collectState.total ? Math.min(1, collectState.index / collectState.total) : 0;
+      bar.style.width = `${Math.round(ratio * 100)}%`;
+    }
+  }
+
+  function renderCollectControls() {
+    const button = document.getElementById(UI.collectButton);
+    const pause = document.getElementById(UI.collectPause);
+    const cancel = document.getElementById("adudu-guild-collect-cancel");
+    if (button) {
+      button.hidden = !collectState.uploader;
+      button.disabled = collectState.running;
+      button.textContent = tr("collectAll");
+    }
+    if (pause) {
+      pause.hidden = !collectState.running;
+      pause.textContent = collectState.paused ? tr("collectResume") : tr("collectPause");
+    }
+    const tokenRow = document.getElementById(UI.tokenRow);
+    if (tokenRow) tokenRow.style.display = collectState.uploader ? "flex" : "none";
+    if (cancel) cancel.hidden = !collectState.running;
+  }
+
+  async function collectWholeGuild() {
+    if (collectState.running) return;
+    if (!collectState.uploader) {
+      setStatus(tr("collectNotReporter"), true);
+      return;
+    }
+    hydrateFromGameCache();
+    hydrateFromLiveGame();
+    const members = collectRosterMembers();
+    if (!members.length) {
+      setStatus(tr("collectNoMembers"), true);
+      return;
+    }
+    clearTimeout(automaticSync.timer);
+    automaticSync.timer = 0;
+    collectState.running = true;
+    collectState.paused = false;
+    collectState.cancelled = false;
+    collectState.members = members;
+    collectState.total = members.length;
+    collectState.index = 0;
+    collectState.uploaded = 0;
+    collectState.failed = 0;
+    renderCollectControls();
+    installCollectBridge();
+    try {
+      collectPost("begin", {});
+      await collectWaitFor(() => collectState.core, 2000);
+      for (const member of members) {
+        if (collectState.cancelled) break;
+        await collectAwaitResume();
+        if (collectState.cancelled) break;
+        collectState.memberId = member.memberId;
+        collectState.index += 1;
+        setStatus(tr("collectProgress", collectState.index, collectState.total, member.memberId));
+        setCollectProgress(tr("collectProgress", collectState.index, collectState.total, member.memberId));
+        try {
+          const snapshot = await collectMember(member);
+          if (snapshot) collectState.uploaded += 1;
+        } catch (error) {
+          collectState.failed += 1;
+          console.warn("[adudu-guild-trial-sync] collect failed", member.memberId, error?.message || error);
+        }
+      }
+      if (collectState.cancelled) {
+        setStatus(tr("collectCancelled", collectState.index, collectState.total), true);
+      } else {
+        setStatus(tr("collectDone", collectState.uploaded, collectState.failed, collectState.total));
+      }
+    } finally {
+      // Always un-patch the game and drop pending waits, even if a step threw.
+      for (const timer of [...collectState.timers]) clearTimeout(timer);
+      collectState.timers.clear();
+      collectState.wakers.clear();
+      collectPost("end", {});
+      collectState.running = false;
+      collectState.paused = false;
+      collectState.profile = null;
+      collectState.loadouts = {};
+      collectState.core = null;
+      renderCollectControls();
+      // A refresh during the run (page bridge packets, recordPacket) used to
+      // arm the automatic own-snapshot sync straight away. Skipping the
+      // schedule below did not disarm that timer, so a cancel still produced
+      // an eligibility GET and a snapshot POST after the run ended. Drop any
+      // timer armed during the run, then re-arm only for a normal finish.
+      clearTimeout(automaticSync.timer);
+      automaticSync.timer = 0;
+      if (!collectState.cancelled) scheduleAutomaticUpload(1200);
+    }
+  }
+
+  function toggleCollectPause() {
+    if (!collectState.running) return;
+    collectState.paused = !collectState.paused;
+    if (collectState.paused) {
+      setStatus(tr("collectPausedNow", collectState.index, collectState.total));
+    } else {
+      setStatus(tr("collectProgress", collectState.index, collectState.total, collectState.memberId));
+    }
+    renderCollectControls();
+  }
+
+  function cancelCollect() {
+    if (!collectState.running) return;
+    collectState.cancelled = true;
+    collectState.paused = false;
+    // Clearing a timer alone leaves its promise pending forever, so the run
+    // never reaches its finally block and the game keeps patched handlers.
+    // Wake every waiter so the loop can unwind and send `end`.
+    for (const timer of [...collectState.timers]) clearTimeout(timer);
+    collectState.timers.clear();
+    for (const wake of [...collectState.wakers]) {
+      try { wake(); } catch { /* a waiter must never block the cancel */ }
+    }
+    collectState.wakers.clear();
+  }
+
+  async function detectCollectorEligibility(memberId) {
+    if (!memberId || !apiSlug()) return;
+    if (collectState.eligibilityInFlight) return;
+    if (collectState.eligibilityMemberId === memberId
+      && Date.now() - collectState.eligibilityCheckedAt < COLLECT_ELIGIBILITY_CACHE_MS) return;
+    collectState.eligibilityInFlight = true;
+    collectState.eligibilityMemberId = memberId;
+    try {
+      const response = await requestJson({
+        method: "GET",
+        url: guildApiUrl(`/members/${encodeURIComponent(memberId)}/eligibility`),
+      });
+      if (response.status !== 200) return;
+      const body = JSON.parse(response.responseText || "{}");
+      collectState.uploader = body.rosterSyncAllowed === true ? memberId : "";
+      renderCollectControls();
+    } catch { /* panel simply stays without the collector button */ }
+    finally {
+      collectState.eligibilityInFlight = false;
+      collectState.eligibilityCheckedAt = Date.now();
+    }
+  }
+
   async function upload({ automatic = false } = {}) {
     if (automaticSync.running) {
       if (automatic) scheduleAutomaticUpload(800);
@@ -2701,11 +3699,11 @@
       setStatus(tr("waitingName"), true);
       return;
     }
-    if (!confirmedTmdGuild()) {
-      setStatus(tr("notTmdYet"), true);
-      const ok = await ensureTmdGuildConfirmed();
+    if (!confirmedGuild()) {
+      setStatus(tr("notRegisteredGuildYet"), true);
+      const ok = await ensureGuildConfirmed();
       if (!ok) {
-        setStatus(tr("notTmdDetail", tmdConfirmDetail()), true);
+        setStatus(tr("notRegisteredGuildDetail", guildConfirmDetail()), true);
         return;
       }
     }
@@ -2748,7 +3746,7 @@
       setStatus(tr("checkingEligibility", snapshot.memberId));
       const eligibility = await requestJson({
         method: "GET",
-        url: `${DEFAULT_API_BASE}/api/public/guilds/${GUILD_IDENTITY.apiSlug}/members/${encodeURIComponent(snapshot.memberId)}/eligibility`,
+        url: guildApiUrl(`/members/${encodeURIComponent(snapshot.memberId)}/eligibility`),
       });
       const eligibilityBody = JSON.parse(eligibility.responseText || "{}");
       if (eligibility.status !== 200 || eligibilityBody.eligible !== true) {
@@ -2760,7 +3758,7 @@
         setStatus(tr("syncingRoster", roster.members.length));
         const rosterResponse = await requestJson({
           method: "POST",
-          url: `${DEFAULT_API_BASE}/api/public/guilds/${GUILD_IDENTITY.apiSlug}/roster`,
+          url: guildApiUrl("/roster"),
           data: roster,
         });
         if (rosterResponse.status >= 200 && rosterResponse.status < 300) {
@@ -2780,7 +3778,7 @@
         setStatus(tr("syncingWeeklyTrials"));
         const weeklyTrialResponse = await requestJson({
           method: "POST",
-          url: `${DEFAULT_API_BASE}/api/public/guilds/${GUILD_IDENTITY.apiSlug}/weekly-trials`,
+          url: guildApiUrl("/weekly-trials"),
           data: weeklyTrials,
         });
         if (weeklyTrialResponse.status >= 200 && weeklyTrialResponse.status < 300) {
@@ -2806,7 +3804,7 @@
         setStatus(tr("syncingSignups"));
         const trialResponse = await requestJson({
           method: "POST",
-          url: `${DEFAULT_API_BASE}/api/public/guilds/${GUILD_IDENTITY.apiSlug}/trial-registrations`,
+          url: guildApiUrl("/trial-registrations"),
           data: trialRegistrations,
         });
         if (trialResponse.status >= 200 && trialResponse.status < 300) {
@@ -2825,16 +3823,18 @@
       setStatus(tr("syncingLoadouts"));
       const response = await requestJson({
         method: "POST",
-        url: `${DEFAULT_API_BASE}/api/public/guilds/${GUILD_IDENTITY.apiSlug}/members/${encodeURIComponent(snapshot.memberId)}/snapshots`,
+        url: guildApiUrl(`/members/${encodeURIComponent(snapshot.memberId)}/snapshots`),
         data: snapshot,
       });
       if (response.status < 200 || response.status >= 300) {
         let detail = `HTTP ${response.status}`;
         try {
           const apiError = JSON.parse(response.responseText)?.error;
-          detail = apiError?.code === "empty_loadout_catalog"
-            ? tr("waitingEquipmentManual")
-            : apiError?.message ?? detail;
+          detail = apiError?.code === "snapshot_auth_required" || apiError?.code === "member_auth_required"
+            ? tr("tokenRejected")
+            : apiError?.code === "empty_loadout_catalog"
+              ? tr("waitingEquipmentManual")
+              : apiError?.message ?? detail;
         } catch { /* keep status */ }
         throw new Error(detail);
       }
@@ -2852,6 +3852,12 @@
     }
   }
   function scheduleAutomaticUpload(delay = 800) {
+    // While a collection is running, an automatic sync would fire mid-run or
+    // — if the run is cancelled first — after the cancel. The run re-arms its
+    // own sync when it finishes normally, so a timer asked for during the run
+    // (refresh from a page-bridge packet, token save, a queued retry) is
+    // dropped here instead of being left for the collection to forget.
+    if (collectState.running) return;
     if (automaticSync.suppressSchedule) return;
     clearTimeout(automaticSync.timer);
     automaticSync.timer = setTimeout(() => upload({ automatic: true }), delay);
@@ -2876,6 +3882,11 @@
     if (hasCharacterData()) scheduleAutomaticUpload();
     if (detectedMemberId()) scheduleCombatAssignmentRefresh(250);
     if (detectedMemberId()) scheduleLifeAssignmentRefresh(350);
+    const guildLine = document.getElementById("adudu-guild-sync-guild");
+    if (guildLine) guildLine.textContent = tr("guildLabel", apiSlug());
+    const memberId = detectedMemberId();
+    if (memberId && apiSlug() && memberId !== collectState.uploader) void detectCollectorEligibility(memberId);
+    renderCollectControls();
   }
   function actionButton(label, action) {
     const button = document.createElement("button");
@@ -2901,6 +3912,10 @@
     const content = document.createElement("div");
     const heading = document.createElement("strong");
     heading.textContent = tr("heading");
+    const guildLine = document.createElement("p");
+    guildLine.id = "adudu-guild-sync-guild";
+    guildLine.style.cssText = "margin:2px 0;color:#9fb4ee;font-size:12px";
+    guildLine.textContent = tr("guildLabel", apiSlug());
     const intro = document.createElement("p");
     intro.style.margin = "6px 0";
     intro.textContent = tr("intro");
@@ -2910,13 +3925,65 @@
     status.id = UI.status;
     status.style.cssText = "margin:7px 0;color:#c9d4ff";
     status.textContent = tr("waitingCharacter");
+    const progress = document.createElement("div");
+    progress.id = UI.collectProgress;
+    progress.style.cssText = "display:none;margin:6px 0;font-size:12px;color:#c9d4ff";
+    const progressBarTrack = document.createElement("div");
+    progressBarTrack.style.cssText = "height:5px;border-radius:3px;background:#26314f;overflow:hidden;margin-top:4px";
+    const progressBar = document.createElement("div");
+    progressBar.dataset.collectBar = "true";
+    progressBar.style.cssText = "height:100%;width:0;background:#4d8dff;transition:width .2s linear";
+    progressBarTrack.append(progressBar);
+    const progressText = document.createElement("span");
+    progress.append(progressText, progressBarTrack);
     const actions = document.createElement("div");
     actions.style.cssText = "display:flex;gap:5px;flex-wrap:wrap";
+    const collectButton = actionButton(tr("collectAll"), () => void collectWholeGuild());
+    collectButton.id = UI.collectButton;
+    collectButton.hidden = true;
+    const collectPause = actionButton(tr("collectPause"), toggleCollectPause);
+    collectPause.id = UI.collectPause;
+    collectPause.hidden = true;
+    const collectCancel = actionButton(tr("collectCancel"), cancelCollect);
+    collectCancel.id = "adudu-guild-collect-cancel";
+    collectCancel.hidden = true;
     actions.append(
       actionButton(tr("syncNow"), () => upload()),
       actionButton(tr("exportBackup"), download),
+      collectButton,
+      collectPause,
+      collectCancel,
     );
-    content.append(heading, intro, list, status, actions);
+    // Keep reporter credentials for protected guild-wide operations.
+    const tokenRow = document.createElement("div");
+    tokenRow.id = UI.tokenRow;
+    tokenRow.style.cssText = "display:none;gap:5px;flex-wrap:wrap;margin:6px 0";
+    const tokenInput = document.createElement("input");
+    tokenInput.type = "password";
+    tokenInput.id = UI.token;
+    tokenInput.autocomplete = "off";
+    tokenInput.placeholder = tr("tokenPlaceholder");
+    tokenInput.setAttribute("aria-label", tr("tokenLabel"));
+    tokenInput.value = memberToken();
+    tokenInput.style.cssText = "flex:1 1 120px;min-width:0;padding:4px 6px;border-radius:6px;border:1px solid #7f96dd;background:#0f1626;color:#f7f9ff;font:12px/1.3 system-ui,sans-serif";
+    const saveToken = () => {
+      const value = String(tokenInput.value ?? "").trim();
+      try {
+        const key = memberTokenKey();
+        if (!key) { /* guild not resolved yet; nothing to key the secret to */ }
+        else if (value) GM_setValue(key, value);
+        else GM_deleteValue(key);
+      } catch { /* storage unavailable; keep the field only */ }
+      // A new secret must not be blocked by the "unchanged payload" guard.
+      automaticSync.lastSignature = "";
+      setStatus(tr("tokenSaved"));
+      scheduleAutomaticUpload(400);
+    };
+    tokenRow.append(
+      tokenInput,
+      actionButton(tr("tokenSave"), saveToken),
+    );
+    content.append(heading, guildLine, intro, list, status, progress, actions, tokenRow);
 
     const toggle = document.createElement("button");
     toggle.type = "button";
@@ -3028,6 +4095,7 @@
     panel.append(content, toggle);
     document.body.append(panel);
     installCombatAssignmentObserver();
+    installCollectBridge();
     applyCollapsed(Boolean(GM_getValue(UI_COLLAPSED_KEY, false)));
     window.addEventListener("resize", () => {
       if (panel.dataset.collapsed !== "true") return;
