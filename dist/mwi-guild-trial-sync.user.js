@@ -2,7 +2,7 @@
 // @name         MWI 公会试炼资料同步助手
 // @name:en      TMD-guild-trial-sync
 // @namespace    https://greasyfork.org/users/1466859-adudu
-// @version      0.6.29
+// @version      0.6.30
 // @description  MWI 公会通用（TMD / Wandering ICarus）：自动同步成员名单、本周试炼、怪物面板、全部配装、技能与光环，并高亮最新战斗分工。
 // @description:en  MWI guild sync for TMD and Wandering ICarus: roster, weekly trials, monster panels, loadouts, abilities, auras, and the latest combat assignment.
 // @author       adudu
@@ -59,12 +59,24 @@
   const PAGE_BRIDGE_CHANNEL = "adudu-mwi-guild-snapshot-v1";
   const UI_COLLAPSED_KEY = "uiCollapsed";
   const UI_POSITION_KEY = "uiCollapsedPosition";
-  // A reporter's secret remains necessary for roster, weekly-trial and batch
-  // uploads. Ordinary individual snapshot uploads no longer require a secret.
+  // A reporter's secret remains necessary for roster, weekly-trial, signup and
+  // batch uploads. Ordinary individual snapshot uploads no longer require a
+  // secret.
   const MEMBER_TOKEN_PREFIX = "mwiGuildMemberToken:";
-  function memberTokenKey() {
+  /**
+   * Reporter secrets are per guild *and* per character: one browser profile
+   * holds several MWI characters, and inheriting the previous character's
+   * secret sent it under the wrong name (401) or, worse, let one character act
+   * as another. Without a detected character — or when this function is loaded
+   * on its own, as the transport unit tests do — the key falls back to the
+   * guild scope so a stable key still exists.
+   */
+  function memberTokenKey(memberId) {
     const slug = apiSlug();
-    return slug ? `${MEMBER_TOKEN_PREFIX}${slug}` : "";
+    if (!slug) return "";
+    const detected = memberId ?? (typeof detectedMemberId === "function" ? detectedMemberId() : "");
+    const member = String(detected ?? "").trim();
+    return member ? `${MEMBER_TOKEN_PREFIX}${slug}:${member}` : `${MEMBER_TOKEN_PREFIX}${slug}`;
   }
   const UI = Object.freeze({
     root: "adudu-guild-sync",
@@ -158,6 +170,8 @@
     tokenSaved: "口令已保存，将随同步一起发送。",
     tokenMissing: "缺少成员同步口令，无法上传快照。",
     tokenRejected: "成员同步口令无效或已过期，请向管理员重新领取。",
+    reporterTokenMissing: "未填上报者口令（仅同步个人配装）、",
+    collectNeedsToken: "请先填写上报者口令，再执行全会采集。",
   });
   const en = Object.freeze({
     ariaLabel: "adudu-guild-trial-sync",
@@ -237,6 +251,8 @@
     tokenSaved: "Secret saved; it will be sent with every sync.",
     tokenMissing: "No member sync secret yet, so the snapshot cannot be uploaded.",
     tokenRejected: "The member sync secret is missing or no longer valid. Ask an admin for a new one.",
+    reporterTokenMissing: "no reporter secret (personal loadouts only), ",
+    collectNeedsToken: "Enter the reporter secret before collecting the whole guild.",
   });
   function lang() {
     const stored = [
@@ -649,6 +665,52 @@
     state.skills = [];
     state.learnedAbilities = [];
     state.auras = [];
+    resetCollectorIdentity("");
+  }
+
+  /**
+   * Reporter controls, the token field and the eligibility cache belong to one
+   * signed-in character within one guild. Switching to another character (or
+   * guild) must clear them and show that character's own stored secret, never
+   * the previous one's.
+   */
+  function resetCollectorIdentity(memberId = detectedMemberId()) {
+    // Outside the full script (unit-test slices of this region) the collector
+    // does not exist yet; there is nothing to reset then.
+    if (typeof collectState !== "object" || !collectState) return;
+    const slug = apiSlug();
+    const member = String(memberId ?? "").trim();
+    const scope = `${slug}:${member}`;
+    if (scope === collectState.scopeKey) return;
+    const previousSlug = String(collectState.scopeSlug ?? "");
+    const previousMember = String(collectState.scopeMember ?? "");
+    collectState.scopeKey = scope;
+    collectState.scopeSlug = slug;
+    collectState.scopeMember = member;
+    // Leaving a character (member becomes empty) and moving it to another
+    // guild both invalidate in-flight work. A guild that only becomes known
+    // for the same character — the normal cold start — is not a switch.
+    const memberLeft = Boolean(previousMember) && previousMember !== member;
+    const guildMoved = Boolean(previousMember) && Boolean(previousSlug) && Boolean(slug) && previousSlug !== slug;
+    if (memberLeft || guildMoved) {
+      collectState.scopeGeneration = (collectState.scopeGeneration ?? 0) + 1;
+    }
+    collectState.uploader = "";
+    collectState.eligibilityMemberId = "";
+    collectState.eligibilityCheckedAt = 0;
+    automaticSync.lastSignature = "";
+    // A guild-wide run belongs to the reporter who started it; switching the
+    // character must not let that run keep posting under the new identity.
+    if (collectState.running) cancelCollect();
+    syncCollectorTokenField();
+    renderCollectControls();
+  }
+
+  function syncCollectorTokenField() {
+    try {
+      const input = document.getElementById(UI.token);
+      if (input) input.value = memberToken();
+    } catch { /* panel not mounted yet */ }
   }
 
   const positiveGuildId = (value) => {
@@ -814,6 +876,9 @@
       });
       state.loadouts = mergeLoadouts(state.loadouts, nextLoadouts);
     }
+    // The character (or its guild) may just have changed; the reporter panel
+    // must follow this character, not the one whose secret is still in the box.
+    resetCollectorIdentity(detectedMemberId());
   }
 
   /**
@@ -3065,6 +3130,16 @@
     loadouts: {},
     installed: false,
     uploader: "",
+    // `${guildSlug}:${memberId}` of the character the collector fields describe.
+    scopeKey: "",
+    // The two parts are tracked separately so that a guild merely becoming
+    // known (cold start: "" -> "WI") is not mistaken for a character switch.
+    scopeSlug: "",
+    scopeMember: "",
+    // Bumped on every real identity change, including leaving a character and
+    // coming back to it: a name match alone cannot tell an in-flight sync of
+    // the first visit from a fresh one after the round trip.
+    scopeGeneration: 0,
     eligibilityInFlight: false,
     eligibilityMemberId: "",
     eligibilityCheckedAt: 0,
@@ -3446,6 +3521,9 @@
     // One collector uploads many members' snapshots, but the per-member route
     // only accepts that member's own secret. The batch route authorises with the
     // reporter's own token instead, which is exactly this situation.
+    // A character switch clears the reporter identity (and cancels the run);
+    // never post a batch without one.
+    if (!collectState.uploader) return null;
     const send = () => requestJson({
       method: "POST",
       url: guildApiUrl("/batch-snapshots"),
@@ -3482,7 +3560,8 @@
       let detail = `HTTP ${response.status}`;
       try {
         const body = JSON.parse(response.responseText);
-        detail = body?.error?.code === "snapshot_auth_required"
+        const code = body?.error?.code;
+        detail = code === "snapshot_auth_required" || code === "member_auth_required"
           ? tr("tokenRejected")
           : body?.error?.message ?? detail;
       } catch { /* keep status */ }
@@ -3570,6 +3649,13 @@
     if (collectState.running) return;
     if (!collectState.uploader) {
       setStatus(tr("collectNotReporter"), true);
+      return;
+    }
+    // The roster may allow this character to report, but the guild-wide routes
+    // still need its secret. Without one every batch upload would be a 401, so
+    // stop before pinning the game handlers or sending anything at all.
+    if (!memberToken()) {
+      setStatus(tr("collectNeedsToken"), true);
       return;
     }
     hydrateFromGameCache();
@@ -3678,6 +3764,10 @@
       });
       if (response.status !== 200) return;
       const body = JSON.parse(response.responseText || "{}");
+      // The reply belongs to the character that asked. A switch while it was in
+      // flight cleared the collector state already; reviving the old answer
+      // would show the previous character's reporter controls.
+      if (detectedMemberId() !== memberId) return;
       collectState.uploader = body.rosterSyncAllowed === true ? memberId : "";
       renderCollectControls();
     } catch { /* panel simply stays without the collector button */ }
@@ -3695,6 +3785,10 @@
     clearTimeout(automaticSync.timer);
     automaticSync.timer = 0;
     const snapshot = payload();
+    // Capture the identity generation before any wait. A switch (or a round
+    // trip away and back) during the guild-confirmation / equipment waits must
+    // abandon this run; capturing it later would miss exactly that window.
+    const identityGeneration = collectState.scopeGeneration ?? 0;
     if (!snapshot.memberId || snapshot.memberId === "unknown-member") {
       setStatus(tr("waitingName"), true);
       return;
@@ -3741,6 +3835,25 @@
       },
     });
     if (automatic && signature === automaticSync.lastSignature) return;
+    // Switching character while a sync is in flight must abandon it: the
+    // snapshot, the roster and the secret all belong to the character that
+    // started the run. Without this guard the eligibility reply of the old
+    // character restores its reporter panel, and later requests carry the new
+    // character's secret under the old character's payload.
+    // Capture the scope here, after the guild-confirmation and equipment
+    // hydrations: those waits may legitimately resolve a guild that was not in
+    // state yet, and that is not a character switch.
+    const uploadScope = guildApiUrl("");
+    // The generation changes on every real switch. Comparing names alone is not
+    // enough: adiudiu -> ShrimpPaste -> adiudiu while this request is in flight
+    // would match again and let the abandoned sync finish under the old data.
+    const stillCurrentCharacter = () =>
+      (typeof detectedMemberId !== "function" || detectedMemberId() === snapshot.memberId)
+      && guildApiUrl("") === uploadScope
+      && (collectState.scopeGeneration ?? 0) === identityGeneration;
+    // No network call at all for an abandoned run: even the public eligibility
+    // GET must not go out under the previous character's member id.
+    if (!stillCurrentCharacter()) return;
     automaticSync.running = true;
     try {
       setStatus(tr("checkingEligibility", snapshot.memberId));
@@ -3748,25 +3861,46 @@
         method: "GET",
         url: guildApiUrl(`/members/${encodeURIComponent(snapshot.memberId)}/eligibility`),
       });
+      // The character may have changed while eligibility was in flight. Its
+      // answer describes the old character and must not revive its reporter
+      // panel or drive further requests under the new character's secret.
+      if (!stillCurrentCharacter()) return;
       const eligibilityBody = JSON.parse(eligibility.responseText || "{}");
       if (eligibility.status !== 200 || eligibilityBody.eligible !== true) {
+        // An ineligible character must not keep a reporter panel or a cached
+        // collector identity from an earlier check.
+        collectState.uploader = "";
+        renderCollectControls();
         setStatus(tr("notEligible", snapshot.memberId), true);
         return;
       }
+      // The reporter controls answer to this character's membership, never to
+      // a cached answer for the previous character.
+      const reporterAllowed = eligibilityBody.rosterSyncAllowed === true;
+      collectState.uploader = reporterAllowed ? snapshot.memberId : "";
+      collectState.eligibilityMemberId = snapshot.memberId;
+      collectState.eligibilityCheckedAt = Date.now();
+      renderCollectControls();
+      // Roster, weekly trials, signups and guild-wide collection still need the
+      // reporter's own secret. Without one they are not attempted at all: three
+      // anonymous 401s previously produced a misleading "not updated" report.
+      const reporterToken = reporterAllowed ? memberToken() : "";
+      const reporterPending = Boolean(roster || weeklyTrials || trialRegistrations);
+      const reporterTokenMissing = reporterAllowed && !reporterToken && reporterPending;
       let rosterSummary = "";
-      if (eligibilityBody.rosterSyncAllowed === true && roster) {
+      if (reporterAllowed && reporterToken && roster) {
+        if (!stillCurrentCharacter()) return;
         setStatus(tr("syncingRoster", roster.members.length));
         const rosterResponse = await requestJson({
           method: "POST",
           url: guildApiUrl("/roster"),
           data: roster,
         });
+        if (!stillCurrentCharacter()) return;
         if (rosterResponse.status >= 200 && rosterResponse.status < 300) {
           rosterSummary = tr("rosterOk", roster.members.length);
         } else if (rosterResponse.status !== 429) {
-          let rosterDetail = `HTTP ${rosterResponse.status}`;
-          try { rosterDetail = JSON.parse(rosterResponse.responseText)?.error?.message ?? rosterDetail; } catch { /* keep status */ }
-          rosterSummary = tr("rosterFailed", rosterDetail);
+          rosterSummary = tr("rosterFailed", uploadFailureDetail(rosterResponse));
         }
       }
       let trialSummary = "";
@@ -3774,13 +3908,15 @@
       const weeklyMonsterPanelsComplete = weeklyTrials?.trials
         ?.filter((trial) => trial.kind === "combat")
         .every((trial) => trial.monsterHrids.length > 0 && trial.monsters.length === trial.monsterHrids.length);
-      if (eligibilityBody.rosterSyncAllowed === true && weeklyTrials && weeklyMonsterPanelsComplete) {
+      if (reporterAllowed && reporterToken && weeklyTrials && weeklyMonsterPanelsComplete) {
+        if (!stillCurrentCharacter()) return;
         setStatus(tr("syncingWeeklyTrials"));
         const weeklyTrialResponse = await requestJson({
           method: "POST",
           url: guildApiUrl("/weekly-trials"),
           data: weeklyTrials,
         });
+        if (!stillCurrentCharacter()) return;
         if (weeklyTrialResponse.status >= 200 && weeklyTrialResponse.status < 300) {
           weeklyTrialSummary = tr(
             "weeklyTrialsOk",
@@ -3788,25 +3924,20 @@
             weeklyTrials.weeklyTrialSet.combatHrids.length,
           );
         } else if (weeklyTrialResponse.status !== 429) {
-          let weeklyTrialDetail = `HTTP ${weeklyTrialResponse.status}`;
-          try {
-            const error = JSON.parse(weeklyTrialResponse.responseText)?.error;
-            weeklyTrialDetail = error?.code === "incomplete_weekly_monsters"
-              ? tr("monstersIncomplete")
-              : error?.message ?? weeklyTrialDetail;
-          } catch { /* keep status */ }
-          weeklyTrialSummary = tr("weeklyTrialsFailed", weeklyTrialDetail);
+          weeklyTrialSummary = tr("weeklyTrialsFailed", uploadFailureDetail(weeklyTrialResponse, { weekly: true }));
         }
-      } else if (eligibilityBody.rosterSyncAllowed === true && weeklyTrials) {
+      } else if (reporterAllowed && reporterToken && weeklyTrials) {
         weeklyTrialSummary = tr("waitingMonsters");
       }
-      if (eligibilityBody.rosterSyncAllowed === true && trialRegistrations) {
+      if (reporterAllowed && reporterToken && trialRegistrations) {
+        if (!stillCurrentCharacter()) return;
         setStatus(tr("syncingSignups"));
         const trialResponse = await requestJson({
           method: "POST",
           url: guildApiUrl("/trial-registrations"),
           data: trialRegistrations,
         });
+        if (!stillCurrentCharacter()) return;
         if (trialResponse.status >= 200 && trialResponse.status < 300) {
           trialSummary = tr(
             "signupsOk",
@@ -3815,17 +3946,17 @@
               .join(" / "),
           );
         } else if (trialResponse.status !== 429) {
-          let trialDetail = `HTTP ${trialResponse.status}`;
-          try { trialDetail = JSON.parse(trialResponse.responseText)?.error?.message ?? trialDetail; } catch { /* keep status */ }
-          trialSummary = tr("signupsFailed", trialDetail);
+          trialSummary = tr("signupsFailed", uploadFailureDetail(trialResponse));
         }
       }
+      if (!stillCurrentCharacter()) return;
       setStatus(tr("syncingLoadouts"));
       const response = await requestJson({
         method: "POST",
         url: guildApiUrl(`/members/${encodeURIComponent(snapshot.memberId)}/snapshots`),
         data: snapshot,
       });
+      if (!stillCurrentCharacter()) return;
       if (response.status < 200 || response.status >= 300) {
         let detail = `HTTP ${response.status}`;
         try {
@@ -3841,7 +3972,7 @@
       automaticSync.lastSignature = signature;
       setStatus(tr(
         "synced",
-        `${rosterSummary}${weeklyTrialSummary}${trialSummary}`,
+        `${reporterTokenMissing ? tr("reporterTokenMissing") : ""}${rosterSummary}${weeklyTrialSummary}${trialSummary}`,
         snapshot.loadoutCatalog.length,
         snapshot.memberId,
       ));
@@ -3850,6 +3981,26 @@
     } finally {
       automaticSync.running = false;
     }
+  }
+
+  /**
+   * Protected reporter routes answer an unusable secret with 401/403
+   * `member_auth_required` (or `snapshot_auth_required`). Show the localized
+   * "secret rejected" message instead of the raw English server error.
+   */
+  function uploadFailureDetail(response, { weekly = false } = {}) {
+    let detail = `HTTP ${response.status}`;
+    try {
+      const error = JSON.parse(response.responseText)?.error;
+      const code = error?.code;
+      if ((response.status === 401 || response.status === 403)
+        && (code === "member_auth_required" || code === "snapshot_auth_required")) {
+        return tr("tokenRejected");
+      }
+      if (weekly && code === "incomplete_weekly_monsters") return tr("monstersIncomplete");
+      if (error?.message) detail = error.message;
+    } catch { /* keep status */ }
+    return detail;
   }
   function scheduleAutomaticUpload(delay = 800) {
     // While a collection is running, an automatic sync would fire mid-run or
@@ -3863,6 +4014,7 @@
     automaticSync.timer = setTimeout(() => upload({ automatic: true }), delay);
   }
   function refresh() {
+    resetCollectorIdentity(detectedMemberId());
     const list = document.getElementById(UI.list);
     if (!list) return;
     list.replaceChildren(...state.loadouts.map((loadout, index) => {
