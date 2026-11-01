@@ -2,7 +2,7 @@
 // @name         MWI 公会试炼资料同步助手
 // @name:en      TMD-guild-trial-sync
 // @namespace    https://greasyfork.org/users/1466859-adudu
-// @version      0.6.30
+// @version      0.6.31
 // @description  MWI 公会通用（TMD / Wandering ICarus）：自动同步成员名单、本周试炼、怪物面板、全部配装、技能与光环，并高亮最新战斗分工。
 // @description:en  MWI guild sync for TMD and Wandering ICarus: roster, weekly trials, monster panels, loadouts, abilities, auras, and the latest combat assignment.
 // @author       adudu
@@ -87,6 +87,8 @@
     collectButton: "adudu-guild-collect",
     collectPause: "adudu-guild-collect-pause",
     collectProgress: "adudu-guild-collect-progress",
+    actions: "adudu-guild-sync-actions",
+    tokenEdit: "adudu-guild-sync-token-edit",
     tokenRow: "adudu-guild-sync-token-row",
     token: "adudu-guild-sync-token",
   });
@@ -168,6 +170,9 @@
     tokenPlaceholder: "仅授权上报者需要",
     tokenSave: "保存口令",
     tokenSaved: "口令已保存，将随同步一起发送。",
+    tokenEdit: "设置上报口令",
+    tokenCancel: "取消",
+    tokenCleared: "已清除本角色的上报口令。",
     tokenMissing: "缺少成员同步口令，无法上传快照。",
     tokenRejected: "成员同步口令无效或已过期，请向管理员重新领取。",
     reporterTokenMissing: "未填上报者口令（仅同步个人配装）、",
@@ -249,6 +254,9 @@
     tokenPlaceholder: "Only needed by authorized reporters",
     tokenSave: "Save secret",
     tokenSaved: "Secret saved; it will be sent with every sync.",
+    tokenEdit: "Set reporter secret",
+    tokenCancel: "Cancel",
+    tokenCleared: "This character's reporter secret was cleared.",
     tokenMissing: "No member sync secret yet, so the snapshot cannot be uploaded.",
     tokenRejected: "The member sync secret is missing or no longer valid. Ask an admin for a new one.",
     reporterTokenMissing: "no reporter secret (personal loadouts only), ",
@@ -706,11 +714,77 @@
     renderCollectControls();
   }
 
+  /**
+   * The reporter secret field is created only when a reporter asks for it, and
+   * removed again as soon as it is saved or closed. Nothing here runs during
+   * page load, character detection or the default collapsed/expanded panel: a
+   * password input sitting in the DOM is a credential-shaped hole that the
+   * browser's own password manager can decide to fill, so the field must not
+   * exist at all until someone deliberately opens it. A stored secret is never
+   * written back into the field either — not into its value, not into an
+   * attribute — because that would put it back in a readable node.
+   */
+  function closeReporterTokenField() {
+    const row = document.getElementById(UI.tokenRow);
+    if (!row) return;
+    const input = row.querySelector(`#${UI.token}`);
+    if (input) input.value = "";
+    row.remove();
+  }
+
+  function openReporterTokenField() {
+    // Only a character the guild API answered as a reporter may open this; an
+    // ordinary member has no business holding a credential field at all.
+    if (!collectState.uploader) return;
+    if (document.getElementById(UI.tokenRow)) return;
+    const anchor = document.getElementById(UI.actions);
+    if (!anchor) return;
+    const row = document.createElement("div");
+    row.id = UI.tokenRow;
+    row.style.cssText = "display:flex;gap:5px;flex-wrap:wrap;margin:6px 0";
+    const input = document.createElement("input");
+    input.type = "password";
+    input.id = UI.token;
+    input.autocomplete = "off";
+    input.setAttribute("autocomplete", "off");
+    input.setAttribute("autocapitalize", "off");
+    input.setAttribute("autocorrect", "off");
+    input.setAttribute("spellcheck", "false");
+    input.setAttribute("name", "adudu-guild-reporter-secret");
+    input.placeholder = tr("tokenPlaceholder");
+    input.setAttribute("aria-label", tr("tokenLabel"));
+    input.style.cssText = "flex:1 1 120px;min-width:0;padding:4px 6px;border-radius:6px;border:1px solid #7f96dd;background:#0f1626;color:#f7f9ff;font:12px/1.3 system-ui,sans-serif";
+    const saveToken = () => {
+      const value = String(input.value ?? "").trim();
+      let key = "";
+      try {
+        key = memberTokenKey();
+        if (!key) { /* guild not resolved yet; nothing to key the secret to */ }
+        else if (value) GM_setValue(key, value);
+        else GM_deleteValue(key);
+      } catch { /* storage unavailable; the field is dropped either way */ }
+      // A new secret must not be blocked by the "unchanged payload" guard.
+      automaticSync.lastSignature = "";
+      closeReporterTokenField();
+      setStatus(value ? tr("tokenSaved") : tr("tokenCleared"));
+      scheduleAutomaticUpload(400);
+    };
+    const cancelToken = () => {
+      closeReporterTokenField();
+      renderCollectControls();
+    };
+    row.append(
+      input,
+      actionButton(tr("tokenSave"), saveToken),
+      actionButton(tr("tokenCancel"), cancelToken),
+    );
+    anchor.after(row);
+  }
+
   function syncCollectorTokenField() {
-    try {
-      const input = document.getElementById(UI.token);
-      if (input) input.value = memberToken();
-    } catch { /* panel not mounted yet */ }
+    // Deliberately empty of secret handling: a character switch must not leave
+    // a field behind, and it must never re-read a stored secret into the DOM.
+    closeReporterTokenField();
   }
 
   const positiveGuildId = (value) => {
@@ -3640,8 +3714,14 @@
       pause.hidden = !collectState.running;
       pause.textContent = collectState.paused ? tr("collectResume") : tr("collectPause");
     }
-    const tokenRow = document.getElementById(UI.tokenRow);
-    if (tokenRow) tokenRow.style.display = collectState.uploader ? "flex" : "none";
+    const tokenEdit = document.getElementById(UI.tokenEdit);
+    if (tokenEdit) {
+      tokenEdit.hidden = !collectState.uploader;
+      tokenEdit.textContent = tr("tokenEdit");
+    }
+    // Nobody who is not a reporter keeps a credential field around, and the
+    // field itself only exists while it is open.
+    if (!collectState.uploader) closeReporterTokenField();
     if (cancel) cancel.hidden = !collectState.running;
   }
 
@@ -4089,6 +4169,7 @@
     const progressText = document.createElement("span");
     progress.append(progressText, progressBarTrack);
     const actions = document.createElement("div");
+    actions.id = UI.actions;
     actions.style.cssText = "display:flex;gap:5px;flex-wrap:wrap";
     const collectButton = actionButton(tr("collectAll"), () => void collectWholeGuild());
     collectButton.id = UI.collectButton;
@@ -4099,43 +4180,21 @@
     const collectCancel = actionButton(tr("collectCancel"), cancelCollect);
     collectCancel.id = "adudu-guild-collect-cancel";
     collectCancel.hidden = true;
+    // Reporters get an entry point, not a field: the password input is created
+    // only when this button is pressed, and it is removed again on save or
+    // cancel. Ordinary members never see it at all.
+    const tokenEdit = actionButton(tr("tokenEdit"), () => openReporterTokenField());
+    tokenEdit.id = UI.tokenEdit;
+    tokenEdit.hidden = true;
     actions.append(
       actionButton(tr("syncNow"), () => upload()),
       actionButton(tr("exportBackup"), download),
       collectButton,
       collectPause,
       collectCancel,
+      tokenEdit,
     );
-    // Keep reporter credentials for protected guild-wide operations.
-    const tokenRow = document.createElement("div");
-    tokenRow.id = UI.tokenRow;
-    tokenRow.style.cssText = "display:none;gap:5px;flex-wrap:wrap;margin:6px 0";
-    const tokenInput = document.createElement("input");
-    tokenInput.type = "password";
-    tokenInput.id = UI.token;
-    tokenInput.autocomplete = "off";
-    tokenInput.placeholder = tr("tokenPlaceholder");
-    tokenInput.setAttribute("aria-label", tr("tokenLabel"));
-    tokenInput.value = memberToken();
-    tokenInput.style.cssText = "flex:1 1 120px;min-width:0;padding:4px 6px;border-radius:6px;border:1px solid #7f96dd;background:#0f1626;color:#f7f9ff;font:12px/1.3 system-ui,sans-serif";
-    const saveToken = () => {
-      const value = String(tokenInput.value ?? "").trim();
-      try {
-        const key = memberTokenKey();
-        if (!key) { /* guild not resolved yet; nothing to key the secret to */ }
-        else if (value) GM_setValue(key, value);
-        else GM_deleteValue(key);
-      } catch { /* storage unavailable; keep the field only */ }
-      // A new secret must not be blocked by the "unchanged payload" guard.
-      automaticSync.lastSignature = "";
-      setStatus(tr("tokenSaved"));
-      scheduleAutomaticUpload(400);
-    };
-    tokenRow.append(
-      tokenInput,
-      actionButton(tr("tokenSave"), saveToken),
-    );
-    content.append(heading, guildLine, intro, list, status, progress, actions, tokenRow);
+    content.append(heading, guildLine, intro, list, status, progress, actions);
 
     const toggle = document.createElement("button");
     toggle.type = "button";
@@ -4167,6 +4226,9 @@
     const applyCollapsed = (collapsed) => {
       panel.dataset.collapsed = collapsed ? "true" : "false";
       content.hidden = collapsed;
+      // Collapsing hides the panel, so an open secret field has to go with it
+      // rather than sit in a hidden subtree waiting for the password manager.
+      if (collapsed) closeReporterTokenField();
       toggle.textContent = collapsed ? "🐸" : "−";
       toggle.title = collapsed ? tr("expand") : tr("collapse");
       toggle.setAttribute("aria-label", toggle.title);
