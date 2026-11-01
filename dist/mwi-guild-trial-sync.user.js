@@ -2,7 +2,7 @@
 // @name         MWI 公会试炼资料同步助手
 // @name:en      TMD-guild-trial-sync
 // @namespace    https://greasyfork.org/users/1466859-adudu
-// @version      0.6.32
+// @version      0.6.33
 // @description  MWI 公会通用（TMD / Wandering ICarus）：自动同步成员名单、本周试炼、怪物面板、全部配装、技能与光环，并高亮最新战斗分工。
 // @description:en  MWI guild sync for TMD and Wandering ICarus: roster, weekly trials, monster panels, loadouts, abilities, auras, and the latest combat assignment.
 // @author       adudu
@@ -321,6 +321,8 @@
     guildBuildingLevelDict: {},
     guildBuildingLevelCaptured: false,
     guildBuildingDetailMap: {},
+    characterGuildBuffDict: undefined,
+    characterGuildBuffCaptured: false,
     combatMonsterDetailMap: {},
     loadouts: [],
     authorizedEquipment: [],
@@ -673,6 +675,8 @@
     state.guildWeeklyTrialSet = {};
     state.guildBuildingLevelDict = {};
     state.guildBuildingLevelCaptured = false;
+    state.characterGuildBuffDict = undefined;
+    state.characterGuildBuffCaptured = false;
     state.characterHouseRoomMap = undefined;
     state.characterAchievements = undefined;
     state.loadouts = [];
@@ -1123,6 +1127,13 @@
     if (characterAchievements != null && typeof characterAchievements === "object") {
       state.characterAchievements = characterAchievements;
     }
+    const characterGuildBuffDict = data.characterGuildBuffDict ?? data.characterGuildBuffMap
+      ?? characterInfo.characterGuildBuffDict ?? characterInfo.characterGuildBuffMap
+      ?? character?.characterGuildBuffDict ?? character?.characterGuildBuffMap;
+    if (characterGuildBuffDict != null && typeof characterGuildBuffDict === "object") {
+      state.characterGuildBuffDict = characterGuildBuffDict;
+      state.characterGuildBuffCaptured = true;
+    }
     const guildBuildingLevelDict = data.guildBuildingLevelDict ?? data.guildBuildingLevelMap
       ?? data.guild?.guildBuildingLevelMap ?? data.guild?.guildBuildingLevelDict
       ?? character?.guildBuildingLevelMap ?? character?.guildBuildingLevelDict;
@@ -1217,7 +1228,7 @@
         if (!fiber || typeof fiber !== "object" || seen.has(fiber)) continue;
         seen.add(fiber); visited += 1;
         const candidate = fiber.stateNode?.state;
-        if (candidate && typeof candidate === "object" && (candidate.characterLoadoutDict || candidate.characterLoadoutMap || candidate.characterLabyrinth || candidate.combatUnit || candidate.gameConn || candidate.guildCharacterMap || candidate.guildSharableCharacterMap || candidate.guildTrialSignupLevelDict || candidate.guildWeeklyTrialSet || candidate.characterHouseRoomMap || candidate.characterHouseRoomDict || candidate.characterAchievements || candidate.characterAchievementMap || candidate.guildBuildingLevelDict || candidate.guildBuildingLevelMap || candidate.guild)) {
+        if (candidate && typeof candidate === "object" && (candidate.characterLoadoutDict || candidate.characterLoadoutMap || candidate.characterLabyrinth || candidate.combatUnit || candidate.gameConn || candidate.guildCharacterMap || candidate.guildSharableCharacterMap || candidate.guildTrialSignupLevelDict || candidate.guildWeeklyTrialSet || candidate.characterHouseRoomMap || candidate.characterHouseRoomDict || candidate.characterAchievements || candidate.characterAchievementMap || candidate.characterGuildBuffDict || candidate.characterGuildBuffMap || candidate.guildBuildingLevelDict || candidate.guildBuildingLevelMap || candidate.guild)) {
           applyCharacterTree(candidate);
         }
         if (fiber.return) queue.push(fiber.return);
@@ -1241,7 +1252,7 @@
       const { value, depth } = queue.shift();
       if (!value || typeof value !== "object" || seen.has(value)) continue;
       seen.add(value); visited += 1;
-      if (value.character || value.characterInfo || value.characterLoadoutDict || value.characterLoadoutMap || value.characterItems || value.characterSkills || value.characterHouseRoomMap || value.characterHouseRoomDict || value.characterAchievements || value.characterAchievementMap || value.guildCharacterMap || value.guildSharableCharacterMap || value.guildTrialSignupLevelDict || value.guildWeeklyTrialSet || value.guildTrialDetailMap || value.combatMonsterDetailMap || value.guildBuildingLevelDict || value.guildBuildingLevelMap || value.guild) applyCharacterData(value);
+      if (value.character || value.characterInfo || value.characterLoadoutDict || value.characterLoadoutMap || value.characterItems || value.characterSkills || value.characterHouseRoomMap || value.characterHouseRoomDict || value.characterAchievements || value.characterAchievementMap || value.characterGuildBuffDict || value.characterGuildBuffMap || value.guildCharacterMap || value.guildSharableCharacterMap || value.guildTrialSignupLevelDict || value.guildWeeklyTrialSet || value.guildTrialDetailMap || value.combatMonsterDetailMap || value.guildBuildingLevelDict || value.guildBuildingLevelMap || value.guild) applyCharacterData(value);
       if (depth >= 5) continue;
       for (const key of Object.keys(value)) {
         if (/token|authorization|cookie|secret|password|credential|session/i.test(key)) continue;
@@ -1300,6 +1311,38 @@
     "/shrines/spirit": "/shrines/spirit", "/shrines/scholar": "/shrines/scholar",
     "/shrines/rarity": "/shrines/rarity",
   });
+  const CAPTURE_GUILD_BUFF_SHRINE_DOMAINS = Object.freeze({
+    "/guild_buffs/force_combat": { hrid: "/shrines/force", domain: "combat" },
+    "/guild_buffs/force_skilling": { hrid: "/shrines/force", domain: "skilling" },
+    "/guild_buffs/tempo_combat": { hrid: "/shrines/tempo", domain: "combat" },
+    "/guild_buffs/tempo_skilling": { hrid: "/shrines/tempo", domain: "skilling" },
+    "/guild_buffs/spirit_combat": { hrid: "/shrines/spirit", domain: "combat" },
+    "/guild_buffs/spirit_skilling": { hrid: "/shrines/spirit", domain: "skilling" },
+    "/guild_buffs/scholar_combat": { hrid: "/shrines/scholar", domain: "combat" },
+    "/guild_buffs/scholar_skilling": { hrid: "/shrines/scholar", domain: "skilling" },
+    "/guild_buffs/rarity_combat": { hrid: "/shrines/rarity", domain: "combat" },
+    "/guild_buffs/rarity_skilling": { hrid: "/shrines/rarity", domain: "skilling" },
+    "/shrines/force_combat": { hrid: "/shrines/force", domain: "combat" },
+    "/shrines/force_skilling": { hrid: "/shrines/force", domain: "skilling" },
+    "/shrines/tempo_combat": { hrid: "/shrines/tempo", domain: "combat" },
+    "/shrines/tempo_skilling": { hrid: "/shrines/tempo", domain: "skilling" },
+    "/shrines/spirit_combat": { hrid: "/shrines/spirit", domain: "combat" },
+    "/shrines/spirit_skilling": { hrid: "/shrines/spirit", domain: "skilling" },
+    "/shrines/scholar_combat": { hrid: "/shrines/scholar", domain: "combat" },
+    "/shrines/scholar_skilling": { hrid: "/shrines/scholar", domain: "skilling" },
+    "/shrines/rarity_combat": { hrid: "/shrines/rarity", domain: "combat" },
+    "/shrines/rarity_skilling": { hrid: "/shrines/rarity", domain: "skilling" },
+    "/guild_shrines/force_combat": { hrid: "/shrines/force", domain: "combat" },
+    "/guild_shrines/force_skilling": { hrid: "/shrines/force", domain: "skilling" },
+    "/guild_shrines/tempo_combat": { hrid: "/shrines/tempo", domain: "combat" },
+    "/guild_shrines/tempo_skilling": { hrid: "/shrines/tempo", domain: "skilling" },
+    "/guild_shrines/spirit_combat": { hrid: "/shrines/spirit", domain: "combat" },
+    "/guild_shrines/spirit_skilling": { hrid: "/shrines/spirit", domain: "skilling" },
+    "/guild_shrines/scholar_combat": { hrid: "/shrines/scholar", domain: "combat" },
+    "/guild_shrines/scholar_skilling": { hrid: "/shrines/scholar", domain: "skilling" },
+    "/guild_shrines/rarity_combat": { hrid: "/shrines/rarity", domain: "combat" },
+    "/guild_shrines/rarity_skilling": { hrid: "/shrines/rarity", domain: "skilling" },
+  });
   const captureText = (value) => typeof value === "string" ? value.trim() : (Number.isFinite(value) ? String(value) : "");
   const captureObject = (value) => value && typeof value === "object" && !Array.isArray(value) ? value : {};
   const captureEntries = (value) => Array.isArray(value)
@@ -1327,9 +1370,66 @@
     if (!CAPTURE_ACHIEVEMENT_HRIDS.has(hrid) || (completed !== true && completed !== false && completed !== 0 && completed !== 1)) return [];
     return [[hrid, completed === true || completed === 1]];
   }));
-  const captureShrines = (value) => Object.fromEntries(captureEntries(value).flatMap(([mapKey, raw]) => {
-    const hrid = CAPTURE_SHRINE_HRIDS[captureText(mapKey)];
+  const assignCapturedShrineDomain = (target, hrid, domain, level) => {
+    if (!hrid || (domain !== "combat" && domain !== "skilling") || level == null) return;
+    const prev = target[hrid] && typeof target[hrid] === "object" && !Array.isArray(target[hrid])
+      ? target[hrid] : {};
+    target[hrid] = { ...prev, [domain]: level };
+  };
+  const captureShrines = (value) => {
+    const result = {};
+    for (const [mapKey, raw] of captureEntries(value)) {
+      const keyText = captureText(mapKey);
+      if ((keyText === "combat" || keyText === "skilling") && raw && typeof raw === "object" && !Array.isArray(raw)) {
+        for (const [subKey, subVal] of captureEntries(raw)) {
+          const subRow = captureObject(subVal);
+          const hrid = CAPTURE_SHRINE_HRIDS[captureText(subRow.shrineHrid ?? subRow.hrid ?? subKey)];
+          const level = captureBoundedInteger(subRow.level ?? subVal, 20);
+          assignCapturedShrineDomain(result, hrid, keyText, level);
+        }
+        continue;
+      }
+      const row = captureObject(raw);
+      const buffKey = captureText(row.guildBuffHrid ?? row.buffHrid ?? row.hrid ?? mapKey);
+      const buffSpec = CAPTURE_GUILD_BUFF_SHRINE_DOMAINS[buffKey] ?? CAPTURE_GUILD_BUFF_SHRINE_DOMAINS[keyText];
+      if (buffSpec) {
+        const level = captureBoundedInteger(row.level ?? raw, 20);
+        assignCapturedShrineDomain(result, buffSpec.hrid, buffSpec.domain, level);
+        continue;
+      }
+      const shrineHrid = CAPTURE_SHRINE_HRIDS[captureText(row.shrineHrid ?? row.hrid ?? mapKey)] ?? CAPTURE_SHRINE_HRIDS[keyText];
+      if (!shrineHrid) continue;
+      if (raw && typeof raw === "object" && !Array.isArray(raw)) {
+        if (typeof row.isCombat === "boolean") {
+          const level = captureBoundedInteger(row.level, 20);
+          assignCapturedShrineDomain(result, shrineHrid, row.isCombat ? "combat" : "skilling", level);
+          continue;
+        }
+        if (Object.hasOwn(row, "combat") || Object.hasOwn(row, "skilling")) {
+          const combatRaw = row.combat;
+          const skillingRaw = row.skilling;
+          const combatLevel = Object.hasOwn(row, "combat")
+            ? captureBoundedInteger(combatRaw && typeof combatRaw === "object" ? combatRaw.level : combatRaw, 20)
+            : null;
+          const skillingLevel = Object.hasOwn(row, "skilling")
+            ? captureBoundedInteger(skillingRaw && typeof skillingRaw === "object" ? skillingRaw.level : skillingRaw, 20)
+            : null;
+          assignCapturedShrineDomain(result, shrineHrid, "combat", combatLevel);
+          assignCapturedShrineDomain(result, shrineHrid, "skilling", skillingLevel);
+          continue;
+        }
+      }
+      const scalarLevel = captureBoundedInteger(row.level ?? raw, 20);
+      if (scalarLevel != null && !(result[shrineHrid] && typeof result[shrineHrid] === "object")) {
+        result[shrineHrid] = scalarLevel;
+      }
+    }
+    return result;
+  };
+  const captureGuildBuildingLevels = (value) => Object.fromEntries(captureEntries(value).flatMap(([mapKey, raw]) => {
     const row = captureObject(raw);
+    const hrid = CAPTURE_SHRINE_HRIDS[captureText(row.shrineHrid ?? row.hrid ?? mapKey)]
+      ?? CAPTURE_SHRINE_HRIDS[captureText(mapKey)];
     const level = captureBoundedInteger(row.level ?? raw, 20);
     return hrid && level != null ? [[hrid, level]] : [];
   }));
@@ -1339,13 +1439,27 @@
       ?? character.characterHouseRoomMap ?? character.characterHouseRoomDict;
     const achievementSource = input.characterAchievements ?? input.characterAchievementMap
       ?? character.characterAchievements ?? character.characterAchievementMap;
-    const shrineSource = input.guildBuildingLevelCaptured ? input.guildBuildingLevelDict
-      : input.guildBuildingLevelDict ?? input.guildBuildingLevelMap
-        ?? character.guildBuildingLevelDict ?? character.guildBuildingLevelMap;
+    // Personal shrine levels MUST come from personal guild-buff containers,
+    // never from `guildBuildingLevelDict` / `guildBuildingLevelMap`.
+    const shrineSource = input.characterGuildBuffCaptured === false
+      ? undefined
+      : input.characterGuildBuffDict ?? input.characterGuildBuffMap
+        ?? input.guildBuffLevelMap ?? input.guildBuffLevelDict
+        ?? input.shrines
+        ?? character.characterGuildBuffDict ?? character.characterGuildBuffMap
+        ?? character.guildBuffLevelMap ?? character.guildBuffLevelDict
+        ?? character.shrines;
+    // The cap is guild-wide, so it is captured independently of the member's
+    // personal levels and stored in its own field.
+    const buildingSource = input.guildBuildingLevels
+      ?? input.guildBuildingLevelDict ?? input.guildBuildingLevelMap
+      ?? character.guildBuildingLevels
+      ?? character.guildBuildingLevelDict ?? character.guildBuildingLevelMap;
     return {
       ...(houseSource == null ? {} : { houseRooms: captureHouseRooms(houseSource) }),
       ...(achievementSource == null ? {} : { achievements: captureAchievements(achievementSource) }),
       ...(shrineSource == null ? {} : { shrines: captureShrines(shrineSource) }),
+      ...(buildingSource == null ? {} : { guildBuildingLevels: captureGuildBuildingLevels(buildingSource) }),
       ...(houseSource != null && achievementSource != null && shrineSource != null ? { permanentBuffsCaptured: true } : {}),
     };
   };
@@ -1536,6 +1650,8 @@
             && !seen.has(this)
             && (
               message.includes('"init_character_data"')
+              || message.includes('"guild_buffs_updated"')
+              || message.includes('"characterGuildBuffMap"')
               || message.includes('"loadouts_updated"')
               || message.includes('"items_updated"')
               || message.includes('"guildCharacterMap"')
@@ -1585,6 +1701,8 @@
                 && !seen.has(this)
                 && (
                   message.includes('"init_character_data"')
+                  || message.includes('"guild_buffs_updated"')
+                  || message.includes('"characterGuildBuffMap"')
                   || message.includes('"loadouts_updated"')
                   || message.includes('"items_updated"')
                   || message.includes('"guildCharacterMap"')
@@ -1622,6 +1740,8 @@
         ?? character?.characterHouseRoomMap ?? character?.characterHouseRoomDict;
       const achievementSource = gameState?.characterAchievements ?? gameState?.characterAchievementMap
         ?? character?.characterAchievements ?? character?.characterAchievementMap;
+      const guildBuffSource = gameState?.characterGuildBuffDict ?? gameState?.characterGuildBuffMap
+        ?? character?.characterGuildBuffDict ?? character?.characterGuildBuffMap;
       const shrineSource = gameState?.guildBuildingLevelDict ?? gameState?.guildBuildingLevelMap
         ?? character?.guildBuildingLevelDict ?? character?.guildBuildingLevelMap
         ?? gameState?.guild?.guildBuildingLevelMap ?? gameState?.guild?.guildBuildingLevelDict;
@@ -1713,6 +1833,7 @@
         characterHouseRoomMap: houseRoomSource == null ? undefined : houseRoomSource,
         characterAchievements: achievementSource == null ? undefined : achievementSource,
         characterAchievementMap: achievementSource == null ? undefined : dictionary(achievementSource),
+        characterGuildBuffDict: guildBuffSource == null ? undefined : dictionary(guildBuffSource),
         guildBuildingLevelDict: shrineSource == null ? undefined : dictionary(shrineSource),
         guildBuildingDetailMap: dictionary(gameState?.guildBuildingDetailMap || gameState?.guildBuildingDetailDict),
         combatMonsterDetailMap: dictionary(gameState?.combatMonsterDetailMap || gameState?.combatMonsterDetailDict),
@@ -2373,7 +2494,9 @@
       auras: state.auras,
       characterHouseRoomMap: state.characterHouseRoomMap,
       characterAchievements: state.characterAchievements,
-      guildBuildingLevelDict: state.guildBuildingLevelCaptured ? state.guildBuildingLevelDict : undefined,
+      characterGuildBuffDict: state.characterGuildBuffCaptured ? state.characterGuildBuffDict : undefined,
+      // Guild-wide shrine caps, kept apart from the member's personal levels.
+      guildBuildingLevels: guildBuildingLevelDictSnapshot(),
       memberId: detectedMemberId() || undefined,
       displayName: detectedMemberId() || undefined,
       guildId: apiSlug() || undefined,
@@ -3538,6 +3661,8 @@
 
   function collectNormalizeProfile(profile) {
     if (!profile || typeof profile !== "object") return null;
+    const guildBuffLevelMap = profile.guildBuffLevelMap ?? profile.guildBuffLevelDict
+      ?? profile.characterGuildBuffMap ?? profile.characterGuildBuffDict;
     return {
       memberId: collectProfileMemberId(profile),
       skills: Object.fromEntries(values(profile.characterSkills).flatMap((row) => {
@@ -3563,6 +3688,7 @@
       }).slice(0, 5),
       characterHouseRoomMap: profile.characterHouseRoomMap,
       characterAchievements: profile.characterAchievements,
+      guildBuffLevelMap: guildBuffLevelMap && typeof guildBuffLevelMap === "object" ? guildBuffLevelMap : undefined,
     };
   }
 
@@ -3791,7 +3917,14 @@
       auras: Object.fromEntries(Object.entries(learnedAbilities).filter(([hrid]) => hrid.endsWith("_aura"))),
       characterHouseRoomMap: profile?.characterHouseRoomMap,
       characterAchievements: profile?.characterAchievements,
-      guildBuildingLevelDict: state.guildBuildingLevelCaptured ? state.guildBuildingLevelDict : undefined,
+      // Only use the target member's own personal `guildBuffLevelMap` from
+      // `profile_shared`. Never fall back to the collector's own state or to
+      // `guildBuildingLevelDict` (which is the guild building cap).
+      guildBuffLevelMap: profile?.guildBuffLevelMap,
+      // The shrine cap is guild-wide (same guild as the collector's own state),
+      // so it can be attached to every member's snapshot without mixing
+      // personal levels between members.
+      guildBuildingLevels: guildBuildingLevelDictSnapshot(),
       selectedLoadoutIds: [],
       source: "guild-roster-collect",
       sourceSchemaVersion: "mwi-guild-collect-v1",
