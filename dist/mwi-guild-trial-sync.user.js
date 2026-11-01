@@ -2,7 +2,7 @@
 // @name         MWI 公会试炼资料同步助手
 // @name:en      TMD-guild-trial-sync
 // @namespace    https://greasyfork.org/users/1466859-adudu
-// @version      0.6.31
+// @version      0.6.32
 // @description  MWI 公会通用（TMD / Wandering ICarus）：自动同步成员名单、本周试炼、怪物面板、全部配装、技能与光环，并高亮最新战斗分工。
 // @description:en  MWI guild sync for TMD and Wandering ICarus: roster, weekly trials, monster panels, loadouts, abilities, auras, and the latest combat assignment.
 // @author       adudu
@@ -91,6 +91,8 @@
     tokenEdit: "adudu-guild-sync-token-edit",
     tokenRow: "adudu-guild-sync-token-row",
     token: "adudu-guild-sync-token",
+    tokenPaste: "adudu-guild-sync-token-paste",
+    tokenClear: "adudu-guild-sync-token-clear",
   });
   const HYDRATION_RETRY_DELAYS_MS = [250, 500, 1000, 2000, 4000, 8000, 12000];
   // Follow game language (i18nextLng). Do not use the browser UI language.
@@ -168,6 +170,9 @@
     syncFailed: (message) => `同步失败：${message}`,
     tokenLabel: "上报者口令（全会采集、名单和本周试炼使用）",
     tokenPlaceholder: "仅授权上报者需要",
+    tokenPaste: "粘贴口令",
+    tokenClear: "清空",
+    tokenPasteUnsupported: "无法直接读取剪贴板，请点口令框后按 Ctrl+V / ⌘V 粘贴。",
     tokenSave: "保存口令",
     tokenSaved: "口令已保存，将随同步一起发送。",
     tokenEdit: "设置上报口令",
@@ -252,6 +257,9 @@
     syncFailed: (message) => `Sync failed: ${message}`,
     tokenLabel: "Reporter secret (guild-wide collection and roster sync)",
     tokenPlaceholder: "Only needed by authorized reporters",
+    tokenPaste: "Paste secret",
+    tokenClear: "Clear",
+    tokenPasteUnsupported: "Cannot read clipboard directly; click the box and press Ctrl+V / ⌘V.",
     tokenSave: "Save secret",
     tokenSaved: "Secret saved; it will be sent with every sync.",
     tokenEdit: "Set reporter secret",
@@ -715,26 +723,30 @@
   }
 
   /**
-   * The reporter secret field is created only when a reporter asks for it, and
-   * removed again as soon as it is saved or closed. Nothing here runs during
-   * page load, character detection or the default collapsed/expanded panel: a
-   * password input sitting in the DOM is a credential-shaped hole that the
-   * browser's own password manager can decide to fill, so the field must not
-   * exist at all until someone deliberately opens it. A stored secret is never
-   * written back into the field either — not into its value, not into an
-   * attribute — because that would put it back in a readable node.
+   * The reporter secret box is created only when a reporter asks for it, and
+   * removed again as soon as it is saved or closed. Crucially, it is *never* an
+   * `<input>` (let alone `input[type=password]`): in 0.6.31 creating a password
+   * input in the main document coincided with immediate autofill of the game's
+   * item search box and the secret box. Instead, the raw secret lives
+   * solely in a lexical closure variable (`rawSecret`), while the DOM node is a
+   * non-form `div[role=textbox]` that renders only `•` bullets (or the
+   * placeholder when empty). A stored secret is never read back into the DOM.
    */
   function closeReporterTokenField() {
     const row = document.getElementById(UI.tokenRow);
     if (!row) return;
+    if (typeof row.__aduduClearSecret === "function") row.__aduduClearSecret();
     const input = row.querySelector(`#${UI.token}`);
-    if (input) input.value = "";
+    if (input) {
+      input.value = "";
+      input.textContent = "";
+    }
     row.remove();
   }
 
   function openReporterTokenField() {
     // Only a character the guild API answered as a reporter may open this; an
-    // ordinary member has no business holding a credential field at all.
+    // ordinary member has no business holding a credential control at all.
     if (!collectState.uploader) return;
     if (document.getElementById(UI.tokenRow)) return;
     const anchor = document.getElementById(UI.actions);
@@ -742,20 +754,211 @@
     const row = document.createElement("div");
     row.id = UI.tokenRow;
     row.style.cssText = "display:flex;gap:5px;flex-wrap:wrap;margin:6px 0";
-    const input = document.createElement("input");
-    input.type = "password";
-    input.id = UI.token;
-    input.autocomplete = "off";
-    input.setAttribute("autocomplete", "off");
-    input.setAttribute("autocapitalize", "off");
-    input.setAttribute("autocorrect", "off");
-    input.setAttribute("spellcheck", "false");
-    input.setAttribute("name", "adudu-guild-reporter-secret");
-    input.placeholder = tr("tokenPlaceholder");
-    input.setAttribute("aria-label", tr("tokenLabel"));
-    input.style.cssText = "flex:1 1 120px;min-width:0;padding:4px 6px;border-radius:6px;border:1px solid #7f96dd;background:#0f1626;color:#f7f9ff;font:12px/1.3 system-ui,sans-serif";
+    let rawSecret = "";
+    let draftVersion = 0;
+    let closed = false;
+    let renderedText = "";
+    let updatingMask = false;
+    const maskFor = (secret) => (secret ? "•".repeat(String(secret).length) : "");
+    const tokenBox = document.createElement("div");
+    tokenBox.id = UI.token;
+    tokenBox.tabIndex = 0;
+    tokenBox.setAttribute("role", "textbox");
+    tokenBox.setAttribute("tabindex", "0");
+    tokenBox.setAttribute("aria-label", tr("tokenLabel"));
+    tokenBox.setAttribute("autocomplete", "off");
+    tokenBox.setAttribute("autocapitalize", "off");
+    tokenBox.setAttribute("autocorrect", "off");
+    tokenBox.setAttribute("spellcheck", "false");
+    tokenBox.setAttribute("data-form-type", "other");
+    tokenBox.setAttribute("data-lpignore", "true");
+    tokenBox.setAttribute("data-1p-ignore", "true");
+    tokenBox.setAttribute("data-bwignore", "true");
+    tokenBox.placeholder = tr("tokenPlaceholder");
+    tokenBox.style.cssText = "flex:1 1 120px;min-width:0;min-height:24px;padding:4px 6px;border-radius:6px;border:1px solid #7f96dd;background:#0f1626;color:#8fa2d6;font:12px/1.3 system-ui,sans-serif;cursor:text;user-select:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap";
+    const findAccessor = (target, prop) => {
+      for (let cur = target; cur; cur = Object.getPrototypeOf(cur)) {
+        const desc = Object.getOwnPropertyDescriptor(cur, prop);
+        if (desc && (desc.get || desc.set)) return desc;
+      }
+      return null;
+    };
+    const nativeTextContent = findAccessor(tokenBox, "textContent");
+    const writeRenderedText = (text) => {
+      renderedText = String(text ?? "");
+      updatingMask = true;
+      try {
+        if (nativeTextContent?.set) nativeTextContent.set.call(tokenBox, renderedText);
+      } finally {
+        updatingMask = false;
+      }
+    };
+    const syncMask = () => {
+      if (closed) {
+        writeRenderedText("");
+        return;
+      }
+      const mask = maskFor(rawSecret);
+      const empty = mask.length === 0;
+      tokenBox.setAttribute("data-empty", empty ? "true" : "false");
+      tokenBox.setAttribute("data-masked-length", String(rawSecret.length));
+      writeRenderedText(empty ? tr("tokenPlaceholder") : mask);
+      tokenBox.style.color = empty ? "#8fa2d6" : "#f7f9ff";
+      tokenBox.style.letterSpacing = empty ? "normal" : "2px";
+    };
+    const applySecretText = (candidate) => {
+      if (closed) return false;
+      const cleaned = String(candidate ?? "").replace(/[\r\n]+/g, "");
+      if (!cleaned) return false;
+      draftVersion += 1;
+      rawSecret = cleaned;
+      syncMask();
+      return true;
+    };
+    const clearDraft = () => {
+      draftVersion += 1;
+      rawSecret = "";
+      syncMask();
+    };
+    const observer = typeof MutationObserver === "function"
+      ? new MutationObserver(() => {
+        if (!updatingMask && !closed && tokenBox.textContent !== renderedText) {
+          syncMask();
+        }
+      })
+      : null;
+    if (observer) {
+      try {
+        observer.observe(tokenBox, { childList: true, characterData: true, subtree: true });
+      } catch { /* non-DOM test double */ }
+    }
+    row.__aduduClearSecret = () => {
+      closed = true;
+      draftVersion += 1;
+      rawSecret = "";
+      if (observer) observer.disconnect();
+      writeRenderedText("");
+    };
+    Object.defineProperty(tokenBox, "value", {
+      configurable: true,
+      enumerable: true,
+      get() {
+        return closed ? "" : maskFor(rawSecret);
+      },
+      set() {
+        // Reject unsolicited programmatic / autofill value assignments: the
+        // secret only enters through trusted paste, clipboard read or trusted
+        // keystrokes, and the DOM never keeps a raw string in `.value`.
+        if (!closed) syncMask();
+      },
+    });
+    Object.defineProperty(tokenBox, "textContent", {
+      configurable: true,
+      enumerable: true,
+      get() {
+        return nativeTextContent?.get ? nativeTextContent.get.call(tokenBox) : renderedText;
+      },
+      set() {
+        // Synchronously reject direct `tokenBox.textContent = ...` writes even
+        // when no input/change event is dispatched afterwards.
+        if (!updatingMask && !closed) syncMask();
+      },
+    });
+    Object.defineProperty(tokenBox, "innerText", {
+      configurable: true,
+      enumerable: true,
+      get() {
+        return tokenBox.textContent;
+      },
+      set() {
+        if (!updatingMask && !closed) syncMask();
+      },
+    });
+    tokenBox.addEventListener("click", () => {
+      if (typeof tokenBox.focus === "function") tokenBox.focus();
+    });
+    const handlePaste = (event) => {
+      if (typeof event?.preventDefault === "function") event.preventDefault();
+      if (typeof event?.stopPropagation === "function") event.stopPropagation();
+      // Only accept user-initiated (trusted) paste events; reject synthetic
+      // events dispatched by scripts or autofill probes.
+      if (event?.isTrusted !== true) {
+        syncMask();
+        return;
+      }
+      const pasted = event?.clipboardData?.getData?.("text/plain")
+        || event?.clipboardData?.getData?.("text")
+        || "";
+      applySecretText(pasted);
+    };
+    tokenBox.addEventListener("paste", handlePaste);
+    row.addEventListener("paste", handlePaste);
+    tokenBox.addEventListener("keydown", (event) => {
+      // Only accept user-initiated (trusted) keystrokes; reject synthetic
+      // KeyboardEvents dispatched by scripts or autofill probes.
+      if (event?.isTrusted !== true) {
+        if (typeof event?.preventDefault === "function") event.preventDefault();
+        syncMask();
+        return;
+      }
+      const key = String(event?.key ?? "");
+      if (key === "Backspace" || key === "Delete") {
+        if (typeof event?.preventDefault === "function") event.preventDefault();
+        draftVersion += 1;
+        rawSecret = rawSecret.slice(0, -1);
+        syncMask();
+        return;
+      }
+      if (key === "Enter") {
+        if (typeof event?.preventDefault === "function") event.preventDefault();
+        saveToken();
+        return;
+      }
+      if (key === "Escape") {
+        if (typeof event?.preventDefault === "function") event.preventDefault();
+        cancelToken();
+        return;
+      }
+      if (event?.ctrlKey || event?.metaKey || event?.altKey) return;
+      if (key.length === 1) {
+        if (typeof event?.preventDefault === "function") event.preventDefault();
+        draftVersion += 1;
+        rawSecret += key;
+        syncMask();
+      }
+    });
+    tokenBox.addEventListener("input", () => syncMask());
+    tokenBox.addEventListener("change", () => syncMask());
+    const pasteToken = async () => {
+      if (closed) return;
+      draftVersion += 1;
+      const requestVersion = draftVersion;
+      try {
+        const clip = (typeof pageContext === "object" && pageContext?.navigator?.clipboard)
+          || (typeof navigator === "object" ? navigator.clipboard : null);
+        if (typeof clip?.readText !== "function") {
+          if (!closed && requestVersion === draftVersion) {
+            setStatus(tr("tokenPasteUnsupported"), true);
+          }
+          return;
+        }
+        const text = await clip.readText();
+        // If the user cleared, typed, pasted, saved or closed while readText()
+        // was still in flight, discard the stale clipboard value.
+        if (closed || requestVersion !== draftVersion || document.getElementById(UI.tokenRow) !== row) {
+          return;
+        }
+        applySecretText(text);
+      } catch {
+        if (!closed && requestVersion === draftVersion) {
+          setStatus(tr("tokenPasteUnsupported"), true);
+        }
+      }
+    };
     const saveToken = () => {
-      const value = String(input.value ?? "").trim();
+      const value = String(rawSecret ?? "").trim();
+      draftVersion += 1;
+      rawSecret = "";
       let key = "";
       try {
         key = memberTokenKey();
@@ -770,11 +973,20 @@
       scheduleAutomaticUpload(400);
     };
     const cancelToken = () => {
+      draftVersion += 1;
+      rawSecret = "";
       closeReporterTokenField();
       renderCollectControls();
     };
+    const pasteButton = actionButton(tr("tokenPaste"), () => void pasteToken());
+    pasteButton.id = UI.tokenPaste;
+    const clearButton = actionButton(tr("tokenClear"), clearDraft);
+    clearButton.id = UI.tokenClear;
+    syncMask();
     row.append(
-      input,
+      tokenBox,
+      pasteButton,
+      clearButton,
       actionButton(tr("tokenSave"), saveToken),
       actionButton(tr("tokenCancel"), cancelToken),
     );
@@ -4180,7 +4392,7 @@
     const collectCancel = actionButton(tr("collectCancel"), cancelCollect);
     collectCancel.id = "adudu-guild-collect-cancel";
     collectCancel.hidden = true;
-    // Reporters get an entry point, not a field: the password input is created
+    // Reporters get an entry point, not a field: the masked secret box is created
     // only when this button is pressed, and it is removed again on save or
     // cancel. Ordinary members never see it at all.
     const tokenEdit = actionButton(tr("tokenEdit"), () => openReporterTokenField());
