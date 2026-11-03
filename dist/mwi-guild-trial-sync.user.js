@@ -2,7 +2,7 @@
 // @name         MWI 公会试炼资料同步助手
 // @name:en      TMD-guild-trial-sync
 // @namespace    https://greasyfork.org/users/1466859-adudu
-// @version      0.6.33
+// @version      0.6.34
 // @description  MWI 公会通用（TMD / Wandering ICarus）：自动同步成员名单、本周试炼、怪物面板、全部配装、技能与光环，并高亮最新战斗分工。
 // @description:en  MWI guild sync for TMD and Wandering ICarus: roster, weekly trials, monster panels, loadouts, abilities, auras, and the latest combat assignment.
 // @author       adudu
@@ -328,6 +328,9 @@
     authorizedEquipment: [],
     itemByHash: new Map(),
     skills: [],
+    skillsLiveComplete: false,
+    skillSources: new Map(),
+    liveSkillHrids: new Set(),
     learnedAbilities: [],
     auras: [],
     characterHouseRoomMap: undefined,
@@ -622,11 +625,15 @@
     });
     return [...merged.values()];
   };
-  const characterIdFrom = (value) => {
+  // `trustBareId` is only for values that are already known to be a character
+  // object (state.character, data.character, core.character). Arbitrary state
+  // wrappers, guild tiles and tree nodes keep the shape check so an unrelated
+  // `id` cannot be mistaken for a character identity.
+  const characterIdFrom = (value, trustBareId = false) => {
     if (!value || typeof value !== "object") return "";
     const id = value.characterId ?? value.characterID
       ?? value.character?.id ?? value.character?.characterId ?? value.character?.characterID
-      ?? (value.character || value.name || value.characterName ? value.id : undefined);
+      ?? (value.character || value.name || value.characterName || trustBareId ? value.id : undefined);
     return id == null || id === "" ? "" : String(id);
   };
   const loadoutOwnerId = (loadout) => {
@@ -656,7 +663,7 @@
     try {
       const page = typeof unsafeWindow === "object" ? unsafeWindow : window;
       const core = page?.MWI_QUEUE_PLANNER?.getGameCore?.()?.state;
-      return characterIdFrom(core?.character) || characterIdFrom(core);
+      return characterIdFrom(core?.character, true) || characterIdFrom(core);
     } catch {
       return "";
     }
@@ -683,6 +690,9 @@
     state.authorizedEquipment = [];
     state.itemByHash = new Map();
     state.skills = [];
+    state.skillsLiveComplete = false;
+    state.skillSources = new Map();
+    state.liveSkillHrids = new Set();
     state.learnedAbilities = [];
     state.auras = [];
     resetCollectorIdentity("");
@@ -1046,16 +1056,119 @@
     return slug ? `${DEFAULT_API_BASE}/api/public/guilds/${slug}${path}` : "";
   }
 
-  function applyCharacterData(candidate) {
+  // MWI keeps the loaded character's skills in `characterSkillMap` (a Map),
+  // reports deltas as `endCharacterSkills`, and uses the `characterSkills`
+  // array only in the initial payload. Page-storage caches keep that initial
+  // array forever, so every shape is merged by HRID. Live rows are
+  // authoritative over cached rows even when the cache holds a higher number;
+  // two live rows keep the higher level so an older React fiber cannot lower a
+  // fresh one. The cache only fills rows that live state never reported.
+  const SKILL_TOTAL_HRID = "/skills/total_level";
+  const SKILL_LEVEL_HRIDS = Object.freeze([
+    "/skills/attack", "/skills/defense", "/skills/milking", "/skills/tailoring",
+    "/skills/enhancing", "/skills/intelligence", "/skills/magic", "/skills/stamina",
+    "/skills/alchemy", "/skills/cheesesmithing", "/skills/crafting", "/skills/foraging",
+    "/skills/melee", "/skills/woodcutting", "/skills/brewing", "/skills/cooking",
+    "/skills/ranged",
+  ]);
+  function skillRows(value) {
+    const rows = Array.isArray(value) ? value
+      : mapLike(value) ? [...value.entries()].map(([key, raw]) => (
+        raw && typeof raw === "object" ? { ...raw, skillHrid: raw.skillHrid ?? raw.hrid ?? key } : { skillHrid: key, level: raw }
+      ))
+        : setLike(value) ? [...value.values()]
+          : value && typeof value === "object" ? Object.entries(value).map(([key, raw]) => (
+            raw && typeof raw === "object" ? { ...raw, skillHrid: raw.skillHrid ?? raw.hrid ?? key } : { skillHrid: key, level: raw }
+          )) : [];
+    return rows.flatMap((raw) => {
+      const row = raw && typeof raw === "object" ? raw : {};
+      const hrid = String(row.skillHrid ?? row.hrid ?? row.skill_hrid ?? "");
+      const level = Number(row.level);
+      if (!hrid.startsWith("/skills/") || !Number.isFinite(level)) return [];
+      return [{ ...row, skillHrid: hrid, level: Math.max(0, Math.trunc(level)) }];
+    });
+  }
+  function mergeSkills(value, source = "live", livePass = null) {
+    const incoming = skillRows(value);
+    if (!incoming.length) return false;
+    if (source !== "cache" && livePass) {
+      for (const row of incoming) livePass.add(row.skillHrid);
+    }
+    const merged = new Map();
+    for (const row of skillRows(state.skills)) {
+      if (!merged.has(row.skillHrid)) merged.set(row.skillHrid, row);
+    }
+    for (const row of incoming) {
+      const current = merged.get(row.skillHrid);
+      const currentLevel = Number(current?.level);
+      const incomingLive = source !== "cache";
+      const currentLive = state.skillSources.get(row.skillHrid) === "live";
+      // Live state is authoritative for every row it reports, even when a
+      // higher stale cache value exists. Two live rows keep the higher level
+      // so an older React fiber cannot lower a fresh one.
+      if (!current || (incomingLive && !currentLive) || (incomingLive === currentLive && row.level > currentLevel)) {
+        merged.set(row.skillHrid, { ...(current ?? {}), ...row });
+        state.skillSources.set(row.skillHrid, incomingLive ? "live" : "cache");
+      } else if (row.level === currentLevel && incomingLive) {
+        state.skillSources.set(row.skillHrid, "live");
+      }
+    }
+    const levels = SKILL_LEVEL_HRIDS.map((hrid) => merged.get(hrid)?.level).filter((level) => Number.isFinite(level));
+    if (levels.length === SKILL_LEVEL_HRIDS.length) {
+      const total = levels.reduce((sum, level) => sum + level, 0);
+      merged.set(SKILL_TOTAL_HRID, { skillHrid: SKILL_TOTAL_HRID, level: total });
+      state.skillSources.set(
+        SKILL_TOTAL_HRID,
+        SKILL_LEVEL_HRIDS.every((hrid) => state.skillSources.get(hrid) === "live") ? "live" : "cache",
+      );
+    } else {
+      // A partial map cannot explain the aggregate; drop it rather than upload
+      // a total that does not match the rows beside it.
+      merged.delete(SKILL_TOTAL_HRID);
+      state.skillSources.delete(SKILL_TOTAL_HRID);
+    }
+    state.skills = [...merged.values()];
+    return true;
+  }
+  function skillsAreLive() {
+    return state.skillsLiveComplete === true
+      && SKILL_LEVEL_HRIDS.every((hrid) => state.skillSources.get(hrid) === "live");
+  }
+  function skillsForUpload() {
+    // Upload only the rows this capture actually read live. Cache-seeded rows
+    // and rows left over from an earlier capture never go out under the current
+    // character's name; the API merges this partial table with the stored one.
+    const captured = state.liveSkillHrids && typeof state.liveSkillHrids.has === "function"
+      ? state.liveSkillHrids
+      : new Set();
+    if (!captured.size) return [];
+    const rows = state.skills.filter((row) => row.skillHrid !== SKILL_TOTAL_HRID
+      && captured.has(row.skillHrid)
+      && state.skillSources.get(row.skillHrid) === "live");
+    if (rows.length !== SKILL_LEVEL_HRIDS.length) return rows;
+    const total = state.skills.find((row) => row.skillHrid === SKILL_TOTAL_HRID);
+    return total ? [...rows, total] : rows;
+  }
+  function stampSkillFreshness(snapshot) {
+    if (skillsAreLive()) return snapshot;
+    snapshot.freshness = "stale";
+    snapshot.issues = [...new Set([
+      ...(Array.isArray(snapshot.issues) ? snapshot.issues : []),
+      state.skills.length ? "stale-skills" : "missing-skills",
+    ])];
+    return snapshot;
+  }
+
+  function applyCharacterData(candidate, source = "live", livePass = null, skillTrust = true) {
     const data = object(candidate);
     const characterInfo = object(data.characterInfo);
     const character = data.character ?? characterInfo.character;
-    const incomingId = characterIdFrom(character) || characterIdFrom(characterInfo) || characterIdFrom(data);
+    const incomingId = characterIdFrom(character, true) || characterIdFrom(characterInfo) || characterIdFrom(data);
     const preferred = currentCharacterId();
     // Same-account alts (and leftover React fibers) must not merge into the
     // signed-in character. YouCan/daydayup/NoCan share one browser profile.
     if (incomingId && preferred && incomingId !== preferred) return;
-    const currentId = characterIdFrom(state.character);
+    const currentId = characterIdFrom(state.character, true);
     if (incomingId && currentId && incomingId !== currentId) resetOwnedCharacterState();
     if (character && typeof character === "object") state.character = character;
     const guild = data.guild ?? characterInfo.guild;
@@ -1155,8 +1268,41 @@
     }
     const byLocation = data.characterItemByLocationMap ?? data.characterItemsByLocation;
     if (byLocation) indexCharacterItems(byLocation);
-    const skills = data.characterSkills ?? data.skills ?? characterInfo.characterSkills;
-    if (skills) state.skills = values(skills);
+    // The live game state updates `characterSkillMap` / `characterSkillDict`
+    // and reports deltas through `endCharacterSkills`. `characterSkills` is the
+    // login payload and can be stale even when embedded in live state, so it
+    // only seeds rows the live shapes do not report.
+    const liveSkillSources = [
+      data.characterSkillMap,
+      data.characterSkillDict,
+      data.endCharacterSkills,
+      characterInfo.characterSkillMap,
+      characterInfo.characterSkillDict,
+    ];
+    const pass = livePass ?? (source !== "cache" ? new Set() : null);
+    // A node that never states which character it belongs to can only be
+    // trusted when the whole tree agrees on one owner. Otherwise its rows are
+    // merged like cache: they may fill gaps, but they never make the table
+    // eligible for upload under someone else's name.
+    for (const skills of liveSkillSources) {
+      if (skills) mergeSkills(skills, skillTrust ? source : "cache", skillTrust ? pass : null);
+    }
+    const initSkillSources = [
+      data.characterSkills,
+      data.skills,
+      characterInfo.characterSkills,
+    ];
+    for (const skills of initSkillSources) {
+      if (skills) mergeSkills(skills, "cache");
+    }
+    // A direct live read is its own capture. Its pass decides both upload
+    // eligibility and exactly which rows may be uploaded; an empty pass clears
+    // the previous capture instead of reusing its rows. Tree/pass callers
+    // finalize after aggregating every source in the capture.
+    if (!livePass && pass) {
+      state.skillsLiveComplete = SKILL_LEVEL_HRIDS.every((hrid) => pass.has(hrid));
+      state.liveSkillHrids = new Set(pass);
+    }
     const learned = data.characterAbilities ?? data.learnedAbilities ?? data.characterAbilityMap
       ?? characterInfo.characterAbilities ?? characterInfo.characterAbilityMap;
     if (learned) {
@@ -1166,7 +1312,7 @@
     const loadouts = data.loadouts ?? data.combatLoadouts ?? data.characterLoadoutMap
       ?? data.characterLoadoutDict ?? data.characterLoadouts ?? characterInfo.characterLoadoutMap;
     if (loadouts) {
-      const ownerId = incomingId || preferred || characterIdFrom(state.character);
+      const ownerId = incomingId || preferred || characterIdFrom(state.character, true);
       const nextLoadouts = values(loadouts).filter((loadout) => {
         const owner = loadoutOwnerId(loadout);
         return !owner || !ownerId || owner === ownerId;
@@ -1185,7 +1331,7 @@
    */
   function hydrateFromGameCache() {
     const init = parseJson(readPageStorage("init_character_data"));
-    if (init) applyCharacterData(init.data ?? init.payload ?? init);
+    if (init) applyCharacterData(init.data ?? init.payload ?? init, "cache");
     // Current MWI clients store the initial event stream under initClientData.
     // It can be plain JSON or LZString-compressed JSON, depending on client
     // version.  This stays entirely same-origin and read-only.
@@ -1198,10 +1344,13 @@
         ?? parseJson(page.__sunnyMwi__?.lzDecompressUTF16?.(initClientRaw))
         ?? parseJson(decompressUtf16(initClientRaw))
         ?? parseJson(lz?.decompressFromBase64?.(initClientRaw));
-      if (initClient) applyCharacterData(initClient.data ?? initClient.payload ?? initClient);
+      if (initClient) applyCharacterData(initClient.data ?? initClient.payload ?? initClient, "cache");
     }
+    // `characterSkills` is not character-tagged; only let it seed an empty
+    // state. Once live state exists, `init_character_data` (which carries a
+    // character id) and the game's live maps are the trusted sources.
     const skills = parseJson(readPageStorage("characterSkills"));
-    if (skills && !state.skills.length) state.skills = values(skills);
+    if (skills && !state.skills.length) mergeSkills(skills, "cache");
     refresh();
     return Boolean(init && hasCharacterData()) || hasCharacterData();
   }
@@ -1212,11 +1361,17 @@
   // methods nor mutate its state.
   function hydrateFromLiveGame() {
     try {
+      // Every live hydration is a fresh capture pass. A later pass that only
+      // exposes part of the skill table must not inherit an earlier "complete"
+      // verdict or its rows from the previous pass.
+      state.skillsLiveComplete = false;
+      state.liveSkillHrids = new Set();
+      const livePass = new Set();
       const page = typeof unsafeWindow === "object" ? unsafeWindow : window;
       const documents = [...new Set([document, page.document].filter(Boolean))];
       const roots = documents.flatMap((doc) => [doc.querySelector('[class^="GamePage"]'), doc.getElementById("root")].filter(Boolean));
       const queuePlannerState = page.MWI_QUEUE_PLANNER?.getGameCore?.()?.state;
-      if (queuePlannerState && typeof queuePlannerState === "object") applyCharacterTree(queuePlannerState);
+      if (queuePlannerState && typeof queuePlannerState === "object") applyCharacterTree(queuePlannerState, "live", livePass);
       const queue = roots.flatMap((root) => {
         const key = Object.keys(root).find((name) => name.startsWith("__reactFiber$") || name.startsWith("__reactInternalInstance$") || name.startsWith("__react"));
         return key ? [root[key]] : [];
@@ -1228,23 +1383,38 @@
         if (!fiber || typeof fiber !== "object" || seen.has(fiber)) continue;
         seen.add(fiber); visited += 1;
         const candidate = fiber.stateNode?.state;
-        if (candidate && typeof candidate === "object" && (candidate.characterLoadoutDict || candidate.characterLoadoutMap || candidate.characterLabyrinth || candidate.combatUnit || candidate.gameConn || candidate.guildCharacterMap || candidate.guildSharableCharacterMap || candidate.guildTrialSignupLevelDict || candidate.guildWeeklyTrialSet || candidate.characterHouseRoomMap || candidate.characterHouseRoomDict || candidate.characterAchievements || candidate.characterAchievementMap || candidate.characterGuildBuffDict || candidate.characterGuildBuffMap || candidate.guildBuildingLevelDict || candidate.guildBuildingLevelMap || candidate.guild)) {
-          applyCharacterTree(candidate);
+        if (candidate && typeof candidate === "object" && (candidate.characterLoadoutDict || candidate.characterLoadoutMap || candidate.characterSkillMap || candidate.characterSkillDict || candidate.endCharacterSkills || candidate.characterLabyrinth || candidate.combatUnit || candidate.gameConn || candidate.guildCharacterMap || candidate.guildSharableCharacterMap || candidate.guildTrialSignupLevelDict || candidate.guildWeeklyTrialSet || candidate.characterHouseRoomMap || candidate.characterHouseRoomDict || candidate.characterAchievements || candidate.characterAchievementMap || candidate.characterGuildBuffDict || candidate.characterGuildBuffMap || candidate.guildBuildingLevelDict || candidate.guildBuildingLevelMap || candidate.guild)) {
+          applyCharacterTree(candidate, "live", livePass);
         }
         if (fiber.return) queue.push(fiber.return);
         if (fiber.child) queue.push(fiber.child);
         if (fiber.sibling) queue.push(fiber.sibling);
       }
+      state.skillsLiveComplete = SKILL_LEVEL_HRIDS.every((hrid) => livePass.has(hrid));
+      state.liveSkillHrids = new Set(livePass);
       refresh();
       return hasCharacterData();
     } catch { /* unavailable during initial render */ }
     return false;
   }
 
-  // State nesting differs across MWI client releases.  Search only the already
-  // located in-memory game-state tree, with strict depth/node limits, and pull
-  // only objects that expose character or loadout fields.
-  function applyCharacterTree(root) {
+  // A React state that owns the whole game session, as opposed to a nested
+  // fragment belonging to a guild-member tile. Only such a root may replace the
+  // character still held from a previous capture when the URL gives no id.
+  function sessionRootId(value) {
+    if (!value || typeof value !== "object") return "";
+    const id = characterIdFrom(object(value.character), true);
+    if (!id) return "";
+    return value.guild || value.characterLoadoutMap || value.characterLoadoutDict
+      || value.characterSkillMap || value.characterSkillDict
+      || value.guildCharacterMap || value.guildSharableCharacterMap
+      || value.characterHouseRoomMap || value.characterHouseRoomDict ? id : "";
+  }
+
+  // Every identity reachable from one tree, using the same limits as the
+  // capture walk. Consulted only when no external character id is available.
+  function treeHasForeignIdentity(root, owner) {
+    if (!owner) return false;
     const queue = [{ value: root, depth: 0 }];
     const seen = new Set();
     let visited = 0;
@@ -1252,7 +1422,8 @@
       const { value, depth } = queue.shift();
       if (!value || typeof value !== "object" || seen.has(value)) continue;
       seen.add(value); visited += 1;
-      if (value.character || value.characterInfo || value.characterLoadoutDict || value.characterLoadoutMap || value.characterItems || value.characterSkills || value.characterHouseRoomMap || value.characterHouseRoomDict || value.characterAchievements || value.characterAchievementMap || value.characterGuildBuffDict || value.characterGuildBuffMap || value.guildCharacterMap || value.guildSharableCharacterMap || value.guildTrialSignupLevelDict || value.guildWeeklyTrialSet || value.guildTrialDetailMap || value.combatMonsterDetailMap || value.guildBuildingLevelDict || value.guildBuildingLevelMap || value.guild) applyCharacterData(value);
+      const ownId = characterIdFrom(value.character, true) || characterIdFrom(value.characterInfo) || characterIdFrom(value);
+      if (ownId && ownId !== owner) return true;
       if (depth >= 5) continue;
       for (const key of Object.keys(value)) {
         if (/token|authorization|cookie|secret|password|credential|session/i.test(key)) continue;
@@ -1261,6 +1432,60 @@
           if (child && typeof child === "object") queue.push({ value: child, depth: depth + 1 });
         } catch { /* skip inaccessible reactive field */ }
       }
+    }
+    return false;
+  }
+
+  // State nesting differs across MWI client releases.  Search only the already
+  // located in-memory game-state tree, with strict depth/node limits, and pull
+  // only objects that expose character or loadout fields.
+  function applyCharacterTree(root, source = "live", livePass = null) {
+    const preferred = currentCharacterId();
+    const knownId = characterIdFrom(state.character, true);
+    // Without an external id, a whole-session root speaks for itself: a real
+    // switch to another character must not be blocked by the character still
+    // held from the previous capture.
+    let captureOwner = preferred || sessionRootId(root) || knownId || "";
+    const pass = livePass ?? (source !== "cache" ? new Set() : null);
+    // A node that names no character is only trustworthy while nothing else in
+    // the tree names a different one. Otherwise its skills could be filed under
+    // the wrong member (F3).
+    const ambiguous = !preferred && treeHasForeignIdentity(root, captureOwner);
+    // The capture owner is the *expected* identity, not proof about the root.
+    // Only an ancestor that explicitly named it may lend identity to a child.
+    const queue = [{ value: root, depth: 0, ownerId: "" }];
+    const seen = new Set();
+    let visited = 0;
+    while (queue.length && visited < 3000) {
+      const { value, depth, ownerId: inheritedId } = queue.shift();
+      if (!value || typeof value !== "object" || seen.has(value)) continue;
+      seen.add(value); visited += 1;
+      // Identity belongs to the whole subtree: an identity-less child of a
+      // foreign character must not merge its skills into the signed-in one.
+      const ownId = characterIdFrom(value.character, true) || characterIdFrom(value.characterInfo) || characterIdFrom(value);
+      if (!captureOwner && ownId) captureOwner = ownId;
+      const ownerId = ownId || inheritedId;
+      if (ownerId && captureOwner && ownerId !== captureOwner) continue;
+      // A node is live only when the signed-in character is known externally,
+      // when the node itself names an identity, or when an ancestor in this
+      // tree explicitly named the capture owner. A standalone identity-less
+      // tree cannot prove it belongs to the current character, so it may only
+      // fill gaps as cache.
+      const inheritedTrust = Boolean(inheritedId) && inheritedId === captureOwner;
+      const skillTrust = Boolean(preferred) || Boolean(ownId) || (!ambiguous && inheritedTrust);
+      if (value.character || value.characterInfo || value.characterLoadoutDict || value.characterLoadoutMap || value.characterItems || value.characterSkills || value.characterSkillMap || value.characterSkillDict || value.endCharacterSkills || value.characterHouseRoomMap || value.characterHouseRoomDict || value.characterAchievements || value.characterAchievementMap || value.characterGuildBuffDict || value.characterGuildBuffMap || value.guildCharacterMap || value.guildSharableCharacterMap || value.guildTrialSignupLevelDict || value.guildWeeklyTrialSet || value.guildTrialDetailMap || value.combatMonsterDetailMap || value.guildBuildingLevelDict || value.guildBuildingLevelMap || value.guild) applyCharacterData(value, source, pass, skillTrust);
+      if (depth >= 5) continue;
+      for (const key of Object.keys(value)) {
+        if (/token|authorization|cookie|secret|password|credential|session/i.test(key)) continue;
+        try {
+          const child = value[key];
+          if (child && typeof child === "object") queue.push({ value: child, depth: depth + 1, ownerId });
+        } catch { /* skip inaccessible reactive field */ }
+      }
+    }
+    if (!livePass && pass) {
+      state.skillsLiveComplete = SKILL_LEVEL_HRIDS.every((hrid) => pass.has(hrid));
+      state.liveSkillHrids = new Set(pass);
     }
   }
 
@@ -1654,6 +1879,7 @@
               || message.includes('"characterGuildBuffMap"')
               || message.includes('"loadouts_updated"')
               || message.includes('"items_updated"')
+              || message.includes('"skills_updated"')
               || message.includes('"guildCharacterMap"')
               || message.includes('"guildSharableCharacterMap"')
               || message.includes('"guildName"')
@@ -1705,6 +1931,7 @@
                   || message.includes('"characterGuildBuffMap"')
                   || message.includes('"loadouts_updated"')
                   || message.includes('"items_updated"')
+                  || message.includes('"skills_updated"')
                   || message.includes('"guildCharacterMap"')
                   || message.includes('"guildSharableCharacterMap"')
                   || message.includes('"guildName"')
@@ -1837,7 +2064,8 @@
         guildBuildingLevelDict: shrineSource == null ? undefined : dictionary(shrineSource),
         guildBuildingDetailMap: dictionary(gameState?.guildBuildingDetailMap || gameState?.guildBuildingDetailDict),
         combatMonsterDetailMap: dictionary(gameState?.combatMonsterDetailMap || gameState?.combatMonsterDetailDict),
-        characterSkills: values(gameState?.characterSkills || gameState?.characterSkillMap || gameState?.characterSkillDict),
+        characterSkills: values(gameState?.characterSkills),
+        characterSkillDict: dictionary(gameState?.characterSkillMap || gameState?.characterSkillDict),
         characterItems: [
           ...characterItems,
           ...loadouts.flatMap((loadout) => loadout.equipment),
@@ -1957,8 +2185,11 @@
       hydration.attempt = 0;
       resetCharacterData();
     }
-    const live = hydrateFromLiveGame();
+    // Seed from the cache first, then let live game state override or fill
+    // every skill row. The reverse order let a stale cache overwrite skills
+    // that live state had just reported.
     const cache = hydrateFromGameCache();
+    const live = hydrateFromLiveGame();
     if (live || cache) {
       hydration.attempt = 0;
       setStatus(tr("characterLoaded"));
@@ -2482,14 +2713,14 @@
       automaticSync.suppressSchedule = false;
     }
     const api = builder();
-    return api.buildMemberSnapshot({
+    const snapshot = api.buildMemberSnapshot({
       character: state.character,
       loadouts: state.loadouts,
       authorizedEquipment: mergeAuthorizedEquipment(
         state.authorizedEquipment,
         loadoutEquipmentPool(),
       ),
-      skills: state.skills,
+      skills: skillsForUpload(),
       learnedAbilities: state.learnedAbilities,
       auras: state.auras,
       characterHouseRoomMap: state.characterHouseRoomMap,
@@ -2503,6 +2734,11 @@
       selectedLoadoutIds: [],
       capturedAt: new Date().toISOString(),
     });
+    // Partial live rows are uploaded as a partial table; the API merges them
+    // per HRID. `skillsForUpload()` never includes cache-seeded rows or rows
+    // left over from an earlier capture. `freshness` / `issues` describe the
+    // completeness of this capture.
+    return stampSkillFreshness(snapshot);
   }
   function download() {
     const snapshot = payload();
