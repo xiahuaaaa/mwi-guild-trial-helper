@@ -2,7 +2,7 @@
 // @name         WI-guild-trial-sync
 // @name:en      WI-guild-trial-sync
 // @namespace    https://github.com/xiahuaaaa/mwi-guild-trial-helper/wi
-// @version      0.6.34-wi.1
+// @version      0.6.35-wi.1
 // @description  MWI 公会通用（TMD / Wandering ICarus）：自动同步成员名单、本周试炼、怪物面板、全部配装、技能与光环，并高亮最新战斗分工。
 // @description:en  MWI guild sync for TMD and Wandering ICarus: roster, weekly trials, monster panels, loadouts, abilities, auras, and the latest combat assignment.
 // @author       adudu
@@ -325,13 +325,16 @@
     characterGuildBuffCaptured: false,
     combatMonsterDetailMap: {},
     loadouts: [],
+    loadoutsLive: false,
     authorizedEquipment: [],
+    equipmentLive: false,
     itemByHash: new Map(),
     skills: [],
     skillsLiveComplete: false,
     skillSources: new Map(),
     liveSkillHrids: new Set(),
     learnedAbilities: [],
+    abilitySources: new Map(),
     auras: [],
     characterHouseRoomMap: undefined,
     characterAchievements: undefined,
@@ -554,10 +557,32 @@
     }
     return [];
   };
+  const learnedAbilityLevel = (abilityHrid) => {
+    if (!abilityHrid) return 0;
+    let best = 0;
+    for (const row of values(state.learnedAbilities)) {
+      const hrid = String(row?.abilityHrid ?? row?.hrid ?? row?.ability_hrid ?? "");
+      const level = Number(row?.level);
+      if (hrid === abilityHrid && Number.isFinite(level) && level > best) {
+        best = Math.trunc(level);
+      }
+    }
+    return best;
+  };
   const expandedLoadoutAbilities = (loadout) => {
     const direct = values(loadout?.abilities ?? loadout?.combatAbilities ?? loadout?.combat_abilities)
       .filter((item) => item && typeof item === "object");
-    if (direct.some((item) => item.abilityHrid || item.ability_hrid || item.hrid)) return direct;
+    if (direct.some((item) => item.abilityHrid || item.ability_hrid || item.hrid)) {
+      return direct.map((item) => {
+        const abilityHrid = String(item.abilityHrid ?? item.ability_hrid ?? item.hrid ?? "");
+        const rawLevel = Number(item.level);
+        const learned = learnedAbilityLevel(abilityHrid);
+        const level = Number.isFinite(rawLevel) && rawLevel > 1
+          ? Math.max(Math.trunc(rawLevel), learned)
+          : Math.max(1, learned, Number.isFinite(rawLevel) && rawLevel > 0 ? Math.trunc(rawLevel) : 1);
+        return { ...item, abilityHrid, level };
+      });
+    }
     const triggerMap = loadout?.abilityCombatTriggersMap || {};
     return mapEntries(loadout?.abilityMap).flatMap(([slot, abilityReference]) => {
       if (!abilityReference) return [];
@@ -568,12 +593,41 @@
       );
       if (!abilityHrid.startsWith("/")) return [];
       const slotNumber = Number(String(slot).match(/\d+/)?.[0] ?? slot);
+      const refLevel = typeof abilityReference === "object" ? Number(abilityReference?.level) : NaN;
+      const learned = learnedAbilityLevel(abilityHrid);
       return [{
         slot: Math.max(0, slotNumber - 1),
         abilityHrid,
-        level: Number(abilityReference?.level ?? 1),
+        level: Math.max(1, Number.isFinite(refLevel) && refLevel > 0 ? Math.trunc(refLevel) : 1, learned),
         triggers: values(triggerMap instanceof Map ? triggerMap.get(abilityHrid) : triggerMap[abilityHrid]),
       }];
+    });
+  };
+  const mergeLoadoutAbilities = (primaryList, secondaryList) => {
+    const base = primaryList.length ? primaryList : secondaryList;
+    const fallback = primaryList.length ? secondaryList : [];
+    return base.map((item, idx) => {
+      const hrid = String(item?.abilityHrid ?? item?.ability_hrid ?? item?.hrid ?? "");
+      const slot = Number.isFinite(Number(item?.slot)) ? Number(item.slot) : idx;
+      const match = fallback.find((candidate) => {
+        const candidateHrid = String(candidate?.abilityHrid ?? candidate?.ability_hrid ?? candidate?.hrid ?? "");
+        return candidateHrid === hrid && (candidate?.slot === slot || candidate?.slot == null);
+      }) ?? fallback.find((candidate) => String(candidate?.abilityHrid ?? candidate?.ability_hrid ?? candidate?.hrid ?? "") === hrid);
+      const level = Math.max(
+        1,
+        Math.trunc(Number(item?.level) || 1),
+        Math.trunc(Number(match?.level) || 1),
+        learnedAbilityLevel(hrid),
+      );
+      const triggers = values(item?.triggers).length ? values(item.triggers) : values(match?.triggers);
+      return {
+        ...(match && typeof match === "object" ? match : {}),
+        ...(item && typeof item === "object" ? item : {}),
+        slot,
+        abilityHrid: hrid,
+        level,
+        triggers,
+      };
     });
   };
   const loadoutEquipmentPool = () => state.loadouts.flatMap((loadout) => expandedLoadoutEquipment(loadout));
@@ -592,12 +646,16 @@
   );
   const mergeLoadouts = (current, incoming) => {
     const merged = new Map();
-    values(current).forEach((loadout, index) => merged.set(loadoutIdentity(loadout, index), loadout));
+    values(current).forEach((loadout, index) => {
+      const abilities = expandedLoadoutAbilities(loadout);
+      merged.set(loadoutIdentity(loadout, index), abilities.length ? { ...loadout, abilities } : loadout);
+    });
     values(incoming).forEach((loadout, index) => {
       const key = loadoutIdentity(loadout, index);
       const previous = merged.get(key);
       if (!previous) {
-        merged.set(key, loadout);
+        const abilities = expandedLoadoutAbilities(loadout);
+        merged.set(key, abilities.length ? { ...loadout, abilities } : loadout);
         return;
       }
       const previousScore = loadoutRichness([previous]);
@@ -611,9 +669,10 @@
       const equipment = expandedLoadoutEquipment(primary).length
         ? expandedLoadoutEquipment(primary)
         : expandedLoadoutEquipment(secondary);
-      const abilities = expandedLoadoutAbilities(primary).length
-        ? expandedLoadoutAbilities(primary)
-        : expandedLoadoutAbilities(secondary);
+      const abilities = mergeLoadoutAbilities(
+        expandedLoadoutAbilities(primary),
+        expandedLoadoutAbilities(secondary),
+      );
       merged.set(key, {
         ...secondary,
         ...primary,
@@ -687,13 +746,16 @@
     state.characterHouseRoomMap = undefined;
     state.characterAchievements = undefined;
     state.loadouts = [];
+    state.loadoutsLive = false;
     state.authorizedEquipment = [];
+    state.equipmentLive = false;
     state.itemByHash = new Map();
     state.skills = [];
     state.skillsLiveComplete = false;
     state.skillSources = new Map();
     state.liveSkillHrids = new Set();
     state.learnedAbilities = [];
+    state.abilitySources = new Map();
     state.auras = [];
     resetCollectorIdentity("");
   }
@@ -1158,8 +1220,52 @@
     ])];
     return snapshot;
   }
+  function abilityRows(value) {
+    const rows = Array.isArray(value) ? value
+      : mapLike(value) ? [...value.entries()].map(([key, raw]) => (
+        raw && typeof raw === "object" ? { ...raw, abilityHrid: raw.abilityHrid ?? raw.hrid ?? key } : { abilityHrid: key, level: raw }
+      ))
+        : setLike(value) ? [...value.values()]
+          : value && typeof value === "object" ? Object.entries(value).map(([key, raw]) => (
+            raw && typeof raw === "object" ? { ...raw, abilityHrid: raw.abilityHrid ?? raw.hrid ?? key } : { abilityHrid: key, level: raw }
+          )) : [];
+    return rows.flatMap((raw) => {
+      const row = raw && typeof raw === "object" ? raw : {};
+      const hrid = String(row.abilityHrid ?? row.hrid ?? row.ability_hrid ?? "");
+      const level = Number(row.level);
+      if (!hrid.startsWith("/abilities/") || !Number.isFinite(level) || level <= 0) return [];
+      return [{ ...row, abilityHrid: hrid, level: Math.max(1, Math.trunc(level)) }];
+    });
+  }
+  function mergeLearnedAbilities(value, source = "live") {
+    const incoming = abilityRows(value);
+    if (!incoming.length) return false;
+    if (!(state.abilitySources instanceof Map)) state.abilitySources = new Map();
+    const merged = new Map();
+    for (const row of abilityRows(state.learnedAbilities)) {
+      if (!merged.has(row.abilityHrid)) merged.set(row.abilityHrid, row);
+    }
+    const incomingLive = source !== "cache";
+    for (const row of incoming) {
+      const current = merged.get(row.abilityHrid);
+      const currentLevel = Number(current?.level ?? 0);
+      const currentLive = state.abilitySources.get(row.abilityHrid) === "live";
+      if (!current || (incomingLive && !currentLive) || (incomingLive === currentLive && row.level > currentLevel)) {
+        merged.set(row.abilityHrid, { ...(current ?? {}), ...row });
+        state.abilitySources.set(row.abilityHrid, incomingLive ? "live" : "cache");
+      } else if (row.level === currentLevel && incomingLive) {
+        state.abilitySources.set(row.abilityHrid, "live");
+      }
+    }
+    state.learnedAbilities = [...merged.values()];
+    if (typeof auraEntries === "function") {
+      state.auras = auraEntries(state.learnedAbilities);
+    }
+    return true;
+  }
 
   function applyCharacterData(candidate, source = "live", livePass = null, skillTrust = true) {
+    const isCache = source === "cache";
     const data = object(candidate);
     const characterInfo = object(data.characterInfo);
     const character = data.character ?? characterInfo.character;
@@ -1169,8 +1275,19 @@
     // signed-in character. YouCan/daydayup/NoCan share one browser profile.
     if (incomingId && preferred && incomingId !== preferred) return;
     const currentId = characterIdFrom(state.character, true);
-    if (incomingId && currentId && incomingId !== currentId) resetOwnedCharacterState();
-    if (character && typeof character === "object") state.character = character;
+    if (incomingId && currentId && incomingId !== currentId) {
+      resetOwnedCharacterState();
+      state.abilitySources = new Map();
+      state.learnedAbilities = [];
+      state.auras = [];
+      state.loadoutsLive = false;
+      state.equipmentLive = false;
+    }
+    if (character && typeof character === "object") {
+      state.character = isCache
+        ? { ...character, ...state.character }
+        : { ...state.character, ...character };
+    }
     const guild = data.guild ?? characterInfo.guild;
     const incomingGuildName = String(
       (guild && typeof guild === "object" ? guild.name ?? guild.guildName : "")
@@ -1190,21 +1307,21 @@
     const incomingRegistered = registeredGuildById(incomingGuildId) ?? registeredGuildByName(incomingGuildName);
     // Leftover fibers and guild-list tiles can write a foreign id (Ameratto:
     // 459) without replacing the real guild name. Keep the registered id.
-    if (guild && typeof guild === "object" && !(ownsCurrentGuild() && incomingForeignName)) {
+    if ((!isCache || !ownsCurrentGuild()) && guild && typeof guild === "object" && !(ownsCurrentGuild() && incomingForeignName)) {
       const pinnedId = incomingRegistered?.gameGuildId ?? pinnedGuildId();
       state.guild = {
-        ...state.guild,
-        ...guild,
+        ...(isCache ? guild : state.guild),
+        ...(isCache ? state.guild : guild),
         id: pinnedId ?? incomingGuildId ?? guild.id ?? guild.guildId ?? state.guild.id,
         guildId: pinnedId ?? guild.guildId ?? guild.id ?? state.guild.guildId,
         name: incomingGuildName || guild.name || guild.guildName || state.guild.name,
         guildName: guild.guildName ?? guild.name ?? state.guild.guildName,
       };
     }
-    if (incomingGuildName && !(ownsCurrentGuild() && incomingForeignName)) {
+    if ((!isCache || !state.guild.name) && incomingGuildName && !(ownsCurrentGuild() && incomingForeignName)) {
       state.guild.name = incomingGuildName;
     }
-    if (incomingGuildId && !(ownsCurrentGuild() && incomingForeignName)) {
+    if ((!isCache || !state.guild.id) && incomingGuildId && !(ownsCurrentGuild() && incomingForeignName)) {
       const keepPinned = hasPinnedGuildId(state.guild.id) && !hasPinnedGuildId(incomingGuildId);
       if (!keepPinned) state.guild.id = incomingRegistered?.gameGuildId ?? incomingGuildId;
       if (state.character && typeof state.character === "object") {
@@ -1218,60 +1335,81 @@
         }
       }
     }
+    const hasEntries = (value) => value && typeof value === "object" && values(value).length > 0;
     const guildCharacterMap = data.guildCharacterMap ?? data.guildCharacterDict;
-    if (guildCharacterMap && typeof guildCharacterMap === "object") state.guildCharacterMap = guildCharacterMap;
+    if (guildCharacterMap && typeof guildCharacterMap === "object" && (!isCache ? (hasEntries(guildCharacterMap) || !hasEntries(state.guildCharacterMap)) : !hasEntries(state.guildCharacterMap))) {
+      state.guildCharacterMap = guildCharacterMap;
+    }
     const guildSharableCharacterMap = data.guildSharableCharacterMap ?? data.guildSharableCharacterDict;
-    if (guildSharableCharacterMap && typeof guildSharableCharacterMap === "object") state.guildSharableCharacterMap = guildSharableCharacterMap;
+    if (guildSharableCharacterMap && typeof guildSharableCharacterMap === "object" && (!isCache ? (hasEntries(guildSharableCharacterMap) || !hasEntries(state.guildSharableCharacterMap)) : !hasEntries(state.guildSharableCharacterMap))) {
+      state.guildSharableCharacterMap = guildSharableCharacterMap;
+    }
     const guildTrialSignupLevelMap = data.guildTrialSignupLevelMap ?? data.guildTrialSignupLevelDict;
-    if (guildTrialSignupLevelMap && typeof guildTrialSignupLevelMap === "object") state.guildTrialSignupLevelMap = guildTrialSignupLevelMap;
+    if (guildTrialSignupLevelMap && typeof guildTrialSignupLevelMap === "object" && (!isCache ? (hasEntries(guildTrialSignupLevelMap) || !hasEntries(state.guildTrialSignupLevelMap)) : !hasEntries(state.guildTrialSignupLevelMap))) {
+      state.guildTrialSignupLevelMap = guildTrialSignupLevelMap;
+    }
     const guildWeeklyTrialSet = data.guildWeeklyTrialSet ?? data.weeklyGuildTrialSet;
-    if (guildWeeklyTrialSet && typeof guildWeeklyTrialSet === "object") state.guildWeeklyTrialSet = guildWeeklyTrialSet;
+    if (guildWeeklyTrialSet && typeof guildWeeklyTrialSet === "object" && (!isCache ? (Object.keys(guildWeeklyTrialSet).length > 0 || !Object.keys(state.guildWeeklyTrialSet).length) : !Object.keys(state.guildWeeklyTrialSet).length)) {
+      state.guildWeeklyTrialSet = guildWeeklyTrialSet;
+    }
     const guildTrialDetailMap = data.guildTrialDetailMap ?? data.guildTrialDetailDict;
-    if (guildTrialDetailMap && typeof guildTrialDetailMap === "object") state.guildTrialDetailMap = guildTrialDetailMap;
+    if (guildTrialDetailMap && typeof guildTrialDetailMap === "object" && (!isCache ? (hasEntries(guildTrialDetailMap) || !hasEntries(state.guildTrialDetailMap)) : !hasEntries(state.guildTrialDetailMap))) {
+      state.guildTrialDetailMap = guildTrialDetailMap;
+    }
     const characterHouseRoomMap = data.characterHouseRoomMap ?? data.characterHouseRoomDict
       ?? characterInfo.characterHouseRoomMap ?? characterInfo.characterHouseRoomDict
       ?? character?.characterHouseRoomMap ?? character?.characterHouseRoomDict;
-    if (characterHouseRoomMap != null && typeof characterHouseRoomMap === "object") {
+    if (characterHouseRoomMap != null && typeof characterHouseRoomMap === "object" && (!isCache || state.characterHouseRoomMap === undefined)) {
       state.characterHouseRoomMap = characterHouseRoomMap;
     }
     const characterAchievements = data.characterAchievements ?? data.characterAchievementMap
       ?? characterInfo.characterAchievements ?? characterInfo.characterAchievementMap
       ?? character?.characterAchievements ?? character?.characterAchievementMap;
-    if (characterAchievements != null && typeof characterAchievements === "object") {
+    if (characterAchievements != null && typeof characterAchievements === "object" && (!isCache || state.characterAchievements === undefined)) {
       state.characterAchievements = characterAchievements;
     }
     const characterGuildBuffDict = data.characterGuildBuffDict ?? data.characterGuildBuffMap
       ?? characterInfo.characterGuildBuffDict ?? characterInfo.characterGuildBuffMap
       ?? character?.characterGuildBuffDict ?? character?.characterGuildBuffMap;
-    if (characterGuildBuffDict != null && typeof characterGuildBuffDict === "object") {
+    if (characterGuildBuffDict != null && typeof characterGuildBuffDict === "object" && (!isCache || !state.characterGuildBuffCaptured)) {
       state.characterGuildBuffDict = characterGuildBuffDict;
       state.characterGuildBuffCaptured = true;
     }
     const guildBuildingLevelDict = data.guildBuildingLevelDict ?? data.guildBuildingLevelMap
       ?? data.guild?.guildBuildingLevelMap ?? data.guild?.guildBuildingLevelDict
       ?? character?.guildBuildingLevelMap ?? character?.guildBuildingLevelDict;
-    if (guildBuildingLevelDict != null && typeof guildBuildingLevelDict === "object") {
+    if (guildBuildingLevelDict != null && typeof guildBuildingLevelDict === "object" && (!isCache || !state.guildBuildingLevelCaptured)) {
       state.guildBuildingLevelDict = guildBuildingLevelDict;
       state.guildBuildingLevelCaptured = true;
     }
     const guildBuildingMap = data.guildBuildingMap ?? data.guildBuildingDict;
-    if (guildBuildingMap && typeof guildBuildingMap === "object") state.guildBuildingMap = guildBuildingMap;
+    if (guildBuildingMap && typeof guildBuildingMap === "object" && (!isCache ? (hasEntries(guildBuildingMap) || !hasEntries(state.guildBuildingMap)) : !hasEntries(state.guildBuildingMap))) {
+      state.guildBuildingMap = guildBuildingMap;
+    }
     const guildBuildingDetailMap = data.guildBuildingDetailMap ?? data.guildBuildingDetailDict;
-    if (guildBuildingDetailMap && typeof guildBuildingDetailMap === "object") state.guildBuildingDetailMap = guildBuildingDetailMap;
+    if (guildBuildingDetailMap && typeof guildBuildingDetailMap === "object" && (!isCache ? (hasEntries(guildBuildingDetailMap) || !hasEntries(state.guildBuildingDetailMap)) : !hasEntries(state.guildBuildingDetailMap))) {
+      state.guildBuildingDetailMap = guildBuildingDetailMap;
+    }
     const combatMonsterDetailMap = data.combatMonsterDetailMap ?? data.combatMonsterDetailDict;
-    if (combatMonsterDetailMap && typeof combatMonsterDetailMap === "object") state.combatMonsterDetailMap = combatMonsterDetailMap;
+    if (combatMonsterDetailMap && typeof combatMonsterDetailMap === "object" && (!isCache ? (hasEntries(combatMonsterDetailMap) || !hasEntries(state.combatMonsterDetailMap)) : !hasEntries(state.combatMonsterDetailMap))) {
+      state.combatMonsterDetailMap = combatMonsterDetailMap;
+    }
     const equipment = data.equipment ?? data.inventory ?? data.characterItems ?? data.characterItemMap
       ?? characterInfo.characterItems ?? characterInfo.characterItemMap;
-    if (equipment) {
+    if (equipment && (!isCache || !state.authorizedEquipment.length)) {
       indexCharacterItems(equipment);
+      if (!isCache && !state.equipmentLive) state.authorizedEquipment = [];
       state.authorizedEquipment = mergeAuthorizedEquipment(state.authorizedEquipment, equipment);
+      if (!isCache && values(equipment).length > 0) state.equipmentLive = true;
     }
     const byLocation = data.characterItemByLocationMap ?? data.characterItemsByLocation;
-    if (byLocation) indexCharacterItems(byLocation);
+    if (byLocation && (!isCache || !state.equipmentLive)) indexCharacterItems(byLocation);
     // The live game state updates `characterSkillMap` / `characterSkillDict`
     // and reports deltas through `endCharacterSkills`. `characterSkills` is the
-    // login payload and can be stale even when embedded in live state, so it
-    // only seeds rows the live shapes do not report.
+    // login payload: when the same object also provides a live skill map or
+    // when reading from storage cache, `characterSkills` only seeds missing
+    // rows; when a live WebSocket `init_character_data` packet or bridge state
+    // provides `characterSkills` without a separate skill map, treat it as live.
     const liveSkillSources = [
       data.characterSkillMap,
       data.characterSkillDict,
@@ -1279,6 +1417,14 @@
       characterInfo.characterSkillMap,
       characterInfo.characterSkillDict,
     ];
+    const initSkillSources = [
+      data.characterSkills,
+      data.skills,
+      characterInfo.characterSkills,
+    ];
+    const hasLiveSkillMap = liveSkillSources.some((skills) => skillRows(skills).length > 0);
+    const hasInitSkills = initSkillSources.some((skills) => skillRows(skills).length > 0);
+    const hasSkillPayload = hasLiveSkillMap || hasInitSkills;
     const pass = livePass ?? (source !== "cache" ? new Set() : null);
     // A node that never states which character it belongs to can only be
     // trusted when the whole tree agrees on one owner. Otherwise its rows are
@@ -1287,37 +1433,55 @@
     for (const skills of liveSkillSources) {
       if (skills) mergeSkills(skills, skillTrust ? source : "cache", skillTrust ? pass : null);
     }
-    const initSkillSources = [
-      data.characterSkills,
-      data.skills,
-      characterInfo.characterSkills,
-    ];
+    const initSkillMode = !isCache && !hasLiveSkillMap && skillTrust ? source : "cache";
+    const initSkillPass = initSkillMode !== "cache" ? pass : null;
     for (const skills of initSkillSources) {
-      if (skills) mergeSkills(skills, "cache");
+      if (skills) mergeSkills(skills, initSkillMode, initSkillPass);
     }
-    // A direct live read is its own capture. Its pass decides both upload
-    // eligibility and exactly which rows may be uploaded; an empty pass clears
-    // the previous capture instead of reusing its rows. Tree/pass callers
-    // finalize after aggregating every source in the capture.
-    if (!livePass && pass) {
+    // A direct live read that carries skill fields is its own capture. Packets
+    // without skill fields (items_updated, loadouts_updated, guild_buffs_updated)
+    // must not wipe live skills already captured.
+    if (!livePass && pass && hasSkillPayload) {
       state.skillsLiveComplete = SKILL_LEVEL_HRIDS.every((hrid) => pass.has(hrid));
       state.liveSkillHrids = new Set(pass);
     }
-    const learned = data.characterAbilities ?? data.learnedAbilities ?? data.characterAbilityMap
-      ?? characterInfo.characterAbilities ?? characterInfo.characterAbilityMap;
-    if (learned) {
-      state.learnedAbilities = values(learned);
-      state.auras = auraEntries(state.learnedAbilities);
+    const liveAbilitySources = [
+      data.characterAbilityMap,
+      data.characterAbilityDict,
+      data.combatAbilities,
+      characterInfo.characterAbilityMap,
+      characterInfo.characterAbilityDict,
+    ];
+    const initAbilitySources = [
+      data.characterAbilities,
+      data.learnedAbilities,
+      characterInfo.characterAbilities,
+    ];
+    const hasLiveAbilityMap = liveAbilitySources.some((abilities) => abilityRows(abilities).length > 0);
+    let learnedUpdated = false;
+    for (const learned of liveAbilitySources) {
+      if (learned && mergeLearnedAbilities(learned, source)) learnedUpdated = true;
+    }
+    const initAbilityMode = !isCache && !hasLiveAbilityMap ? source : "cache";
+    for (const learned of initAbilitySources) {
+      if (learned && mergeLearnedAbilities(learned, initAbilityMode)) learnedUpdated = true;
+    }
+    if (learnedUpdated && state.loadouts.length) {
+      state.loadouts = mergeLoadouts([], state.loadouts);
     }
     const loadouts = data.loadouts ?? data.combatLoadouts ?? data.characterLoadoutMap
       ?? data.characterLoadoutDict ?? data.characterLoadouts ?? characterInfo.characterLoadoutMap;
-    if (loadouts) {
+    if (loadouts && (!isCache || !state.loadouts.length)) {
       const ownerId = incomingId || preferred || characterIdFrom(state.character, true);
       const nextLoadouts = values(loadouts).filter((loadout) => {
         const owner = loadoutOwnerId(loadout);
         return !owner || !ownerId || owner === ownerId;
       });
-      state.loadouts = mergeLoadouts(state.loadouts, nextLoadouts);
+      if (nextLoadouts.length) {
+        if (!isCache && !state.loadoutsLive) state.loadouts = [];
+        state.loadouts = mergeLoadouts(state.loadouts, nextLoadouts);
+        if (!isCache) state.loadoutsLive = true;
+      }
     }
     // The character (or its guild) may just have changed; the reporter panel
     // must follow this character, not the one whose secret is still in the box.
@@ -1361,17 +1525,20 @@
   // methods nor mutate its state.
   function hydrateFromLiveGame() {
     try {
-      // Every live hydration is a fresh capture pass. A later pass that only
-      // exposes part of the skill table must not inherit an earlier "complete"
-      // verdict or its rows from the previous pass.
-      state.skillsLiveComplete = false;
-      state.liveSkillHrids = new Set();
+      // In Tampermonkey's isolated sandbox without MWI_QUEUE_PLANNER, DOM nodes
+      // do not expose main-world `__reactFiber$` properties. Only update the
+      // live skill capture set when this pass actually observes live skill rows,
+      // so page-bridge and WebSocket captures are not wiped out on export/sync.
       const livePass = new Set();
+      let liveDataFound = false;
       const page = typeof unsafeWindow === "object" ? unsafeWindow : window;
       const documents = [...new Set([document, page.document].filter(Boolean))];
       const roots = documents.flatMap((doc) => [doc.querySelector('[class^="GamePage"]'), doc.getElementById("root")].filter(Boolean));
       const queuePlannerState = page.MWI_QUEUE_PLANNER?.getGameCore?.()?.state;
-      if (queuePlannerState && typeof queuePlannerState === "object") applyCharacterTree(queuePlannerState, "live", livePass);
+      if (queuePlannerState && typeof queuePlannerState === "object") {
+        applyCharacterTree(queuePlannerState, "live", livePass);
+        liveDataFound = true;
+      }
       const queue = roots.flatMap((root) => {
         const key = Object.keys(root).find((name) => name.startsWith("__reactFiber$") || name.startsWith("__reactInternalInstance$") || name.startsWith("__react"));
         return key ? [root[key]] : [];
@@ -1385,15 +1552,21 @@
         const candidate = fiber.stateNode?.state;
         if (candidate && typeof candidate === "object" && (candidate.characterLoadoutDict || candidate.characterLoadoutMap || candidate.characterSkillMap || candidate.characterSkillDict || candidate.endCharacterSkills || candidate.characterLabyrinth || candidate.combatUnit || candidate.gameConn || candidate.guildCharacterMap || candidate.guildSharableCharacterMap || candidate.guildTrialSignupLevelDict || candidate.guildWeeklyTrialSet || candidate.characterHouseRoomMap || candidate.characterHouseRoomDict || candidate.characterAchievements || candidate.characterAchievementMap || candidate.characterGuildBuffDict || candidate.characterGuildBuffMap || candidate.guildBuildingLevelDict || candidate.guildBuildingLevelMap || candidate.guild)) {
           applyCharacterTree(candidate, "live", livePass);
+          liveDataFound = true;
         }
         if (fiber.return) queue.push(fiber.return);
         if (fiber.child) queue.push(fiber.child);
         if (fiber.sibling) queue.push(fiber.sibling);
       }
-      state.skillsLiveComplete = SKILL_LEVEL_HRIDS.every((hrid) => livePass.has(hrid));
-      state.liveSkillHrids = new Set(livePass);
+      if (livePass.size > 0) {
+        if (!(state.liveSkillHrids instanceof Set)) state.liveSkillHrids = new Set();
+        for (const hrid of livePass) state.liveSkillHrids.add(hrid);
+        state.skillsLiveComplete = SKILL_LEVEL_HRIDS.every(
+          (hrid) => state.liveSkillHrids.has(hrid) && state.skillSources.get(hrid) === "live",
+        );
+      }
       refresh();
-      return hasCharacterData();
+      return liveDataFound && hasCharacterData();
     } catch { /* unavailable during initial render */ }
     return false;
   }
@@ -1447,6 +1620,7 @@
     // held from the previous capture.
     let captureOwner = preferred || sessionRootId(root) || knownId || "";
     const pass = livePass ?? (source !== "cache" ? new Set() : null);
+    let sawSkillPayload = false;
     // A node that names no character is only trustworthy while nothing else in
     // the tree names a different one. Otherwise its skills could be filed under
     // the wrong member (F3).
@@ -1473,6 +1647,9 @@
       // fill gaps as cache.
       const inheritedTrust = Boolean(inheritedId) && inheritedId === captureOwner;
       const skillTrust = Boolean(preferred) || Boolean(ownId) || (!ambiguous && inheritedTrust);
+      if (value.characterSkills || value.skills || value.characterSkillMap || value.characterSkillDict || value.endCharacterSkills || value.characterInfo?.characterSkills || value.characterInfo?.characterSkillMap || value.characterInfo?.characterSkillDict) {
+        sawSkillPayload = true;
+      }
       if (value.character || value.characterInfo || value.characterLoadoutDict || value.characterLoadoutMap || value.characterItems || value.characterSkills || value.characterSkillMap || value.characterSkillDict || value.endCharacterSkills || value.characterHouseRoomMap || value.characterHouseRoomDict || value.characterAchievements || value.characterAchievementMap || value.characterGuildBuffDict || value.characterGuildBuffMap || value.guildCharacterMap || value.guildSharableCharacterMap || value.guildTrialSignupLevelDict || value.guildWeeklyTrialSet || value.guildTrialDetailMap || value.combatMonsterDetailMap || value.guildBuildingLevelDict || value.guildBuildingLevelMap || value.guild) applyCharacterData(value, source, pass, skillTrust);
       if (depth >= 5) continue;
       for (const key of Object.keys(value)) {
@@ -1483,7 +1660,7 @@
         } catch { /* skip inaccessible reactive field */ }
       }
     }
-    if (!livePass && pass) {
+    if (!livePass && pass && sawSkillPayload) {
       state.skillsLiveComplete = SKILL_LEVEL_HRIDS.every((hrid) => pass.has(hrid));
       state.liveSkillHrids = new Set(pass);
     }
@@ -1747,6 +1924,11 @@
           return [{ locationHrid: string(locationHrid), itemHrid, enhancementLevel }];
         }));
       };
+      const character = input.character && typeof input.character === "object" ? input.character : {};
+      const learnedAbilityMap = {
+        ...levels(input.learnedAbilities ?? character.learnedAbilities),
+        ...levels(input.auras ?? character.auras),
+      };
       const abilities = (items) => list(items).slice(0, 5).flatMap((item, slot) => {
         const abilityHrid = string(item.abilityHrid ?? item.ability_hrid ?? item.hrid);
         if (!abilityHrid || isConsumable(abilityHrid)) return [];
@@ -1757,7 +1939,10 @@
           const value = Number(trigger.value ?? 0);
           return dependencyHrid && conditionHrid && comparatorHrid && Number.isFinite(value) && !isConsumable(`${dependencyHrid} ${conditionHrid} ${comparatorHrid}`) ? [{ dependencyHrid, conditionHrid, comparatorHrid, value }] : [];
         });
-        return [{ slot: count(item.slot, slot), abilityHrid, level: Math.max(1, count(item.level, 1)), triggers }];
+        const rawLevel = count(item.level, 1);
+        const learnedLevel = count(learnedAbilityMap[abilityHrid], 1);
+        const level = rawLevel > 1 ? rawLevel : Math.max(1, learnedLevel, rawLevel);
+        return [{ slot: count(item.slot, slot), abilityHrid, level, triggers }];
       });
       const abilitiesFromLoadout = (loadout) => {
         const direct = abilities(loadout.abilities ?? loadout.combatAbilities ?? loadout.combat_abilities);
@@ -1775,12 +1960,11 @@
           return [{
             slot: Math.max(0, slotNumber - 1),
             abilityHrid,
-            level: Math.max(1, count(abilityReference?.level, 1)),
+            level: Math.max(1, count(abilityReference?.level, learnedAbilityMap[abilityHrid] ?? 1)),
             triggers: list(triggerMap instanceof Map ? triggerMap.get(abilityHrid) : triggerMap[abilityHrid]),
           }];
         }));
       };
-      const character = input.character && typeof input.character === "object" ? input.character : {};
       const allowed = new Map();
       for (const raw of list(input.authorizedEquipment ?? character.equipment ?? character.inventory)) {
         const row = raw && typeof raw === "object" ? raw : {};
@@ -1981,8 +2165,22 @@
         itemByHash.set(String(key), item);
         if (item?.hash) itemByHash.set(String(item.hash), item);
       }
-      const abilityLevelByHrid = new Map(entries(gameState?.characterAbilityMap || gameState?.characterAbilities || gameState?.characterAbilityDict)
-        .map(([key, ability]) => [String(ability?.abilityHrid || ability?.hrid || key), Number(ability?.level || 1)]));
+      const abilityLevelByHrid = new Map();
+      for (const source of [
+        gameState?.characterAbilities,
+        gameState?.characterAbilityDict,
+        gameState?.characterAbilityMap,
+        gameState?.combatAbilities,
+        gameState?.combatUnit?.combatAbilities,
+      ]) {
+        for (const [key, ability] of entries(source)) {
+          const hrid = String(ability?.abilityHrid || ability?.hrid || key);
+          const level = Number(ability?.level ?? ability ?? 0);
+          if (hrid.startsWith("/") && Number.isFinite(level) && level > (abilityLevelByHrid.get(hrid) ?? 0)) {
+            abilityLevelByHrid.set(hrid, Math.trunc(level));
+          }
+        }
+      }
       const loadouts = values(gameState?.characterLoadoutDict || gameState?.characterLoadoutMap).map((loadout) => {
         const wearableEntries = entries(loadout?.wearableMap);
         const equipmentEntries = wearableEntries.length
@@ -2026,10 +2224,16 @@
           );
           if (!hrid.startsWith("/")) return [];
           const slotNumber = Number(String(slot).match(/\d+/)?.[0] ?? slot);
+          const refLevel = Number(abilityReference?.level);
+          const mapLevel = Number(abilityLevelByHrid.get(hrid));
           return [{
             slot: Math.max(0, slotNumber - 1),
             abilityHrid: hrid,
-            level: Number(abilityReference?.level ?? abilityLevelByHrid.get(hrid) ?? 1),
+            level: Math.max(
+              1,
+              Number.isFinite(refLevel) && refLevel > 0 ? Math.trunc(refLevel) : 1,
+              Number.isFinite(mapLevel) && mapLevel > 0 ? Math.trunc(mapLevel) : 1,
+            ),
             triggers: values(triggerMap instanceof Map ? triggerMap.get(hrid) : triggerMap[hrid]),
           }];
         });
@@ -2070,12 +2274,15 @@
           ...characterItems,
           ...loadouts.flatMap((loadout) => loadout.equipment),
         ],
-        characterAbilities: values(gameState?.characterAbilities || gameState?.characterAbilityMap || gameState?.characterAbilityDict),
+        characterAbilities: abilityLevelByHrid.size
+          ? [...abilityLevelByHrid.entries()].map(([abilityHrid, level]) => ({ abilityHrid, level }))
+          : values(gameState?.characterAbilityMap || gameState?.characterAbilityDict || gameState?.characterAbilities),
+        characterAbilityDict: dictionary(gameState?.characterAbilityMap || gameState?.characterAbilityDict),
         combatAbilities: values(gameState?.combatAbilities || gameState?.combatUnit?.combatAbilities),
         loadouts,
       };
     };
-    const recover = () => {
+    const recover = (requestId) => {
       const roots = [document.querySelector('[class^="GamePage_gamePage"]'), document.getElementById("root"), document.body].filter(Boolean);
       const queue = roots.flatMap((root) => Reflect.ownKeys(root).filter((key) => String(key).startsWith("__reactFiber$") || String(key).startsWith("__reactContainer$")).map((key) => root[key]));
       const seen = new Set(); let best = null; let score = -1;
@@ -2112,7 +2319,14 @@
         if (fiber.child) queue.push(fiber.child);
         if (fiber.sibling) queue.push(fiber.sibling);
       }
-      if (best) window.postMessage({ source: channel, type: "state", payload: best }, window.location.origin);
+      if (best) {
+        window.postMessage(
+          requestId == null
+            ? { source: channel, type: "state", payload: best }
+            : { source: channel, type: "state", payload: best, requestId },
+          window.location.origin,
+        );
+      }
     };
     const NativeWebSocket = window.WebSocket;
     if (typeof NativeWebSocket === "function") {
@@ -2129,8 +2343,8 @@
         }
       };
     }
-    window.addEventListener("message", (event) => { if (event.origin === window.location.origin && event.data?.source === channel && event.data?.type === "request") recover(); });
-    if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", recover, { once: true }); else recover();
+    window.addEventListener("message", (event) => { if (event.origin === window.location.origin && event.data?.source === channel && event.data?.type === "request") recover(event.data.requestId); });
+    if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", () => recover(), { once: true }); else recover();
   }
 
   function installPageBridge() {
@@ -2145,9 +2359,12 @@
         if (event.data?.type !== "state") return;
         applyCharacterData(event.data.payload);
         refresh();
-        if (hasCharacterData()) {
+        if (hasCharacterData() && skillsAreLive()) {
           clearTimeout(hydration.timer);
           hydration.timer = 0;
+          hydration.attempt = 0;
+          setStatus(tr("characterLoaded"));
+        } else if (hasCharacterData()) {
           setStatus(tr("characterLoaded"));
         }
       });
@@ -2186,16 +2403,20 @@
       resetCharacterData();
     }
     // Seed from the cache first, then let live game state override or fill
-    // every skill row. The reverse order let a stale cache overwrite skills
-    // that live state had just reported.
+    // every skill row. A cache hit alone is not live data: keep asking the
+    // page bridge and retrying until live skills arrive or retries run out.
     const cache = hydrateFromGameCache();
     const live = hydrateFromLiveGame();
-    if (live || cache) {
+    if ((live || hasCharacterData()) && skillsAreLive()) {
       hydration.attempt = 0;
       setStatus(tr("characterLoaded"));
       return;
     }
-    setStatus(tr("waitingHydration", hydration.attempt + 1, HYDRATION_RETRY_DELAYS_MS.length + 1), true);
+    if (cache || hasCharacterData()) {
+      setStatus(tr("characterLoaded"));
+    } else {
+      setStatus(tr("waitingHydration", hydration.attempt + 1, HYDRATION_RETRY_DELAYS_MS.length + 1), true);
+    }
     window.postMessage({ source: PAGE_BRIDGE_CHANNEL, type: "request" }, location.origin);
     if (hydration.attempt >= HYDRATION_RETRY_DELAYS_MS.length) return;
     const delay = HYDRATION_RETRY_DELAYS_MS[hydration.attempt];
@@ -2238,6 +2459,7 @@
   function requestPageBridgeState(timeoutMs = 900) {
     return new Promise((resolve) => {
       let settled = false;
+      const requestId = (requestPageBridgeState.seq = (requestPageBridgeState.seq ?? 0) + 1);
       const finish = () => {
         if (settled) return;
         settled = true;
@@ -2247,22 +2469,23 @@
       };
       const onMessage = (event) => {
         if (event.origin !== location.origin || event.data?.source !== PAGE_BRIDGE_CHANNEL) return;
-        if (event.data?.type === "state" || event.data?.type === "packet") {
-          // Existing listener applies payload; wait one tick then re-check.
-          queueMicrotask(() => {
-            hydrateFromLiveGame();
-            finish();
-          });
+        if (event.data?.type !== "state" || event.data?.requestId !== requestId) return;
+        if (event.data.payload) {
+          applyCharacterData(event.data.payload);
         }
+        queueMicrotask(() => {
+          hydrateFromLiveGame();
+          finish();
+        });
       };
       const timer = setTimeout(() => {
         hydrateFromGameCache();
         hydrateFromLiveGame();
         finish();
       }, timeoutMs);
-      window.addEventListener("message", onMessage);
       installPageBridge();
-      window.postMessage({ source: PAGE_BRIDGE_CHANNEL, type: "request" }, location.origin);
+      window.addEventListener("message", onMessage);
+      window.postMessage({ source: PAGE_BRIDGE_CHANNEL, type: "request", requestId }, location.origin);
     });
   }
   async function ensureGuildConfirmed() {
@@ -2741,12 +2964,15 @@
     return stampSkillFreshness(snapshot);
   }
   function download() {
-    const snapshot = payload();
-    const blob = new Blob([JSON.stringify(snapshot, null, 2)], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const anchor = Object.assign(document.createElement("a"), { href: url, download: `mwi-member-snapshot-v2-${snapshot.memberId}.json` });
-    anchor.click();
-    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    const emitDownload = (snapshot) => {
+      const blob = new Blob([JSON.stringify(snapshot, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const anchor = Object.assign(document.createElement("a"), { href: url, download: `mwi-member-snapshot-v2-${snapshot.memberId}.json` });
+      anchor.click();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      return snapshot;
+    };
+    return requestPageBridgeState(300).then(() => emitDownload(payload()));
   }
   function setStatus(message, isError = false) {
     const node = document.getElementById(UI.status);
@@ -4445,11 +4671,14 @@
     }
     clearTimeout(automaticSync.timer);
     automaticSync.timer = 0;
-    const snapshot = payload();
     // Capture the identity generation before any wait. A switch (or a round
     // trip away and back) during the guild-confirmation / equipment waits must
     // abandon this run; capturing it later would miss exactly that window.
     const identityGeneration = collectState.scopeGeneration ?? 0;
+    if (typeof requestPageBridgeState === "function") {
+      await requestPageBridgeState(300);
+    }
+    let snapshot = payload();
     if (!snapshot.memberId || snapshot.memberId === "unknown-member") {
       setStatus(tr("waitingName"), true);
       return;
@@ -4461,6 +4690,7 @@
         setStatus(tr("notRegisteredGuildDetail", guildConfirmDetail()), true);
         return;
       }
+      snapshot = payload();
     }
     if (catalogMissingUsableEquipment(snapshot)) {
       window.postMessage({ source: PAGE_BRIDGE_CHANNEL, type: "request" }, location.origin);
